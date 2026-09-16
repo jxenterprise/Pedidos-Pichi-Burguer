@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- ===========================================================================
+     PICHI BURGUER · Sistema de pedidos en línea
+     ARCHIVO: panel.html  ·  Panel del vendedor
+     ---------------------------------------------------------------------------
+     QUÉ ES: la pantalla privada donde el vendedor ve los pedidos que van
+     entrando. Reemplaza la libreta del mostrador.
+
+     CÓMO FUNCIONA:
+       · Pide la clave del panel. La clave la revisa el SERVIDOR (Cloudflare),
+         nunca este archivo — así no se puede ver abriendo el código.
+       · Muestra dos pestañas: ACTIVOS (pedidos de las últimas 5 horas, por
+         turno de menor a mayor) e HISTORIAL (los de más de 5 horas).
+       · Se refresca solo cada 15 segundos.
+       · El historial se borra automáticamente los sábados a las 7:00 AM.
+
+     ⚠ NO SE INDEXA: lleva noindex porque es una pantalla privada; no tiene
+       sentido que aparezca en Google. Tampoco va en el sitemap.
+
+     DEPENDE DE: css/styles.css · js/config.js · js/almacen.js · js/panel.js
+     =========================================================================== -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Panel de pedidos · Pichi Burguer</title>
+<meta name="description" content="Pantalla privada de Pichi Burguer para ver los pedidos que entran por la página, ordenados por turno.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#000000">
+
+<link rel="icon" href="/img/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/img/icon-180.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap"></noscript>
+
+<link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="panel-cuerpo">
+
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+<!-- Barra superior: la misma del sitio público, para que todo se vea igual. -->
+<header class="barra">
+  <div class="barra__int">
+    <a class="barra__marca" href="index.html">
+      <img class="barra__logo" src="img/logo-pichi-burguer-cartagena.webp"
+           alt="Logo de Pichi Burguer" width="38" height="38">
+      <span class="barra__nombre">Panel de pedidos</span>
+    </a>
+    <p class="estado" id="estadoConexion" role="status">
+      <span class="estado__luz" aria-hidden="true"></span>
+      <span id="estadoConexionTexto">Sin conectar</span>
+    </p>
+  </div>
+</header>
+
+<main id="contenido">
+
+  <!-- ===========================================================
+       PANTALLA 1: ACCESO
+       Qué es: la puerta del panel.
+       Función: que un cliente que llegue por curiosidad a esta
+                dirección no vea los datos de nadie.
+       =========================================================== -->
+  <section class="acceso" id="pantallaAcceso">
+    <img src="img/logo-pichi-burguer-cartagena.webp"
+         alt="Logo de Pichi Burguer" width="120" height="120" fetchpriority="high">
+    <h1 style="font-size:1.5rem">Panel de pedidos</h1>
+    <p style="color:var(--texto-suave);font-size:.92rem">
+      Esta pantalla es solo para el local. Escribe la clave para entrar.
+    </p>
+
+    <p class="error-form" id="errorAcceso" role="alert"></p>
+
+    <form id="formAcceso">
+      <div class="campo">
+        <label for="campoClave">Clave del panel</label>
+        <input type="password" id="campoClave" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn--rojo btn--ancho" id="btnEntrar">Entrar</button>
+    </form>
+
+    <p style="margin-top:22px">
+      <a class="btn-texto" href="index.html">Volver a la página del menú</a>
+    </p>
+  </section>
+
+  <!-- ===========================================================
+       PANTALLA 2: PEDIDOS
+       Qué es: la lista de pedidos en dos pestañas.
+       Función: el vendedor ve turno, nombre, celular, hora exacta,
+                lo que pidió y el total, y marca lo que ya entregó.
+       Orden: turno 1 arriba y los siguientes debajo, como se
+              atiende en el mostrador.
+       Depende de: js/panel.js la llena; js/almacen.js trae los datos.
+       =========================================================== -->
+  <section id="pantallaPedidos" hidden style="padding-top:0">
+    <div class="contenedor">
+
+      <div class="seccion-cab" style="margin-bottom:20px">
+        <span class="etiqueta">Pedidos de hoy</span>
+        <h2 id="tituloPanel">Cargando…</h2>
+        <p id="subtituloPanel">Los pedidos aparecen aquí apenas los envía el cliente.</p>
+      </div>
+
+      <div class="pestanas" role="tablist">
+        <button type="button" class="pestana activa" id="tabActivos" role="tab" aria-selected="true" aria-controls="listaActivos">
+          Activos <span class="pestana__n" id="nActivos">0</span>
+        </button>
+        <button type="button" class="pestana" id="tabHistorial" role="tab" aria-selected="false" aria-controls="listaHistorial">
+          Historial <span class="pestana__n" id="nHistorial">0</span>
+        </button>
+        <button type="button" class="pestana" id="btnRefrescar" style="margin-left:auto">Actualizar</button>
+      </div>
+
+      <div id="listaActivos" role="tabpanel" aria-labelledby="tabActivos"></div>
+      <div id="listaHistorial" role="tabpanel" aria-labelledby="tabHistorial" hidden></div>
+
+      <div style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn--linea" id="btnBorrarHistorial">Borrar el historial ahora</button>
+        <button type="button" class="btn btn--linea" id="btnSalir">Cerrar sesión</button>
+      </div>
+
+      <p style="color:var(--texto-tenue);font-size:.82rem;margin-top:18px" id="notaLimpieza"></p>
+    </div>
+  </section>
+
+</main>
+
+<!-- Aviso flotante para confirmar acciones y avisar de pedidos nuevos. -->
+<p class="aviso-flot" id="avisoFlotante" role="status" aria-live="polite"></p>
+
+<footer class="pie">
+  <div class="contenedor">
+    <div class="pie__copy">
+      <p>© <span id="anio">2026</span> Pichi Burguer · Todos los derechos reservados.</p>
+      <!-- Crédito de JX Company · formato exacto obligatorio, no modificar -->
+      <p class="footer-dev">
+        <span class="footer-dev-txt">Diseño y desarrollo:</span>
+        <span class="footer-dev-jx">JX</span>
+        <span class="footer-dev-co">Company</span>
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/config.js" defer></script>
+<script src="js/almacen.js" defer></script>
+<script src="js/panel.js" defer></script>
+
+</body>
+</html>

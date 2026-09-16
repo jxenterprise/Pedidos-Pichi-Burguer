@@ -1,0 +1,35 @@
+# ============================================================================
+# PICHI BURGUER · Sistema de pedidos en línea
+# ARCHIVO: robots.txt
+# QUÉ HACE: le dice a los buscadores y a las IA qué pueden leer del sitio.
+# DECISIÓN: los bots de IA quedan PERMITIDOS a propósito, para que ChatGPT,
+# Claude, Perplexity o Gemini puedan recomendar el local cuando alguien
+# pregunte por hamburguesas en Cartagena. Muchas plantillas los bloquean por
+# defecto y el negocio pierde esa visibilidad sin enterarse.
+# ============================================================================
+
+User-agent: *
+Allow: /
+Disallow: /panel.html
+Disallow: /api/
+
+# Bots de IA — permitidos explícitamente
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://pedidos-pichiburguerctg.com/sitemap.xml

@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!-- ===========================================================================
+     PICHI BURGUER · Sistema de pedidos en línea
+     ARCHIVO: index.html  ·  Página del cliente
+     ---------------------------------------------------------------------------
+     QUÉ ES: la pantalla que ve la gente. Muestra el menú completo del local,
+     si está abierto o cerrado en este momento, y permite armar un pedido y
+     enviarlo. Al enviarlo, el cliente recibe su número de turno.
+
+     ESTRUCTURA DE LA PÁGINA:
+       1. Barra fija con logo y semáforo de estado
+       2. Barra de categorías
+       3. Portada (logo, estado grande, dirección)
+       4. Menú por categorías  ← es la sección que vende
+       5. Bebidas y adiciones
+       6. Cómo pedir (3 pasos)
+       7. Horarios y mapa
+       8. Footer con legales
+       + Barra del carrito, ventana del pedido, banner de cookies y WhatsApp
+
+     POR QUÉ EL MENÚ ESTÁ ESCRITO AQUÍ Y NO LO PINTA EL JAVASCRIPT:
+     para que Google y los bots de IA lean los platos y los precios en el código
+     servido. Si el menú lo generara el JS, los buscadores verían una página
+     vacía y el local no aparecería en las búsquedas.
+
+     DEPENDE DE: css/styles.css · js/config.js · js/almacen.js · js/script.js
+     =========================================================================== -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Pichi Burguer · Pide tu hamburguesa en línea en Cartagena</title>
+<meta name="description" content="Pide en línea en Pichi Burguer, Cartagena: hamburguesas, perros, picadas, salchipapas y patacones. Domicilio o para recoger en el barrio Bernardo Jaramillo.">
+<link rel="canonical" href="https://pedidos-pichiburguerctg.com/">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<meta name="theme-color" content="#000000">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+
+<!-- Vista previa al compartir el enlace por WhatsApp, Instagram o Facebook.
+     La URL de la imagen es ABSOLUTA a propósito: con ruta relativa, WhatsApp y
+     Facebook no muestran la vista previa y el enlace sale "pelado". -->
+<meta property="og:type" content="restaurant.restaurant">
+<meta property="og:site_name" content="Pichi Burguer">
+<meta property="og:locale" content="es_CO">
+<meta property="og:title" content="Pichi Burguer · Pide en línea en Cartagena">
+<meta property="og:description" content="Hamburguesas, perros, picadas y salchipapas. Pide desde el celular y recibe tu turno al instante.">
+<meta property="og:url" content="https://pedidos-pichiburguerctg.com/">
+<meta property="og:image" content="https://pedidos-pichiburguerctg.com/img/og-pichi-burguer-pedidos.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Logo de Pichi Burguer, hamburguesería en Cartagena">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pichi Burguer · Pide en línea en Cartagena">
+<meta name="twitter:description" content="Hamburguesas, perros, picadas y salchipapas. Pide desde el celular y recibe tu turno al instante.">
+<meta name="twitter:image" content="https://pedidos-pichiburguerctg.com/img/og-pichi-burguer-pedidos.webp">
+
+<!-- Geolocalización del local, para el posicionamiento en Google Maps.
+     ⚠ {POR CONFIRMAR}: las coordenadas son a nivel de barrio (Bernardo
+     Jaramillo). Cuando el cliente pase el enlace exacto de su ficha de Google,
+     reemplazar por las coordenadas precisas de la puerta del local. -->
+<meta name="geo.region" content="CO-BOL">
+<meta name="geo.placename" content="Cartagena de Indias, Bolívar">
+<meta name="geo.position" content="10.398;-75.489">
+<meta name="ICBM" content="10.398, -75.489">
+
+<link rel="icon" href="/img/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/img/icon-180.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<!-- Tipografías cargadas sin bloquear el pintado de la página: se piden como
+     recurso de baja prioridad y se aplican al terminar de bajar. Así el texto
+     aparece de inmediato aunque la fuente todavía no haya llegado. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@1,700;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap"></noscript>
+
+<link rel="stylesheet" href="css/styles.css">
+
+<!-- Datos estructurados para Google.
+     · Restaurant: la ficha del negocio (dirección, teléfono, horario).
+     · hasMenu: el menú completo, con cada plato y su Offer (precio, moneda y
+       disponibilidad). La estructura va de arriba hacia abajo — plato → offers
+       → Offer — nunca al revés, porque Google rechaza la estructura invertida.
+     · FAQPage: preguntas reales del local; Google las muestra desplegables.
+     openingHoursSpecification incluye los SIETE días (18:00–23:00), ya
+     confirmados por JX. Es lo que hace que Google muestre "Abierto ahora ·
+     cierra a las 11 p. m." en los resultados y en el mapa. Si un horario
+     cambia, hay que cambiarlo también aquí, no solo en la tabla visible. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://pedidos-pichiburguerctg.com/#sitio",
+      "url": "https://pedidos-pichiburguerctg.com/",
+      "name": "Pichi Burguer · Pedidos en línea",
+      "inLanguage": "es-CO",
+      "publisher": { "@id": "https://pedidos-pichiburguerctg.com/#negocio" }
+    },
+    {
+      "@type": "Restaurant",
+      "@id": "https://pedidos-pichiburguerctg.com/#negocio",
+      "name": "Pichi Burguer",
+      "url": "https://pedidos-pichiburguerctg.com/",
+      "image": "https://pedidos-pichiburguerctg.com/img/logo-pichi-burguer-cartagena.webp",
+      "telephone": "+573004752529",
+      "priceRange": "$$",
+      "servesCuisine": ["Comida rápida", "Hamburguesas", "Perros calientes", "Comida colombiana"],
+      "currenciesAccepted": "COP",
+      "paymentAccepted": "Efectivo, Nequi, Transferencia",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Cra 58A #6, Bernardo Jaramillo",
+        "addressLocality": "Cartagena de Indias",
+        "addressRegion": "Bolívar",
+        "addressCountry": "CO"
+      },
+      "geo": { "@type": "GeoCoordinates", "latitude": 10.398, "longitude": -75.489 },
+      "hasMap": "https://www.google.com/maps/search/?api=1&query=Cra+58A+%236%2C+Bernardo+Jaramillo%2C+Cartagena+de+Indias",
+      "openingHoursSpecification": [
+        { "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+          "opens": "18:00", "closes": "23:00" }
+      ],
+      "hasMenu": {
+        "@type": "Menu",
+        "name": "Menú Pichi Burguer",
+        "inLanguage": "es-CO",
+        "hasMenuSection": [
+          {
+            "@type": "MenuSection", "name": "Hamburguesas",
+            "hasMenuItem": [
+              { "@type": "MenuItem", "name": "Hamburguesa Sencilla", "description": "Carne artesanal, lechuga, jamón, tomate, cebolla, queso mozzarella, salsa al gusto y papas a la francesa.", "offers": { "@type": "Offer", "price": "16000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Hamburguesa Especial", "description": "Carne artesanal, lechuga, tocineta, jamón, tomate, cebolla, queso mozzarella, chorizo, salsa al gusto y papas a la francesa.", "offers": { "@type": "Offer", "price": "18000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Hamburguesa Pichi", "description": "Doble carne artesanal, lechuga, tomate, cebolla, jamón, tocineta, queso mozzarella, salsa al gusto y papas a la francesa.", "offers": { "@type": "Offer", "price": "22000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } }
+            ]
+          },
+          {
+            "@type": "MenuSection", "name": "Perros",
+            "hasMenuItem": [
+              { "@type": "MenuItem", "name": "Perro Sencillo", "description": "Salchicha, queso mozzarella, cebolla, ripio y salsa al gusto.", "offers": { "@type": "Offer", "price": "8000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Perro Súper", "description": "Salchicha, queso mozzarella, lechuga, cebolla, jamón, ripio y salsas al gusto.", "offers": { "@type": "Offer", "price": "10000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Chiriperro", "description": "Chorizo, jamón, queso mozzarella, lechuga, cebolla, ripio y salsa al gusto.", "offers": { "@type": "Offer", "price": "14000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Chori Especial", "description": "Chorizo antioqueño, cebolla, lechuga, doble queso, jamón, relleno de picada, ripio y salsa al gusto.", "offers": { "@type": "Offer", "price": "18000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } }
+            ]
+          },
+          {
+            "@type": "MenuSection", "name": "Picadas",
+            "hasMenuItem": [
+              { "@type": "MenuItem", "name": "Picada Sencilla", "description": "Chorizo, butifarra, lechuga, jamón, carne, pollo, papas, patacón, ripio, queso mozzarella y salsa al gusto.", "offers": { "@type": "Offer", "price": "25000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Picada Súper", "description": "Chorizo, butifarra, lechuga, tocineta, carne, pollo, lomo de cerdo, papas, patacón, ripio, queso mozzarella y salsas al gusto.", "offers": { "@type": "Offer", "price": "30000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Picada Pichi", "description": "Chorizo, butifarra, lechuga, tocineta, salchicha, carne, pollo, lomo de cerdo, queso costeño, queso mozzarella, papas, patacón y salsas al gusto.", "offers": { "@type": "Offer", "price": "40000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } }
+            ]
+          },
+          {
+            "@type": "MenuSection", "name": "Salchipapas personales",
+            "hasMenuItem": [
+              { "@type": "MenuItem", "name": "Salchipapa Sencilla", "description": "Papas a la francesa, salchicha, lechuga, jamón, queso mozzarella, ripio y salsa al gusto.", "offers": { "@type": "Offer", "price": "12000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Choripapa", "description": "Papas a la francesa, chorizo, butifarra, lechuga, jamón, ripio, queso mozzarella, carne o pollo y salsas al gusto.", "offers": { "@type": "Offer", "price": "16000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Salchipapa Mixta", "description": "Papas a la francesa, chorizo, butifarra, lechuga, jamón, queso mozzarella, carne, pollo, ripio y salsas al gusto.", "offers": { "@type": "Offer", "price": "18000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } }
+            ]
+          },
+          {
+            "@type": "MenuSection", "name": "Patacón",
+            "hasMenuItem": [
+              { "@type": "MenuItem", "name": "Patacón Súper", "description": "Chorizo, butifarra, lechuga, jamón, queso mozzarella, carne o pollo y salsa al gusto.", "offers": { "@type": "Offer", "price": "16000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } },
+              { "@type": "MenuItem", "name": "Patacón Mixto", "description": "Chorizo, butifarra, lechuga, jamón, queso mozzarella, carne, pollo, queso costeño y salsa al gusto.", "offers": { "@type": "Offer", "price": "18000", "priceCurrency": "COP", "availability": "https://schema.org/InStock" } }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://pedidos-pichiburguerctg.com/#faq",
+      "mainEntity": [
+        { "@type": "Question", "name": "¿Pichi Burguer hace domicilios?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Se puede pedir a domicilio o para recoger en el local, en la Cra 58A #6, barrio Bernardo Jaramillo, Cartagena. El valor del domicilio se acuerda por WhatsApp según el barrio." } },
+        { "@type": "Question", "name": "¿Cómo pido por la página?", "acceptedAnswer": { "@type": "Answer", "text": "Se escogen los productos del menú, se escribe el nombre y el teléfono y se envía el pedido. La página entrega de inmediato un número de turno y el pedido llega al local." } },
+        { "@type": "Question", "name": "¿Qué medios de pago aceptan?", "acceptedAnswer": { "@type": "Answer", "text": "Efectivo, Nequi y transferencia." } },
+        { "@type": "Question", "name": "¿Se puede pedir cuando el local está cerrado?", "acceptedAnswer": { "@type": "Answer", "text": "No. El menú se puede ver a cualquier hora, pero los pedidos solo se reciben dentro del horario de atención. La página muestra en todo momento si el local está abierto o cerrado." } }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+
+<body>
+
+<a class="skip-link" href="#menu">Saltar al menú</a>
+
+<!-- ===========================================================
+     SECCIÓN: BARRA SUPERIOR
+     Qué es: barra fija con el logo y el semáforo de estado.
+     Función: que el visitante sepa si el local está abierto sin
+              tener que hacer scroll. Es lo primero que pregunta.
+     Depende de: js/script.js pone la clase esta-abierto / esta-cerrado
+                 y escribe el texto según el horario de config.js.
+     =========================================================== -->
+<header class="barra">
+  <div class="barra__int">
+    <a class="barra__marca" href="#inicio">
+      <img class="barra__logo" src="img/logo-pichi-burguer-cartagena.webp"
+           alt="Logo de Pichi Burguer" width="38" height="38">
+      <span class="barra__nombre">Pichi Burguer</span>
+    </a>
+    <p class="estado" id="estadoBarra" role="status">
+      <span class="estado__luz" aria-hidden="true"></span>
+      <span id="estadoBarraTexto">Comprobando…</span>
+    </p>
+  </div>
+</header>
+
+<!-- ===========================================================
+     SECCIÓN: BARRA DE CATEGORÍAS
+     Qué es: accesos directos a cada grupo del menú.
+     Función: en un menú de 15 platos, evita que el cliente tenga
+              que bajar buscando. Se desliza de lado en el celular.
+     Depende de: .categorias en css/styles.css; js/script.js marca
+                 la categoría por la que va el scroll.
+     =========================================================== -->
+<nav class="categorias" id="navCategorias" aria-label="Categorías del menú">
+  <div class="categorias__int">
+    <a href="#hamburguesas">Hamburguesas</a>
+    <a href="#perros">Perros</a>
+    <a href="#picadas">Picadas</a>
+    <a href="#salchipapas">Salchipapas</a>
+    <a href="#patacon">Patacón</a>
+    <a href="#bebidas">Bebidas</a>
+    <a href="#horarios">Horarios</a>
+  </div>
+</nav>
+
+<main id="inicio">
+
+  <!-- ===========================================================
+       SECCIÓN: PORTADA
+       Qué es: la entrada de la página con el logo y el estado.
+       Función: en tres segundos el visitante sabe dónde está, si
+                puede pedir ahora y dónde queda el local.
+       =========================================================== -->
+  <section class="portada">
+    <div class="contenedor">
+
+      <!-- La imagen del logo es la más grande de la pantalla inicial, así que
+           se carga con prioridad alta y SIN "lazy": es la que define la
+           velocidad percibida de la página. -->
+      <img class="portada__logo" src="img/logo-pichi-burguer-cartagena.webp"
+           alt="Logo de Pichi Burguer, hamburguesería en el barrio Bernardo Jaramillo de Cartagena"
+           width="220" height="220" fetchpriority="high">
+
+      <!-- ▼▼▼ ZONA EDITABLE · TEXTOS ▼▼▼
+           QUÉ CAMBIAR: el título grande y la frase que va debajo.
+           CÓMO: cambia el texto que está entre > y < sin borrar las etiquetas.
+           EJEMPLO: donde dice "Pide tu Pichi sin hacer fila" escribe
+                    "Tu antojo, en minutos". Igual con la frase de abajo.
+           LÍMITE: título máx. 45 caracteres; frase máx. 120 caracteres.
+                   Más largo se sale de la pantalla en celulares pequeños.
+           NO TOCAR: class, div, span, ni nada fuera de esta zona.
+      -->
+      <h1>Pide tu Pichi<br>sin hacer fila</h1>
+      <p class="portada__lema">
+        El menú completo del local, con precios reales. Escoges, envías el pedido
+        y te sale tu número de turno al instante.
+      </p>
+      <!-- ▲▲▲ FIN ZONA EDITABLE · TEXTOS ▲▲▲ -->
+
+      <p class="aviso-estado" id="avisoEstado">
+        <span class="estado__luz" aria-hidden="true"></span>
+        <span id="avisoEstadoTexto">Comprobando el horario del local…</span>
+      </p>
+
+      <div class="portada__datos">
+        <span>📍 Cra 58A #6 · Bernardo Jaramillo</span>
+        <span>🛵 Domicilio y para recoger</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===========================================================
+       SECCIÓN: MENÚ
+       Qué es: el catálogo completo del local, en cinco categorías.
+       Función: es LA sección que convierte. El cliente decide aquí.
+       Depende de: .menu-grid y .plato en css/styles.css.
+                   js/script.js lee data-nombre y data-precio de cada
+                   botón "Agregar" para armar el carrito y el total.
+       =========================================================== -->
+  <div id="menu">
+
+    <!-- ▼▼▼ ZONA EDITABLE · PRODUCTOS ▼▼▼
+         QUÉ CAMBIAR: nombre, descripción y precio de cada plato; y agregar o
+                      quitar platos completos copiando un bloque <article>.
+         CÓMO: cambia el texto entre > y <. En el precio hay que cambiarlo en
+               DOS lugares del mismo plato:
+                 1) lo que se ve:        <span class="plato__precio">$16.000</span>
+                 2) lo que suma el carrito: data-precio="16000"
+               El de data-precio va SIN puntos ni signo de pesos.
+         EJEMPLO: $16.000 y data-precio="16000"  →  $17.000 y data-precio="17000"
+         LÍMITE: nombre máx. 28 caracteres · descripción máx. 165 caracteres.
+                 Más largo descuadra la tarjeta en celulares pequeños.
+         ⚠ SE REPITE EN: el bloque JSON-LD del <head> (cada plato aparece ahí
+           con su precio dentro de "offers"). SI CAMBIA UN PRECIO, HAY QUE
+           CAMBIARLO TAMBIÉN ALLÁ o Google mostrará el precio viejo.
+         NO TOCAR: class, data-id, article, div, ni nada fuera de esta zona.
+    -->
+
+    <!-- Categoría 1: Hamburguesas -->
+    <section class="grupo" id="hamburguesas">
+      <div class="contenedor">
+        <div class="seccion-cab">
+          <span class="etiqueta">Hamburguesas</span>
+          <h2>Carne artesanal y papas a la francesa</h2>
+        </div>
+        <div class="menu-grid">
+
+          <article class="plato" data-id="ham-sencilla">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Sencilla</h3>
+              <span class="plato__precio">$16.000</span>
+            </div>
+            <p class="plato__desc">Carne artesanal, lechuga, jamón, tomate, cebolla, queso mozzarella, salsa al gusto y papas a la francesa.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Hamburguesa Sencilla" data-precio="16000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Hamburguesa Sencilla">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Hamburguesa Sencilla">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="ham-especial">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Especial</h3>
+              <span class="plato__precio">$18.000</span>
+            </div>
+            <p class="plato__desc">Carne artesanal, lechuga, tocineta, jamón, tomate, cebolla, queso mozzarella, chorizo, salsa al gusto y papas a la francesa.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Hamburguesa Especial" data-precio="18000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Hamburguesa Especial">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Hamburguesa Especial">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="ham-pichi">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Hamburguesa Pichi</h3>
+              <span class="plato__precio">$22.000</span>
+            </div>
+            <p class="plato__desc">Doble carne artesanal, lechuga, tomate, cebolla, jamón, tocineta, queso mozzarella, salsa al gusto y papas a la francesa.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Hamburguesa Pichi" data-precio="22000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Hamburguesa Pichi">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Hamburguesa Pichi">+</button>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Categoría 2: Perros -->
+    <section class="grupo" id="perros">
+      <div class="contenedor">
+        <div class="seccion-cab">
+          <span class="etiqueta">Perros</span>
+          <h2>Del sencillo al Chori Especial</h2>
+        </div>
+        <div class="menu-grid">
+
+          <article class="plato" data-id="perro-sencillo">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Sencillo</h3>
+              <span class="plato__precio">$8.000</span>
+            </div>
+            <p class="plato__desc">Salchicha, queso mozzarella, cebolla, ripio y salsa al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Perro Sencillo" data-precio="8000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar un Perro Sencillo">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otro Perro Sencillo">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="perro-super">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Súper</h3>
+              <span class="plato__precio">$10.000</span>
+            </div>
+            <p class="plato__desc">Salchicha, queso mozzarella, lechuga, cebolla, jamón, ripio y salsas al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Perro Súper" data-precio="10000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar un Perro Súper">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otro Perro Súper">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="chiriperro">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Chiriperro</h3>
+              <span class="plato__precio">$14.000</span>
+            </div>
+            <p class="plato__desc">Chorizo, jamón, queso mozzarella, lechuga, cebolla, ripio y salsa al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Chiriperro" data-precio="14000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar un Chiriperro">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otro Chiriperro">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="chori-especial">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Chori Especial</h3>
+              <span class="plato__precio">$18.000</span>
+            </div>
+            <p class="plato__desc">Chorizo antioqueño, cebolla, lechuga, doble queso, jamón, relleno de picada, ripio y salsa al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Chori Especial" data-precio="18000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar un Chori Especial">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otro Chori Especial">+</button>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Categoría 3: Picadas -->
+    <section class="grupo" id="picadas">
+      <div class="contenedor">
+        <div class="seccion-cab">
+          <span class="etiqueta">Picadas</span>
+          <h2>Para compartir en la mesa</h2>
+        </div>
+        <div class="menu-grid">
+
+          <article class="plato" data-id="picada-sencilla">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Sencilla</h3>
+              <span class="plato__precio">$25.000</span>
+            </div>
+            <p class="plato__desc">Chorizo, butifarra, lechuga, jamón, carne, pollo, papas, patacón, ripio, queso mozzarella y salsa al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Picada Sencilla" data-precio="25000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Picada Sencilla">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Picada Sencilla">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="picada-super">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Súper</h3>
+              <span class="plato__precio">$30.000</span>
+            </div>
+            <p class="plato__desc">Chorizo, butifarra, lechuga, tocineta, carne, pollo, lomo de cerdo, papas, patacón, ripio, queso mozzarella y salsas al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Picada Súper" data-precio="30000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Picada Súper">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Picada Súper">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="picada-pichi">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Picada Pichi</h3>
+              <span class="plato__precio">$40.000</span>
+            </div>
+            <p class="plato__desc">Chorizo, butifarra, lechuga, tocineta, salchicha, carne, pollo, lomo de cerdo, queso costeño, queso mozzarella, papas, patacón y salsas al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Picada Pichi" data-precio="40000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Picada Pichi">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Picada Pichi">+</button>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Categoría 4: Salchipapas -->
+    <section class="grupo" id="salchipapas">
+      <div class="contenedor">
+        <div class="seccion-cab">
+          <span class="etiqueta">Salchipapas personales</span>
+          <h2>Papa a la francesa recién hecha</h2>
+        </div>
+        <div class="menu-grid">
+
+          <article class="plato" data-id="salchi-sencilla">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Sencilla</h3>
+              <span class="plato__precio">$12.000</span>
+            </div>
+            <p class="plato__desc">Papas a la francesa, salchicha, lechuga, jamón, queso mozzarella, ripio y salsa al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Salchipapa Sencilla" data-precio="12000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Salchipapa Sencilla">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Salchipapa Sencilla">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="choripapa">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Choripapa</h3>
+              <span class="plato__precio">$16.000</span>
+            </div>
+            <p class="plato__desc">Papas a la francesa, chorizo, butifarra, lechuga, jamón, ripio, queso mozzarella, carne o pollo y salsas al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Choripapa" data-precio="16000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Choripapa">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Choripapa">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="salchi-mixta">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Mixta</h3>
+              <span class="plato__precio">$18.000</span>
+            </div>
+            <p class="plato__desc">Papas a la francesa, chorizo, butifarra, lechuga, jamón, queso mozzarella, carne, pollo, ripio y salsas al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Salchipapa Mixta" data-precio="18000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar una Salchipapa Mixta">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otra Salchipapa Mixta">+</button>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Categoría 5: Patacón -->
+    <section class="grupo" id="patacon">
+      <div class="contenedor">
+        <div class="seccion-cab">
+          <span class="etiqueta">Patacón</span>
+          <h2>Plátano verde bien apretado</h2>
+        </div>
+        <div class="menu-grid">
+
+          <article class="plato" data-id="patacon-super">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Súper</h3>
+              <span class="plato__precio">$16.000</span>
+            </div>
+            <p class="plato__desc">Chorizo, butifarra, lechuga, jamón, queso mozzarella, carne o pollo y salsa al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Patacón Súper" data-precio="16000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar un Patacón Súper">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otro Patacón Súper">+</button>
+            </div>
+          </article>
+
+          <article class="plato" data-id="patacon-mixto">
+            <div class="plato__cab">
+              <h3 class="plato__nombre">Patacón Mixto</h3>
+              <span class="plato__precio">$18.000</span>
+            </div>
+            <p class="plato__desc">Chorizo, butifarra, lechuga, jamón, queso mozzarella, carne, pollo, queso costeño y salsa al gusto.</p>
+            <button type="button" class="btn btn--rojo btn--ancho plato__agregar"
+                    data-nombre="Patacón Mixto" data-precio="18000">Agregar</button>
+            <div class="contador">
+              <button type="button" class="contador__btn" data-accion="menos" aria-label="Quitar un Patacón Mixto">−</button>
+              <span class="contador__n">1</span>
+              <button type="button" class="contador__btn" data-accion="mas" aria-label="Agregar otro Patacón Mixto">+</button>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ▲▲▲ FIN ZONA EDITABLE · PRODUCTOS ▲▲▲ -->
+
+    <!-- ===========================================================
+         SECCIÓN: BEBIDAS Y ADICIONES
+         Qué es: aviso de que sí hay bebidas, pero sin precios todavía.
+         Función: no perder la venta de una gaseosa, y a la vez NO
+                  publicar precios inventados (Estatuto del Consumidor:
+                  el precio publicado tiene que ser el real).
+         ⚠ PENDIENTE: cuando el cliente pase los precios, este bloque se
+           reemplaza por tarjetas normales dentro de la ZONA EDITABLE ·
+           PRODUCTOS, con la misma estructura de los demás platos.
+         =========================================================== -->
+    <section class="grupo" id="bebidas">
+      <div class="contenedor">
+        <div class="seccion-cab">
+          <span class="etiqueta">Bebidas y adiciones</span>
+          <h2>Para acompañar</h2>
+        </div>
+        <div class="aviso-caja">
+          <h3>Gaseosas, jugos, agua y adiciones</h3>
+          <p>
+            En el local hay gaseosas, jugos, agua y adiciones de queso, papa y carne extra.
+            Los precios están <span class="pendiente">{POR CONFIRMAR}</span>, así que todavía
+            no se pueden agregar al pedido desde aquí.
+          </p>
+          <p>Por ahora se piden al enviar el pedido: escríbelo en el campo de notas y el local lo confirma por WhatsApp.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ===========================================================
+       SECCIÓN: CÓMO PEDIR
+       Qué es: los tres pasos del sistema, explicados corto.
+       Función: quitarle el miedo a quien nunca ha pedido por una
+                página web y está acostumbrado a llamar por teléfono.
+       =========================================================== -->
+  <section id="como-pedir">
+    <div class="contenedor">
+      <div class="seccion-cab">
+        <span class="etiqueta">Cómo pedir</span>
+        <h2>Tres pasos y listo</h2>
+      </div>
+      <div class="pasos">
+        <article class="paso">
+          <span class="paso__n" aria-hidden="true">1</span>
+          <div>
+            <h3>Escoge del menú</h3>
+            <p>Toca "Agregar" en lo que quieras. Abajo se va sumando el total.</p>
+          </div>
+        </article>
+        <article class="paso">
+          <span class="paso__n" aria-hidden="true">2</span>
+          <div>
+            <h3>Deja tu nombre y celular</h3>
+            <p>Dices si es domicilio o para recoger y cómo vas a pagar.</p>
+          </div>
+        </article>
+        <article class="paso">
+          <span class="paso__n" aria-hidden="true">3</span>
+          <div>
+            <h3>Te sale tu turno</h3>
+            <p>El pedido entra al local con tu número de turno y se prepara por orden de llegada.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===========================================================
+       SECCIÓN: HORARIOS, CONTACTO Y MAPA
+       Qué es: el cierre informativo de la página.
+       Función: que el cliente sepa cuándo abren y cómo llegar.
+       Ojo con el mapa: el iframe de Google instala cookies, así que
+       NO se carga hasta que el visitante acepte en el banner. Lo
+       exige la Resolución 32.126 de 2022 de la SIC.
+       =========================================================== -->
+  <section id="horarios">
+    <div class="contenedor">
+      <div class="seccion-cab">
+        <span class="etiqueta">Horarios y ubicación</span>
+        <h2>Dónde estamos y a qué hora abrimos</h2>
+      </div>
+
+      <div class="bloque-2">
+        <div>
+
+          <!-- ▼▼▼ ZONA EDITABLE · HORARIOS ▼▼▼
+               QUÉ CAMBIAR: las horas de cada día de la semana.
+               CÓMO: cambia el texto entre > y < de la segunda columna.
+               EJEMPLO: <td>6:00 p. m. – 11:00 p. m.</td>
+               LÍMITE: máx. 26 caracteres por celda.
+               ⚠ SE REPITE EN: js/config.js (bloque "horarios", que enciende la
+                 luz verde o roja) y en el JSON-LD del <head>
+                 ("openingHoursSpecification"). SI CAMBIA UN HORARIO, HAY QUE
+                 CAMBIARLO EN LOS TRES SITIOS o la luz mostrará una cosa y
+                 Google otra.
+               ✔ Horario confirmado por JX (sept. 2026): abren TODOS los días
+                 de 6:00 p. m. a 11:00 p. m., sin día de descanso.
+               NO TOCAR: class, table, tr, td, ni nada fuera de esta zona.
+          -->
+          <table class="tabla-horario" id="tablaHorario">
+            <caption class="sr-only">Horario de atención de Pichi Burguer</caption>
+            <tbody>
+              <tr data-dia="1"><th scope="row">Lunes</th>     <td>6:00 p. m. – 11:00 p. m.</td></tr>
+              <tr data-dia="2"><th scope="row">Martes</th>    <td>6:00 p. m. – 11:00 p. m.</td></tr>
+              <tr data-dia="3"><th scope="row">Miércoles</th> <td>6:00 p. m. – 11:00 p. m.</td></tr>
+              <tr data-dia="4"><th scope="row">Jueves</th>    <td>6:00 p. m. – 11:00 p. m.</td></tr>
+              <tr data-dia="5"><th scope="row">Viernes</th>   <td>6:00 p. m. – 11:00 p. m.</td></tr>
+              <tr data-dia="6"><th scope="row">Sábado</th>    <td>6:00 p. m. – 11:00 p. m.</td></tr>
+              <tr data-dia="0"><th scope="row">Domingo</th>   <td>6:00 p. m. – 11:00 p. m.</td></tr>
+            </tbody>
+          </table>
+          <!-- ▲▲▲ FIN ZONA EDITABLE · HORARIOS ▲▲▲ -->
+
+          <!-- ▼▼▼ ZONA EDITABLE · CONTACTO ▼▼▼
+               QUÉ CAMBIAR: dirección, barrio y número de teléfono.
+               CÓMO: cambia el texto entre > y <. En el teléfono hay que
+                     cambiarlo también dentro del href="tel:…".
+               LÍMITE: el teléfono siempre con indicativo (+57).
+               ⚠ SE REPITE EN: el botón flotante de WhatsApp (wa.me), el bloque
+                 JSON-LD del <head> ("telephone" y "address"), las geo tags, el
+                 iframe del mapa, el footer, js/config.js (bloque "negocio") y
+                 las cuatro páginas legales.
+                 SI CAMBIA, HAY QUE CAMBIARLO EN TODOS.
+               NO TOCAR: nada fuera de esta zona.
+          -->
+          <p style="margin-top:22px">
+            <strong>Pichi Burguer</strong><br>
+            Cra 58A #6 · Barrio Bernardo Jaramillo<br>
+            Cartagena de Indias, Bolívar<br>
+            <a href="tel:+573004752529">+57 300 4752529</a>
+          </p>
+          <!-- ▲▲▲ FIN ZONA EDITABLE · CONTACTO ▲▲▲ -->
+
+          <p>
+            <a class="btn btn--linea"
+               href="https://www.google.com/maps/dir/?api=1&destination=Cra+58A+%236%2C+Bernardo+Jaramillo%2C+Cartagena+de+Indias"
+               target="_blank" rel="noopener" data-evento="mapa">Cómo llegar</a>
+          </p>
+        </div>
+
+        <div class="mapa-caja" id="mapaCaja">
+          <!-- El iframe real lo inserta js/script.js SOLO cuando el visitante
+               acepta las cookies. Mientras tanto se ve este aviso con botón. -->
+          <div class="mapa-aviso" id="mapaAviso">
+            <p>El mapa lo pone Google y por eso instala cookies. Se carga solo si aceptas.</p>
+            <button type="button" class="btn btn--ama" id="btnVerMapa">Ver el mapa</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===========================================================
+     SECCIÓN: FOOTER
+     Qué es: cierre con contacto, enlaces legales y crédito.
+     Función: datos siempre a mano y cumplimiento legal.
+     =========================================================== -->
+<footer class="pie">
+  <div class="contenedor">
+    <div class="pie__grid">
+      <div>
+        <h3>Pichi Burguer</h3>
+        <ul>
+          <li>Cra 58A #6 · Bernardo Jaramillo</li>
+          <li>Cartagena de Indias, Bolívar</li>
+          <li><a href="tel:+573004752529">+57 300 4752529</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>El menú</h3>
+        <ul>
+          <li><a href="#hamburguesas">Hamburguesas</a></li>
+          <li><a href="#perros">Perros</a></li>
+          <li><a href="#picadas">Picadas</a></li>
+          <li><a href="#salchipapas">Salchipapas y patacón</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Información</h3>
+        <ul>
+          <li><a href="#horarios">Horarios y ubicación</a></li>
+          <li><a href="#como-pedir">Cómo pedir</a></li>
+          <li><a href="panel.html">Panel del vendedor</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pie__copy">
+      <p class="pie__legales" style="justify-content:center">
+        <a href="privacidad.html">Política de privacidad</a>
+        <a href="cookies.html">Política de cookies</a>
+        <a href="terminos.html">Términos y condiciones</a>
+        <a href="compras.html">Compras, envíos y devoluciones</a>
+        <button type="button" class="btn-texto" id="btnCookiesConfig">Configuración de cookies</button>
+      </p>
+      <p>© <span id="anio">2026</span> Pichi Burguer · Todos los derechos reservados.</p>
+
+      <!-- Crédito de JX Company · formato exacto obligatorio, no modificar -->
+      <p class="footer-dev">
+        <span class="footer-dev-txt">Diseño y desarrollo:</span>
+        <span class="footer-dev-jx">JX</span>
+        <span class="footer-dev-co">Company</span>
+      </p>
+    </div>
+  </div>
+</footer>
+
+<!-- ===========================================================
+     BARRA DEL CARRITO
+     Qué es: la barra fija de abajo con el total y el botón de pedir.
+     Función: que el cliente vea siempre cuánto lleva sin subir a
+              buscarlo. Solo aparece cuando ya escogió algo.
+     Depende de: js/script.js le pone la clase .visible.
+     =========================================================== -->
+<div class="carrito-barra" id="carritoBarra" role="region" aria-label="Resumen del pedido">
+  <div class="carrito-barra__int">
+    <div class="carrito-barra__info">
+      <span class="carrito-barra__n" id="carritoN">0 productos</span>
+      <span class="carrito-barra__total" id="carritoTotal">$0</span>
+    </div>
+    <button type="button" class="btn btn--rojo" id="btnPedir">Hacer el pedido</button>
+  </div>
+</div>
+
+<!-- ===========================================================
+     VENTANA DEL PEDIDO
+     Qué es: el formulario con los datos del cliente y, al enviarlo,
+             la pantalla con el número de turno.
+     Función: cerrar la venta sin sacar al cliente de la página.
+     Depende de: js/script.js (la abre y la valida) y js/almacen.js
+                 (guarda el pedido y devuelve el turno).
+     =========================================================== -->
+<div class="modal" id="modalPedido" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+  <div class="modal__caja">
+
+    <!-- Paso 1: formulario -->
+    <div id="pasoFormulario">
+      <div class="modal__cab">
+        <h2 id="modalTitulo">Tu pedido</h2>
+        <button type="button" class="modal__cerrar" id="btnCerrarModal" aria-label="Cerrar la ventana del pedido">✕</button>
+      </div>
+
+      <div class="resumen" id="resumenPedido"></div>
+
+      <p class="error-form" id="errorForm" role="alert"></p>
+
+      <form id="formPedido" novalidate>
+        <div class="campo">
+          <label for="campoNombre">Tu nombre *</label>
+          <input type="text" id="campoNombre" name="nombre" autocomplete="name"
+                 maxlength="60" placeholder="Ej: Andrés Pérez" required>
+        </div>
+
+        <div class="campo">
+          <label for="campoTelefono">Tu celular *</label>
+          <input type="tel" id="campoTelefono" name="telefono" autocomplete="tel"
+                 inputmode="numeric" maxlength="15" placeholder="Ej: 3001234567" required>
+          <p class="campo__ayuda">Se usa solo para avisarte cuando tu pedido esté listo.</p>
+        </div>
+
+        <div class="campo">
+          <span class="sr-only" id="etqEntrega">Forma de entrega</span>
+          <label aria-hidden="true">¿Cómo lo quieres?</label>
+          <div class="opciones" role="radiogroup" aria-labelledby="etqEntrega">
+            <input type="radio" id="tipoRecoger" name="tipo" value="recoger" checked>
+            <label for="tipoRecoger">Paso a recogerlo</label>
+            <input type="radio" id="tipoDomicilio" name="tipo" value="domicilio">
+            <label for="tipoDomicilio">A domicilio</label>
+          </div>
+        </div>
+
+        <!-- Solo se muestra si escoge domicilio; lo controla js/script.js -->
+        <div class="campo" id="campoDireccion" hidden>
+          <label for="campoDir">Dirección y barrio *</label>
+          <input type="text" id="campoDir" name="direccion" autocomplete="street-address"
+                 maxlength="160" placeholder="Ej: Cra 60 #12-34, barrio El Campestre">
+          <p class="campo__ayuda">El valor del domicilio se acuerda por WhatsApp según el barrio.</p>
+        </div>
+
+        <div class="campo">
+          <span class="sr-only" id="etqPago">Forma de pago</span>
+          <label aria-hidden="true">¿Cómo vas a pagar?</label>
+          <div class="opciones" role="radiogroup" aria-labelledby="etqPago">
+            <input type="radio" id="pagoEfectivo" name="pago" value="Efectivo" checked>
+            <label for="pagoEfectivo">Efectivo</label>
+            <input type="radio" id="pagoNequi" name="pago" value="Nequi">
+            <label for="pagoNequi">Nequi</label>
+            <input type="radio" id="pagoTransferencia" name="pago" value="Transferencia">
+            <label for="pagoTransferencia">Transferencia</label>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="campoNotas">Notas para la cocina</label>
+          <textarea id="campoNotas" name="notas" maxlength="200"
+                    placeholder="Ej: sin cebolla, una gaseosa personal, salsa aparte…"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn--rojo btn--ancho" id="btnEnviar">Enviar el pedido</button>
+        <p class="campo__ayuda" style="text-align:center;margin-top:12px">
+          Al enviarlo aceptas la <a href="privacidad.html">política de privacidad</a>.
+        </p>
+      </form>
+    </div>
+
+    <!-- Paso 2: turno confirmado (oculto hasta que se envía el pedido) -->
+    <div id="pasoTurno" hidden>
+      <div class="turno">
+        <p class="turno__etq">Tu turno de hoy</p>
+        <p class="turno__n" id="turnoNumero">–</p>
+        <h2 style="font-size:1.25rem;margin-top:12px">¡Pedido recibido!</h2>
+        <p style="color:var(--texto-suave);font-size:.92rem">
+          Se prepara por orden de llegada. Guarda esta pantalla o toma una captura.
+        </p>
+
+        <div class="turno__datos" id="turnoDatos"></div>
+
+        <a class="btn btn--rojo btn--ancho" id="btnWhatsAppPedido"
+           href="https://wa.me/573004752529?text=Hola%2C%20acabo%20de%20hacer%20un%20pedido%20en%20la%20p%C3%A1gina"
+           target="_blank" rel="noopener">
+          Confirmar por WhatsApp
+        </a>
+        <p class="campo__ayuda" style="margin-top:12px">
+          Es el respaldo del sistema: así el local lo recibe también por WhatsApp.
+        </p>
+        <button type="button" class="btn btn--linea btn--ancho" id="btnCerrarTurno" style="margin-top:10px">
+          Cerrar
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===========================================================
+     BANNER DE COOKIES
+     Qué es: el aviso de consentimiento previo.
+     Función: no cargar nada de Google (mapa ni analítica) hasta que
+              el visitante acepte. En Colombia la Resolución 32.126
+              de 2022 de la SIC prohíbe el consentimiento tácito.
+     Los dos botones tienen el mismo tamaño y contraste a propósito:
+     "Rechazar" no puede estar escondido.
+     =========================================================== -->
+<div class="cookies" id="bannerCookies" role="dialog" aria-live="polite" aria-label="Aviso de cookies">
+  <p>
+    Esta página usa cookies para medir las visitas y para mostrar el mapa de Google.
+    Nada se carga hasta que decidas. Puedes leer la
+    <a href="cookies.html">política de cookies</a>.
+  </p>
+  <div class="cookies__btns">
+    <button type="button" class="btn btn--linea" id="btnRechazarCookies">Rechazar</button>
+    <button type="button" class="btn btn--ama" id="btnAceptarCookies">Aceptar</button>
+  </div>
+</div>
+
+<!-- Único botón de WhatsApp de toda la página, fijo abajo a la derecha. -->
+<a class="wa-float"
+   href="https://wa.me/573004752529?text=Hola%2C%20vi%20la%20p%C3%A1gina%20de%20Pichi%20Burguer%20y%20quiero%20preguntar%20algo"
+   target="_blank" rel="noopener" aria-label="Escribir a Pichi Burguer por WhatsApp" data-evento="whatsapp">
+  <svg width="29" height="29" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.47 14.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.05-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.6-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.63.71.22 1.36.19 1.87.12.57-.09 1.75-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.23 8.23"/>
+  </svg>
+</a>
+
+<!-- Los tres archivos van en este orden obligatorio:
+     config.js define los datos → almacen.js los usa para guardar →
+     script.js maneja la pantalla. Si se cambia el orden, nada funciona. -->
+<script src="js/config.js" defer></script>
+<script src="js/almacen.js" defer></script>
+<script src="js/script.js" defer></script>
+
+</body>
+</html>

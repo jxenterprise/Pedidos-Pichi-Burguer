@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PICHI BURGUER · Sistema de pedidos en línea
+  ARCHIVO: sitemap.xml
+  QUÉ HACE: le dice a Google qué páginas existen y cuándo cambiaron.
+  QUÉ NO VA AQUÍ: la 404, el panel del vendedor y las páginas legales, porque
+  llevan noindex y no deben competir en los resultados con la página del menú.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://pedidos-pichiburguerctg.com/</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

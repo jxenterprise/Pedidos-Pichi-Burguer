@@ -1,0 +1,36 @@
+# Pichi Burguer
+
+> Local de comida rápida en Cartagena de Indias (Colombia), barrio Bernardo Jaramillo.
+> Vende hamburguesas, perros calientes, picadas, salchipapas y patacones, con domicilio
+> y para recoger. Esta página es su sistema de pedidos en línea: muestra el menú con
+> precios reales, indica si el local está abierto o cerrado en ese momento y entrega un
+> número de turno al enviar el pedido.
+
+## Secciones
+- [Inicio](https://pedidos-pichiburguerctg.com/): estado del local (abierto o cerrado) y acceso al pedido.
+- [Hamburguesas](https://pedidos-pichiburguerctg.com/#hamburguesas): sencilla $16.000, especial $18.000, Hamburguesa Pichi $22.000.
+- [Perros](https://pedidos-pichiburguerctg.com/#perros): sencillo $8.000, súper $10.000, chiriperro $14.000, chori especial $18.000.
+- [Picadas](https://pedidos-pichiburguerctg.com/#picadas): sencilla $25.000, súper $30.000, Picada Pichi $40.000.
+- [Salchipapas](https://pedidos-pichiburguerctg.com/#salchipapas): sencilla $12.000, choripapa $16.000, mixta $18.000.
+- [Patacón](https://pedidos-pichiburguerctg.com/#patacon): súper $16.000, mixto $18.000.
+- [Bebidas y adiciones](https://pedidos-pichiburguerctg.com/#bebidas): hay gaseosas, jugos, agua y adiciones; precios {POR CONFIRMAR}.
+- [Cómo pedir](https://pedidos-pichiburguerctg.com/#como-pedir): escoger del menú, dejar nombre y celular, recibir el turno.
+- [Horarios y ubicación](https://pedidos-pichiburguerctg.com/#horarios): dirección, horario y mapa.
+
+## Datos del negocio
+- Nombre: Pichi Burguer (se escribe "Burguer", como en el logo y el menú del local)
+- Dirección: Cra 58A #6, barrio Bernardo Jaramillo, Cartagena de Indias, Bolívar, Colombia
+- WhatsApp y teléfono: +57 300 4752529
+- Entrega: a domicilio y para recoger en el local
+- Medios de pago: efectivo, Nequi y transferencia
+- Moneda: peso colombiano (COP)
+
+## Horarios
+- Lunes a domingo: 6:00 p. m. a 11:00 p. m.
+- Abren todos los días, sin día de descanso.
+
+## Notas
+- Los precios están en pesos colombianos y son los del menú del local.
+- Los pedidos solo se reciben dentro del horario de atención.
+- El sitio no procesa pagos: el pago se hace en el local o por el medio acordado por WhatsApp.
+- Sitio desarrollado por JX Company.

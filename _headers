@@ -1,0 +1,38 @@
+# ============================================================================
+# PICHI BURGUER · Sistema de pedidos en línea
+# ARCHIVO: _headers  (configuración de Cloudflare Pages)
+# ----------------------------------------------------------------------------
+# QUÉ HACE: le dice al navegador cómo debe cachear cada archivo y le agrega
+# unas cabeceras de seguridad al sitio.
+# POR QUÉ ES OBLIGATORIO: sin esto, después de cambiar un precio en el CSS o el
+# JS, mucha gente seguiría viendo la versión vieja durante días porque su
+# navegador la tiene guardada. Con "no-cache" el navegador SIEMPRE pregunta si
+# el archivo cambió antes de usar su copia.
+# ============================================================================
+
+# --- CSS y JS: siempre se comprueba si hay versión nueva ---
+/css/*
+  Cache-Control: no-cache
+
+/js/*
+  Cache-Control: no-cache
+
+# --- La API de pedidos NUNCA se cachea: cada respuesta es distinta ---
+/api/*
+  Cache-Control: no-store
+
+# --- Imágenes: sí se cachean, porque el logo no cambia todos los días ---
+/img/*
+  Cache-Control: public, max-age=604800
+
+# --- Seguridad básica para todo el sitio ---
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# --- El panel del vendedor no debe quedar guardado ni salir en buscadores ---
+/panel.html
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
