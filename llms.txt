@@ -16,6 +16,7 @@
 - [Bebidas y adiciones](https://pedidos-pichiburguerctg.com/#bebidas): hay gaseosas, jugos, agua y adiciones; precios {POR CONFIRMAR}.
 - [Cómo pedir](https://pedidos-pichiburguerctg.com/#como-pedir): escoger del menú, dejar nombre y celular, recibir el turno.
 - [Horarios y ubicación](https://pedidos-pichiburguerctg.com/#horarios): dirección, horario y mapa.
+- [Preguntas frecuentes](https://pedidos-pichiburguerctg.com/#preguntas): domicilios, cómo pedir, medios de pago y pedidos fuera de horario.
 
 ## Datos del negocio
 - Nombre: Pichi Burguer (se escribe "Burguer", como en el logo y el menú del local)

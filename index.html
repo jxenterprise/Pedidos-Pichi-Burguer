@@ -17,7 +17,8 @@
        5. Bebidas y adiciones
        6. Cómo pedir (3 pasos)
        7. Horarios y mapa
-       8. Footer con legales
+       8. Preguntas frecuentes
+       9. Footer con legales
        + Barra del carrito, ventana del pedido, banner de cookies y WhatsApp
 
      POR QUÉ EL MENÚ ESTÁ ESCRITO AQUÍ Y NO LO PINTA EL JAVASCRIPT:
@@ -83,7 +84,15 @@
      · hasMenu: el menú completo, con cada plato y su Offer (precio, moneda y
        disponibilidad). La estructura va de arriba hacia abajo — plato → offers
        → Offer — nunca al revés, porque Google rechaza la estructura invertida.
-     · FAQPage: preguntas reales del local; Google las muestra desplegables.
+     · FAQPage: las mismas cuatro preguntas que se ven en la sección
+       "Preguntas frecuentes" de la página.
+       ⚠ OJO CON ESTO: Google retiró los resultados enriquecidos de FAQ el 7 de
+       mayo de 2026, así que estas preguntas YA NO salen desplegables en el
+       buscador. El marcado se conserva igual por dos razones: sigue siendo
+       válido para schema.org y es lo que leen los bots de IA (ChatGPT, Claude,
+       Perplexity) para responder por el local. Lo que NO se puede hacer es
+       dejar aquí preguntas que no estén escritas en la página: Google exige
+       que el marcado corresponda a contenido visible.
      openingHoursSpecification incluye los SIETE días (18:00–23:00), ya
      confirmados por JX. Es lo que hace que Google muestre "Abierto ahora ·
      cierra a las 11 p. m." en los resultados y en el mapa. Si un horario
@@ -231,6 +240,7 @@
     <a href="#patacon">Patacón</a>
     <a href="#bebidas">Bebidas</a>
     <a href="#horarios">Horarios</a>
+    <a href="#preguntas">Preguntas</a>
   </div>
 </nav>
 
@@ -748,6 +758,55 @@
             <button type="button" class="btn btn--ama" id="btnVerMapa">Ver el mapa</button>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===========================================================
+       SECCIÓN: PREGUNTAS FRECUENTES
+       Qué es: las cuatro dudas que más pregunta la gente por WhatsApp
+               antes de pedir, respondidas en la misma página.
+       Función: quitar la fricción previa a la compra y ahorrarle al
+                vendedor tener que contestar lo mismo todos los días.
+
+       ⚠ ESTE BLOQUE Y EL JSON-LD DEL <head> TIENEN QUE DECIR LO MISMO.
+       Google exige que el marcado FAQPage corresponda a texto que el
+       visitante VEA en la página; si aquí dice una cosa y allá otra, el
+       marcado se considera engañoso. Si se cambia una respuesta, hay que
+       cambiarla en los dos lugares.
+
+       POR QUÉ <details> Y NO JAVASCRIPT: el desplegable nativo del
+       navegador ya funciona con teclado y con lector de pantalla, y el
+       texto de la respuesta sigue estando en el código servido aunque
+       esté plegado — que es justo lo que leen Google y los bots de IA.
+       =========================================================== -->
+  <section id="preguntas">
+    <div class="contenedor">
+      <div class="seccion-cab">
+        <span class="etiqueta">Preguntas frecuentes</span>
+        <h2>Lo que más nos preguntan</h2>
+      </div>
+
+      <div class="faq">
+        <details class="faq__item">
+          <summary>¿Pichi Burguer hace domicilios?</summary>
+          <p>Sí. Se puede pedir a domicilio o para recoger en el local, en la Cra 58A #6, barrio Bernardo Jaramillo, Cartagena. El valor del domicilio se acuerda por WhatsApp según el barrio.</p>
+        </details>
+
+        <details class="faq__item">
+          <summary>¿Cómo pido por la página?</summary>
+          <p>Se escogen los productos del menú, se escribe el nombre y el teléfono y se envía el pedido. La página entrega de inmediato un número de turno y el pedido llega al local.</p>
+        </details>
+
+        <details class="faq__item">
+          <summary>¿Qué medios de pago aceptan?</summary>
+          <p>Efectivo, Nequi y transferencia.</p>
+        </details>
+
+        <details class="faq__item">
+          <summary>¿Se puede pedir cuando el local está cerrado?</summary>
+          <p>No. El menú se puede ver a cualquier hora, pero los pedidos solo se reciben dentro del horario de atención. La página muestra en todo momento si el local está abierto o cerrado.</p>
+        </details>
       </div>
     </div>
   </section>

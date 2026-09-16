@@ -237,7 +237,15 @@
         return Promise.resolve(separarLocal(leerLocal().pedidos));
       }
       return llamarApi('listar', {}, clave).then(function (r) {
-        return { activos: r.activos, historial: r.historial, modo: 'nube' };
+        // proximaLimpieza se pasa tal cual: el panel la muestra en la nota de
+        // abajo ("Próximo borrado: …"). Si no se reenvía aquí, el dato llega
+        // del servidor y se pierde en este punto, y la nota sale incompleta.
+        return {
+          activos: r.activos,
+          historial: r.historial,
+          proximaLimpieza: r.proximaLimpieza,
+          modo: 'nube'
+        };
       });
     },
 

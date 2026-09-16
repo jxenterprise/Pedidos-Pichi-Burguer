@@ -268,6 +268,44 @@
 
   var elementoQueAbrio = null;
 
+  /**
+   * Mantiene el tabulador dentro de la ventana mientras está abierta.
+   * Por qué hace falta: la ventana se anuncia con aria-modal="true", que le
+   * promete al lector de pantalla que lo de atrás no existe mientras esté
+   * abierta. Pero el navegador NO encierra el foco solo: probando con teclado
+   * se comprobó que al séptimo tabulador el foco saltaba a los enlaces del
+   * fondo, detrás del velo oscuro — o sea, el usuario quedaba "escribiendo" en
+   * una página que no puede ver. Aquí se cierra ese círculo: del último
+   * elemento se vuelve al primero, y con Shift al revés.
+   * @param {KeyboardEvent} e
+   */
+  function encerrarFoco(e) {
+    if (e.key !== 'Tab') { return; }
+
+    var caja = $('#modalPedido');
+    if (!caja.classList.contains('abierto')) { return; }
+
+    // Solo lo que de verdad se puede enfocar en este momento: se descarta lo
+    // que está oculto (el paso del turno mientras se ve el formulario, o el
+    // campo de dirección cuando el pedido es para recoger).
+    var enfocables = Array.prototype.filter.call(
+      caja.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled])'),
+      function (el) { return el.offsetWidth > 0 || el.offsetHeight > 0; }
+    );
+    if (!enfocables.length) { return; }
+
+    var primero = enfocables[0];
+    var ultimo = enfocables[enfocables.length - 1];
+
+    if (e.shiftKey && document.activeElement === primero) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault();
+      primero.focus();
+    }
+  }
+
   function abrirModal() {
     if (!estadoActual.aceptaPedidos) { return; }
     if (unidadesCarrito() === 0) { return; }
@@ -279,12 +317,16 @@
     $('#errorForm').classList.remove('visible');
     $('#modalPedido').classList.add('abierto');
     document.body.style.overflow = 'hidden';   // evita el scroll de fondo en iOS
+    document.addEventListener('keydown', encerrarFoco);
     $('#campoNombre').focus();
   }
 
   function cerrarModal() {
     $('#modalPedido').classList.remove('abierto');
     document.body.style.overflow = '';
+    // Se suelta el foco al cerrar: si el escucha quedara puesto, seguiría
+    // revisando cada tecla del resto de la página para nada.
+    document.removeEventListener('keydown', encerrarFoco);
     if (elementoQueAbrio) { elementoQueAbrio.focus(); }
   }
 

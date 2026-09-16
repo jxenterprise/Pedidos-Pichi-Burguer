@@ -140,9 +140,14 @@ window.PICHI_CONFIG = {
     limpiezaHistorial: { dia: 6, hora: 7, minuto: 0 },
 
     // Cada cuántos segundos el panel del vendedor busca pedidos nuevos.
-    // NO BAJAR DE 10: cada consulta gasta una lectura del plan gratuito de
-    // Cloudflare (100.000 al día). A 15 segundos, 12 horas de trabajo gastan
-    // unas 2.900 lecturas — sobra muchísimo margen.
+    // NO BAJAR DE 10. Cada consulta NO gasta una lectura: gasta hasta 9 (la
+    // marca de limpieza, el índice de días y el documento de cada día que
+    // quede guardado esa semana). Medido, no estimado.
+    // A 15 segundos, una jornada de 12 horas gasta ~26.000 lecturas POR CADA
+    // APARATO que tenga el panel abierto, de las 100.000 gratuitas al día.
+    // ⚠ Hasta 3 aparatos a la vez van holgados; con 4 se pasa del cupo.
+    // Si el local necesita más pantallas, subir este número (a 30 alcanza para
+    // el doble de aparatos). Es la única línea que hay que tocar.
     refrescoPanelSegundos: 15,
 
     // Los turnos vuelven a empezar en 1 cada día, como se maneja en el local.

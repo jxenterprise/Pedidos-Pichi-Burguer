@@ -583,6 +583,48 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
 }
 .mapa-aviso p { color: var(--texto-suave); font-size: .89rem; max-width: 34ch; margin: 0; }
 
+/* --- Preguntas frecuentes ---------------------------------------------------
+   Mismo patrón de tarjeta que .plato (fondo --negro-sup, borde --linea, radio
+   --radio): la sección tenía que verse como parte de la misma página, no como
+   un bloque pegado de otra plantilla.
+   Se usa <details>/<summary> nativo: ya viene con teclado y lector de pantalla
+   resueltos por el navegador, y no hace falta una línea de JavaScript.
+   El triángulo por defecto se quita y se pone un "+" propio, que rota a "×"
+   al abrir, porque el marcador nativo se ve distinto en cada navegador. */
+.faq { display: grid; gap: 10px; max-width: 760px; margin-inline: auto; }
+.faq__item {
+  background: var(--negro-sup);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+.faq__item summary {
+  /* min-height 56px: es un área táctil cómoda en celular, igual de alta que
+     los botones del menú. list-style:none + ::-webkit-details-marker quitan
+     el triángulo en Chrome, Safari y Firefox a la vez. */
+  display: flex; align-items: center; gap: 14px;
+  min-height: 56px; padding: 14px 18px;
+  font-family: var(--fuente-texto);
+  font-size: .96rem; font-weight: 600; color: var(--texto);
+  cursor: pointer; list-style: none;
+}
+.faq__item summary::-webkit-details-marker { display: none; }
+.faq__item summary::after {
+  content: '+';
+  margin-left: auto; flex-shrink: 0;
+  font-size: 1.5rem; font-weight: 400; line-height: 1;
+  color: var(--amarillo);
+  transition: transform .18s ease;
+}
+.faq__item[open] summary::after { content: '\00d7'; }
+.faq__item[open] summary { color: var(--blanco); }
+.faq__item summary:focus-visible { outline: 3px solid var(--amarillo); outline-offset: -3px; }
+@media (hover: hover) { .faq__item summary:hover { color: var(--blanco); } }
+.faq__item p {
+  margin: 0; padding: 0 18px 18px;
+  color: var(--texto-suave); font-size: .92rem; line-height: 1.65;
+}
+
 .pie {
   border-top: 1px solid var(--linea);
   background: var(--negro);
@@ -595,6 +637,12 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
 .pie a { color: var(--texto-suave); text-decoration: none; }
 @media (hover: hover) { .pie a:hover { color: var(--blanco); text-decoration: underline; } }
 .pie__legales { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .8rem; }
+/* Los enlaces legales medían 20px de alto en celular: por debajo del mínimo de
+   24px que pide la WCAG 2.2 (criterio 2.5.8, "tamaño del objetivo"). Se les da
+   alto de objetivo táctil sin cambiar ni el tamaño de letra ni el aspecto. */
+.pie__legales a, .pie__legales .btn-texto {
+  display: inline-flex; align-items: center; min-height: 24px;
+}
 .pie__copy {
   border-top: 1px solid var(--linea); padding-top: 20px;
   text-align: center; font-size: .8rem; color: var(--texto-tenue);
@@ -691,7 +739,15 @@ body.cookies-visibles .wa-float { display: none; }
 .acceso form { text-align: left; }
 
 /* Pestañas activos / historial */
-.pestanas { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+/* .pestanas-fila envuelve las pestañas y el botón "Actualizar". El botón se
+   sacó del role="tablist" por accesibilidad (ver panel.html), así que el
+   margen de abajo y la separación viven ahora en la fila, no en las pestañas. */
+.pestanas-fila {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 20px;
+}
+.pestanas-fila #btnRefrescar { margin-left: auto; }
+.pestanas { display: flex; gap: 8px; flex-wrap: wrap; }
 .pestana {
   min-height: 48px; padding: 0 18px;
   display: inline-flex; align-items: center; gap: 8px;

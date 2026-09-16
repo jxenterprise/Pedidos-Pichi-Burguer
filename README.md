@@ -233,9 +233,17 @@ pichi-burguer-pedidos/
 ## Cómo funciona por dentro (resumen)
 
 - **Sin base de datos.** Los pedidos de cada día viven en **un solo documento** de
-  Cloudflare KV (`dia:AAAA-MM-DD`). Refrescar el panel cuesta 1 lectura; crear un
-  pedido, 1 lectura y 1 escritura. Con 60 pedidos diarios se usan unas 120
-  escrituras de las 1.000 gratuitas.
+  Cloudflare KV (`dia:AAAA-MM-DD`), y **cero operaciones de listado**, que es lo
+  que de verdad ahoga el plan gratuito.
+  Coste medido (con la semana completa guardada, que es el peor caso):
+  **refrescar el panel = 9 lecturas** (la marca de limpieza, el índice de días y
+  los 7 días); **crear un pedido = 3 lecturas y 1 escritura**.
+  Una jornada de 12 h refrescando cada 15 s gasta **unas 26.000 lecturas por
+  aparato** de las 100.000 gratuitas, y unas 60 escrituras de las 1.000.
+  👉 Con **hasta 3 aparatos** mirando el panel a la vez se está holgado (78%);
+  **con 4 se pasa del cupo**. Si algún día hacen falta más, se sube
+  `sistema.refrescoPanelSegundos` en `js/config.js` (a 30 s se reparte al doble
+  de aparatos) — es una sola línea.
 - **Los turnos reinician en 1 cada día.**
 - **El total se recalcula en el servidor**, nunca se acepta el que manda el
   navegador.
