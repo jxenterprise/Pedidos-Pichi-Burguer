@@ -109,14 +109,22 @@
         <p id="subtituloPanel">Los pedidos aparecen aquí apenas los envía el cliente.</p>
       </div>
 
-      <div class="pestanas" role="tablist">
-        <button type="button" class="pestana activa" id="tabActivos" role="tab" aria-selected="true" aria-controls="listaActivos">
-          Activos <span class="pestana__n" id="nActivos">0</span>
-        </button>
-        <button type="button" class="pestana" id="tabHistorial" role="tab" aria-selected="false" aria-controls="listaHistorial">
-          Historial <span class="pestana__n" id="nHistorial">0</span>
-        </button>
-        <button type="button" class="pestana" id="btnRefrescar" style="margin-left:auto">Actualizar</button>
+      <!-- "Actualizar" va FUERA del role="tablist" a propósito: dentro de una
+           lista de pestañas, un lector de pantalla anuncia todo lo que hay
+           adentro como si fuera una pestaña más ("pestaña 3 de 3"), y
+           Actualizar no abre ninguna pestaña: refresca la lista. Se envuelve
+           todo en .pestanas-fila para que se siga viendo igual, con el botón
+           pegado a la derecha. -->
+      <div class="pestanas-fila">
+        <div class="pestanas" role="tablist">
+          <button type="button" class="pestana activa" id="tabActivos" role="tab" aria-selected="true" aria-controls="listaActivos">
+            Activos <span class="pestana__n" id="nActivos">0</span>
+          </button>
+          <button type="button" class="pestana" id="tabHistorial" role="tab" aria-selected="false" aria-controls="listaHistorial">
+            Historial <span class="pestana__n" id="nHistorial">0</span>
+          </button>
+        </div>
+        <button type="button" class="pestana" id="btnRefrescar">Actualizar</button>
       </div>
 
       <div id="listaActivos" role="tabpanel" aria-labelledby="tabActivos"></div>

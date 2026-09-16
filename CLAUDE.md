@@ -119,12 +119,15 @@ fondo, animaciones exageradas.
 Las zonas existen SOLO en `index.html`. Son 4 de las 6 permitidas. **No inventar
 zonas nuevas ni duplicar estas.** Nunca hay zonas en el CSS, el JS ni el `<head>`.
 
+> Las líneas son **aproximadas** y se corren cada vez que se agrega algo al
+> HTML. Si no cuadran, se buscan por su nombre: `ZONA EDITABLE · …`.
+
 | Zona | Línea aprox. | Qué contiene | ⚠ Se repite en |
 |---|---|---|---|
-| `ZONA EDITABLE · TEXTOS` | 252 | Titular y lema de la portada | — |
-| `ZONA EDITABLE · PRODUCTOS` | 290 | Los 15 platos: nombre, descripción y precio | **JSON-LD `Menu`** (en el `<head>`), atributo `data-precio` de cada botón, y `llms.txt`. Si cambia un precio hay que cambiarlo en los 4 sitios |
-| `ZONA EDITABLE · HORARIOS` | 685 | Tabla de días y horas | **`js/config.js` → `horarios.dias`** (de ahí sale el semáforo) y **JSON-LD `openingHoursSpecification`**. Los tres tienen que decir lo mismo |
-| `ZONA EDITABLE · CONTACTO` | 714 | Dirección, barrio, WhatsApp | Enlace `tel:`, botón flotante `wa.me`, JSON-LD `telephone` y `address`, geo tags del `<head>`, iframe del mapa, `js/config.js` → `negocio`, y el footer |
+| `ZONA EDITABLE · TEXTOS` | 265 | Titular y lema de la portada | — |
+| `ZONA EDITABLE · PRODUCTOS` | 303 | Los 15 platos: nombre, descripción y precio | **JSON-LD `Menu`** (en el `<head>`), atributo `data-precio` de cada botón, y `llms.txt`. Si cambia un precio hay que cambiarlo en los 4 sitios |
+| `ZONA EDITABLE · HORARIOS` | 698 | Tabla de días y horas | **`js/config.js` → `horarios.dias`** (de ahí sale el semáforo) y **JSON-LD `openingHoursSpecification`**. Los tres tienen que decir lo mismo |
+| `ZONA EDITABLE · CONTACTO` | 726 | Dirección, barrio, WhatsApp | Enlace `tel:`, botón flotante `wa.me`, JSON-LD `telephone` y `address`, geo tags del `<head>`, iframe del mapa, `js/config.js` → `negocio`, y el footer |
 
 **Regla de JX que aplica aquí**: teléfono, dirección y horarios **los cambia JX,
 no el cliente** — tocan JSON-LD y geo tags, y ahí es donde se rompe el SEO local
@@ -140,7 +143,7 @@ Registro de todo el código. **Se suma, nunca se borra lo anterior.**
 
 | Archivo | Qué contiene |
 |---|---|
-| `index.html` | Página del cliente. Barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, horarios, contacto, mapa condicionado, FAQ, footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
+| `index.html` | Página del cliente. Barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, bebidas, cómo pedir, horarios, contacto, mapa condicionado, preguntas frecuentes (`#preguntas`), footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
 | `panel.html` | Panel del vendedor. Pantalla de clave → pestañas Activos / Historial |
 | `404.html` | Error con el diseño del sitio |
 | `privacidad.html` | Ley 1581 de 2012 (datos personales) |
@@ -168,8 +171,20 @@ dia:AAAA-MM-DD  →  { turno: N, pedidos: [ … ] }
 indice:dias     →  ["2026-09-06", …]
 meta:limpieza   →  timestamp del último borrado sabatino
 ```
-Refrescar el panel = **1 lectura**. Crear un pedido = 1 lectura + 1 escritura.
-**Cero operaciones de listado.** Con 60 pedidos diarios se usan ~120 escrituras.
+**Cero operaciones de listado**, que es el cupo que primero se agota (solo 1.000
+al día). Coste real **medido** (sept. 2026, con la semana completa guardada, que
+es el peor caso):
+
+| Operación | Lecturas | Escrituras |
+|---|---|---|
+| Refrescar el panel | **9** (`meta:limpieza` + `indice:dias` + los 7 días) | 0 |
+| Crear un pedido | 3 | 1 |
+
+Una jornada de 12 h refrescando cada 15 s gasta **~26.000 lecturas por cada
+aparato** que tenga el panel abierto, de las 100.000 gratuitas, y ~60 escrituras
+de las 1.000. ⚠ **El límite práctico son 3 aparatos a la vez** (78% del cupo);
+con 4 se pasa. Si el local necesita más pantallas, **no se toca el
+almacenamiento**: se sube `sistema.refrescoPanelSegundos` en `js/config.js`.
 ⚠ **No cambiar esto a una clave por pedido.** Parece más ordenado y rompe el cupo.
 
 **2. Limpieza semanal "al pasar", no con cron.**
@@ -242,6 +257,40 @@ escrituras si alguien intentara inundar el sistema.
 **12. GA4 y el mapa de Google NO cargan hasta que el visitante acepte cookies.**
 Obligatorio en Colombia por la Resolución 32.126 de 2022 de la SIC, que es **más
 estricta que Europa**: el consentimiento debe ser previo, expreso e informado.
+
+**13. La sección "Preguntas frecuentes" (`#preguntas`) existe porque el JSON-LD
+la declara.** El `<head>` siempre tuvo un bloque `FAQPage` con cuatro preguntas,
+pero esas preguntas **no estaban escritas en la página**. Google exige que el
+marcado corresponda a contenido que el visitante VEA; declarar preguntas
+invisibles es marcado engañoso y se puede sancionar. Se escribió la sección con
+las cuatro preguntas, **palabra por palabra iguales** a las del JSON-LD.
+⚠ Si se cambia una respuesta, hay que cambiarla en los DOS sitios.
+Se usa `<details>`/`<summary>` nativo: ya funciona con teclado y lector de
+pantalla sin una línea de JavaScript, y el texto sigue estando en el código
+servido aunque el desplegable esté cerrado — que es lo que leen Google y las IA.
+
+**14. El marcado `FAQPage` se conserva aunque Google ya no lo muestre.**
+Google retiró los resultados enriquecidos de FAQ el **7 de mayo de 2026**: esas
+preguntas ya **no** salen desplegables en el buscador. El marcado se deja igual
+porque sigue siendo válido para schema.org, no estorba, y es lo que leen los
+bots de IA (ChatGPT, Claude, Perplexity) cuando alguien les pregunta por el
+local. ⚠ No volver a escribir en los comentarios que "Google las muestra
+desplegables": era cierto cuando se construyó el sitio y dejó de serlo.
+
+**15. La ventana del pedido encierra el foco del teclado.**
+`aria-modal="true"` le promete al lector de pantalla que lo de atrás no existe
+mientras la ventana esté abierta, pero **el navegador no encierra el foco solo**.
+Probando con teclado se comprobó que al séptimo tabulador el foco saltaba a los
+enlaces del fondo, detrás del velo oscuro: el cliente quedaba escribiendo en una
+página que no podía ver. `encerrarFoco()` en `js/script.js` cierra el círculo
+(del último elemento vuelve al primero, y con Shift al revés) y se desconecta al
+cerrar la ventana. ⚠ No quitarlo.
+
+**16. El botón "Actualizar" del panel va FUERA del `role="tablist"`.**
+Estaba dentro, sin `role="tab"`. Un lector de pantalla anuncia todo lo que hay
+dentro de una lista de pestañas como si fuera una pestaña más ("pestaña 3 de
+3"), y Actualizar no abre ninguna pestaña: refresca la lista. Se envolvió todo
+en `.pestanas-fila` para que se siga viendo exactamente igual.
 
 ### Verificación hecha antes de entregar
 
@@ -332,6 +381,55 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 - **Costo del domicilio resuelto**: no hay tarifa fija, se acuerda por WhatsApp.
   Dejó de ser un `{POR CONFIRMAR}` y pasó a ser una decisión del negocio.
 - **GA4 aplazado** por decisión de JX: el snippet queda listo, falta el ID.
+
+### 16 de septiembre de 2026 · Auditoría y cierre de pendientes técnicos
+
+Revisión completa del proyecto ya entregado, buscando errores reales con pruebas
+(no a ojo). Se corrió: sintaxis de los 5 archivos JS, validez del JSON-LD y del
+manifiesto, cruce de los 15 precios en los 4 sitios donde viven, **23 pruebas de
+la lógica del servidor** con un KV falso, **6 pruebas del borrado sabatino** en
+distintos momentos de la semana, **39 pruebas en navegador real** (Chromium) del
+flujo completo del cliente, y barrido de **desborde horizontal en 10 anchos**
+(320 a 1920 px) sobre las 7 páginas del sitio.
+
+**Cinco errores reales encontrados y corregidos:**
+
+1. **La página declaraba preguntas frecuentes que no existían.** El `FAQPage` del
+   JSON-LD tenía cuatro preguntas y en la página no había ni una. Google exige
+   que el marcado corresponda a contenido visible. Se escribió la sección
+   `#preguntas` con las cuatro preguntas idénticas, más su enlace en la barra de
+   categorías, su bloque en `llms.txt` y sus estilos. (Decisión 13)
+2. **El panel nunca mostraba la fecha del próximo borrado.** El servidor sí
+   mandaba `proximaLimpieza`, pero `js/almacen.js` armaba la respuesta a mano y
+   se lo comía. La nota de abajo del panel salía siempre a medias.
+3. **El foco del teclado se escapaba de la ventana del pedido.** Al séptimo
+   tabulador saltaba al fondo, detrás del velo. (Decisión 15)
+4. **El botón "Actualizar" estaba dentro del `role="tablist"` sin ser pestaña.**
+   (Decisión 16)
+5. **Los enlaces legales del footer medían 20 px de alto**, por debajo del mínimo
+   de 24 px de la WCAG 2.2 (criterio 2.5.8). Corregido sin cambiar el aspecto.
+
+**Dos datos de la documentación que eran falsos y se corrigieron:**
+
+- Decía que refrescar el panel costaba **1 lectura** de KV. Medido: son **9**.
+  El sistema sigue sobrado dentro del plan gratuito, pero el límite real son
+  **3 aparatos** con el panel abierto a la vez, no infinitos. Corregido en
+  `CLAUDE.md`, `README.md`, `functions/api/pedidos.js` y `js/config.js`.
+- Decía que Google muestra las FAQ desplegables en el buscador. Google retiró
+  esos resultados enriquecidos el **7 de mayo de 2026**. (Decisión 14)
+
+**Datos verificados contra la documentación oficial (sept. 2026), todos siguen
+siendo correctos:** los cupos gratuitos de Cloudflare KV (100.000 lecturas /
+1.000 escrituras / 1.000 borrados / 1.000 listados al día); que **Cloudflare
+Pages no tiene cron triggers**, que es lo que justifica la limpieza "al pasar";
+y que la Resolución 32.126 de 2022 de la SIC exige consentimiento **previo,
+expreso (prohíbe el tácito) e informado** — el banner de cookies está bien
+planteado.
+
+**Aviso para el futuro, no urgente:** Cloudflare declaró que todo su desarrollo
+nuevo va a Workers y que en Pages solo mantiene lo que existe. Pages **no está
+descontinuado** y este proyecto sigue funcionando igual; si algún día se migra,
+Workers sí tiene cron triggers y la limpieza "al pasar" se podría simplificar.
 
 ---
 

@@ -31,9 +31,16 @@
        indice:dias      →  ["2026-09-06", "2026-09-05", …]
        meta:limpieza    →  fecha de la última limpieza automática
 
-   Resultado: refrescar el panel = 1 lectura. Crear un pedido = 1 lectura + 1
-   escritura. Cero operaciones de listado. Un local con 60 pedidos diarios usa
-   ~120 escrituras al día: queda muchísimo margen dentro del plan gratuito.
+   Resultado: CERO operaciones de listado, que es el cupo que primero se agota
+   (solo 1.000 al día). Coste real medido con la semana completa guardada, que
+   es el peor caso:
+     · refrescar el panel  → 9 lecturas  (meta:limpieza + indice:dias + 7 días)
+     · crear un pedido     → 3 lecturas + 1 escritura
+   Una jornada de 12 h con el panel refrescando cada 15 s gasta ~26.000 lecturas
+   por aparato, de las 100.000 gratuitas, y ~60 escrituras de las 1.000.
+   ⚠ EL LÍMITE PRÁCTICO SON 3 APARATOS mirando el panel a la vez (78% del cupo).
+   Con 4 se pasa. Si el local necesita más pantallas, la salida NO es cambiar el
+   almacenamiento: es subir sistema.refrescoPanelSegundos en js/config.js.
 
    ⚠ LÍMITE CONOCIDO Y ACEPTADO: KV no tiene transacciones. Si dos clientes
    pidieran EXACTAMENTE en el mismo segundo, uno podría sobrescribir al otro.
