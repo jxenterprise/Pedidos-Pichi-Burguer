@@ -668,6 +668,66 @@
   </section>
 
   <!-- ===========================================================
+       SECCIÓN: PREGUNTAS FRECUENTES
+       Qué es: las cuatro preguntas reales que hace la gente.
+       Función: resolverle la duda al cliente sin que tenga que
+                escribir por WhatsApp, y alimentar el resultado
+                desplegable de Google.
+       ⚠ SE REPITE EN: el bloque JSON-LD "FAQPage" del <head>. El
+         texto de aquí y el de allá tienen que decir LO MISMO.
+         Google exige que el contenido del FAQPage esté visible en
+         la página; si algún día se borra esta sección, hay que
+         borrar también el bloque FAQPage del <head> o el sitio
+         queda incumpliendo la política de datos estructurados.
+       Se usa <details>: abre y cierra sin JavaScript, funciona con
+       teclado y Google lo cuenta como contenido visible.
+       =========================================================== -->
+  <section id="preguntas">
+    <div class="contenedor">
+      <div class="seccion-cab">
+        <span class="etiqueta">Preguntas frecuentes</span>
+        <h2>Lo que más nos preguntan</h2>
+      </div>
+
+      <div class="faq">
+        <details class="faq__item">
+          <summary>¿Pichi Burguer hace domicilios?</summary>
+          <div class="faq__resp">
+            <p>Sí. Se puede pedir a domicilio o para recoger en el local, en la Cra 58A #6,
+            barrio Bernardo Jaramillo, Cartagena. El valor del domicilio se acuerda por
+            WhatsApp según el barrio.</p>
+          </div>
+        </details>
+
+        <details class="faq__item">
+          <summary>¿Cómo pido por la página?</summary>
+          <div class="faq__resp">
+            <p>Se escogen los productos del menú, se escribe el nombre y el teléfono y se
+            envía el pedido. La página entrega de inmediato un número de turno y el pedido
+            llega al local.</p>
+          </div>
+        </details>
+
+        <details class="faq__item">
+          <summary>¿Qué medios de pago aceptan?</summary>
+          <div class="faq__resp">
+            <p>Efectivo, Nequi y transferencia.</p>
+          </div>
+        </details>
+
+        <details class="faq__item">
+          <summary>¿Se puede pedir cuando el local está cerrado?</summary>
+          <div class="faq__resp">
+            <p>No. El menú se puede ver a cualquier hora, pero los pedidos solo se reciben
+            dentro del horario de atención. La página muestra en todo momento si el local
+            está abierto o cerrado.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===========================================================
        SECCIÓN: HORARIOS, CONTACTO Y MAPA
        Qué es: el cierre informativo de la página.
        Función: que el cliente sepa cuándo abren y cómo llegar.
@@ -784,6 +844,7 @@
         <ul>
           <li><a href="#horarios">Horarios y ubicación</a></li>
           <li><a href="#como-pedir">Cómo pedir</a></li>
+          <li><a href="#preguntas">Preguntas frecuentes</a></li>
           <li><a href="panel.html">Panel del vendedor</a></li>
         </ul>
       </div>
@@ -864,7 +925,7 @@
 
         <div class="campo">
           <span class="sr-only" id="etqEntrega">Forma de entrega</span>
-          <label aria-hidden="true">¿Cómo lo quieres?</label>
+          <span class="campo__titulo" aria-hidden="true">¿Cómo lo quieres?</span>
           <div class="opciones" role="radiogroup" aria-labelledby="etqEntrega">
             <input type="radio" id="tipoRecoger" name="tipo" value="recoger" checked>
             <label for="tipoRecoger">Paso a recogerlo</label>
@@ -883,7 +944,7 @@
 
         <div class="campo">
           <span class="sr-only" id="etqPago">Forma de pago</span>
-          <label aria-hidden="true">¿Cómo vas a pagar?</label>
+          <span class="campo__titulo" aria-hidden="true">¿Cómo vas a pagar?</span>
           <div class="opciones" role="radiogroup" aria-labelledby="etqPago">
             <input type="radio" id="pagoEfectivo" name="pago" value="Efectivo" checked>
             <label for="pagoEfectivo">Efectivo</label>

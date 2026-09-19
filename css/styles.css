@@ -138,8 +138,11 @@ a { color: inherit; }
 }
 
 section { padding-block: var(--espacio-seccion); }
-/* Para que al saltar a una sección desde el menú no quede tapada por la barra. */
-section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
+/* Para que al saltar a una sección desde el menú no quede tapada por la barra.
+   Los 58px son el alto de la barra de categorías; los 18px de más son el aire:
+   sin ellos la etiqueta amarilla quedaba pegada al borde de la barra y, como va
+   rotada -1.2deg, la esquina llegaba a meterse debajo. */
+section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
 
 
 /* ============================================================================
@@ -211,9 +214,18 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
    ========================================================================== */
 .barra {
   position: fixed; inset: 0 0 auto 0; z-index: 60;
-  height: var(--alto-barra);
+  /* min-height y NO height: con alto fijo, el padding del notch se comía el
+     espacio del contenido (box-sizing: border-box) y el logo quedaba aplastado,
+     además de abrir un hueco antes de la barra de categorías, que se coloca a
+     var(--alto-barra) + el notch. Así los dos números siempre coinciden. */
+  min-height: calc(var(--alto-barra) + env(safe-area-inset-top));
   display: flex; align-items: center;
-  background: rgba(0,0,0,.94);
+  /* El fondo NO es totalmente opaco para que se note la profundidad, así que
+     necesita desenfoque: sin él se leía el contenido pasando por detrás (el
+     botón rojo "Agregar" se veía cruzando la barra al hacer scroll). */
+  background: rgba(0,0,0,.98);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--linea);
   padding-top: env(safe-area-inset-top);   /* respeta el notch del iPhone */
 }
@@ -255,7 +267,9 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
 .categorias {
   position: fixed; top: calc(var(--alto-barra) + env(safe-area-inset-top));
   inset-inline: 0; z-index: 55;
-  background: rgba(0,0,0,.92);
+  background: rgba(0,0,0,.98);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--linea);
   overflow-x: auto; overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -279,6 +293,16 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
 }
 .categorias a.activa { background: var(--rojo); border-color: var(--rojo); color: var(--blanco); }
 @media (hover: hover) { .categorias a:hover { color: var(--blanco); border-color: var(--linea-fuerte); } }
+
+
+/* Respaldo obligatorio: los navegadores que NO saben desenfocar (Firefox con la
+   opción apagada, WebView viejo de Android) se quedarían con el fondo traslúcido
+   y volvería a verse el contenido cruzando las barras. Ahí se pintan opacas. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .barra         { background: var(--negro); }
+  .categorias    { background: var(--negro); }
+  .carrito-barra { background: #0A0A0A; }
+}
 
 
 /* ============================================================================
@@ -418,6 +442,47 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
 .paso p { margin: 0; color: var(--texto-suave); font-size: .9rem; }
 
 
+/* Preguntas frecuentes.
+   Qué es: las mismas cuatro preguntas que el <head> le declara a Google en el
+   bloque FAQPage, ahora visibles en la página.
+   POR QUÉ TIENEN QUE ESTAR VISIBLES: Google exige que el contenido de un
+   FAQPage se vea en la página. Declararlo solo en el JSON-LD incumple su
+   política y puede costar una penalización manual. Si algún día se quita esta
+   sección, hay que quitar TAMBIÉN el bloque FAQPage del <head>.
+   Se usa <details> porque el propio navegador se encarga de abrir y cerrar:
+   cero JavaScript, funciona con teclado y Google lo acepta como contenido
+   visible aunque arranque plegado. */
+.faq { display: grid; gap: 10px; }
+.faq__item {
+  background: var(--negro-sup);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+}
+.faq__item[open] { border-color: var(--linea-fuerte); }
+.faq__item summary {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 48px; padding: 13px 17px;   /* 48px: mismo objetivo táctil que los botones */
+  font-weight: 600; font-size: .96rem; color: var(--blanco);
+  cursor: pointer; list-style: none;
+}
+/* Safari pinta un triangulito propio que rompe el diseño; se quita. */
+.faq__item summary::-webkit-details-marker { display: none; }
+/* El signo + / − va al final y en amarillo, igual que los precios del menú. */
+.faq__item summary::after {
+  content: '+'; margin-left: auto; flex-shrink: 0;
+  font-family: var(--fuente-titulo); font-style: italic; font-weight: 800;
+  font-size: 1.4rem; line-height: 1; color: var(--amarillo);
+}
+.faq__item[open] summary::after { content: '\2212'; }   /* signo menos, más ancho que el guion */
+.faq__item summary:focus-visible { outline: 3px solid var(--amarillo); outline-offset: -3px; border-radius: var(--radio); }
+@media (hover: hover) { .faq__item summary:hover { color: var(--amarillo); } }
+.faq__resp {
+  padding: 0 17px 15px;
+  color: var(--texto-suave); font-size: .9rem; line-height: 1.55;
+}
+.faq__resp p { margin: 0; }
+
+
 /* ============================================================================
    6) CARRITO, MODAL DE PEDIDO Y PANTALLA DE TURNO
    Qué es: la barra inferior con el resumen, el formulario del pedido y la
@@ -430,7 +495,9 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
 /* --- Barra flotante del carrito --- */
 .carrito-barra {
   position: fixed; inset: auto 0 0 0; z-index: 65;
-  background: rgba(10,10,10,.97);
+  background: rgba(10,10,10,.985);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border-top: 1px solid var(--linea-fuerte);
   padding: 11px clamp(14px, 4vw, 28px) calc(11px + env(safe-area-inset-bottom));
   transform: translateY(115%);
@@ -496,7 +563,11 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px); }
 
 /* --- Campos del formulario --- */
 .campo { margin-bottom: 15px; }
-.campo label {
+/* .campo__titulo es el rótulo de los grupos de opciones (entrega y pago). Es un
+   <span> y no un <label>, porque un label tiene que apuntar a un campo concreto
+   y aquí rotula un grupo entero: el nombre accesible del grupo lo da el
+   aria-labelledby del role="radiogroup". Se ve exactamente igual que un label. */
+.campo label, .campo__titulo {
   display: block; margin-bottom: 6px;
   font-size: .87rem; font-weight: 600; color: var(--texto);
 }
@@ -692,6 +763,10 @@ body.cookies-visibles .wa-float { display: none; }
 
 /* Pestañas activos / historial */
 .pestanas { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+/* display:contents hace que las dos pestañas se comporten como si fueran hijas
+   directas de .pestanas: mismo aspecto de siempre, pero el role="tablist" queda
+   en un contenedor que solo tiene pestañas, como exige ARIA. */
+.pestanas__tabs { display: contents; }
 .pestana {
   min-height: 48px; padding: 0 18px;
   display: inline-flex; align-items: center; gap: 8px;

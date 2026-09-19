@@ -31,7 +31,11 @@
   var formatoPeso = new Intl.NumberFormat('es-CO', {
     style: 'currency', currency: 'COP', maximumFractionDigits: 0
   });
-  function pesos(n) { return formatoPeso.format(n).replace(/\s/g, ' '); }
+  /* El menú escribe $16.000 sin espacio; el carrito, el WhatsApp y el panel
+     tienen que escribirlo IGUAL. Intl mete un espacio fino entre el signo y el
+     número, así que se quita del todo: antes se cambiaba por un espacio normal
+     y quedaba "$ 16.000", distinto de lo que dice la tarjeta del plato. */
+  function pesos(n) { return formatoPeso.format(n).replace(/\s/g, ''); }
 
 
   /* ==========================================================================
@@ -54,9 +58,11 @@
   /** Convierte 1080 minutos a "6:00 p. m.", que es como se lee en Colombia. */
   function aTexto12h(minutos) {
     var h = Math.floor(minutos / 60), m = minutos % 60;
-    var sufijo = h < 12 ? 'a. m.' : 'p. m.';
+    // \u00A0 es el espacio duro. Sin él, en un celular angosto la hora se parte
+    // en dos líneas y queda "11:00 p." arriba y "m." abajo.
+    var sufijo = h < 12 ? 'a.\u00A0m.' : 'p.\u00A0m.';
     var h12 = h % 12; if (h12 === 0) { h12 = 12; }
-    return h12 + ':' + String(m).padStart(2, '0') + ' ' + sufijo;
+    return h12 + ':' + String(m).padStart(2, '0') + '\u00A0' + sufijo;
   }
 
   /**
@@ -98,21 +104,21 @@
       return {
         abierto: true, aceptaPedidos: false,
         texto: 'Cerrando',
-        textoLargo: 'Ya no se reciben pedidos nuevos: cerramos a las ' + aTexto12h(cierra) + '.'
+        textoLargo: 'Ya no se reciben pedidos nuevos: cerramos a las ' + aTexto12h(cierra)
       };
     }
     if (abierto) {
       return {
         abierto: true, aceptaPedidos: true,
         texto: 'Abierto ahora',
-        textoLargo: 'Abierto ahora · cerramos a las ' + aTexto12h(cierra) + '.'
+        textoLargo: 'Abierto ahora · cerramos a las ' + aTexto12h(cierra)
       };
     }
     if (minutosAhora < abre) {
       return {
         abierto: false, aceptaPedidos: false,
         texto: 'Cerrado',
-        textoLargo: 'Cerrado ahora. Abrimos hoy a las ' + aTexto12h(abre) + '.'
+        textoLargo: 'Cerrado ahora. Abrimos hoy a las ' + aTexto12h(abre)
       };
     }
     // Ya pasó la hora de cierre: se busca el próximo día que sí abra.
@@ -125,7 +131,7 @@
       abierto: false, aceptaPedidos: false,
       texto: 'Cerrado',
       textoLargo: siguiente
-        ? 'Cerrado por hoy. Volvemos el ' + siguiente.nombre.toLowerCase() + ' a las ' + aTexto12h(aMinutos(siguiente.abre)) + '.'
+        ? 'Cerrado por hoy. Volvemos el ' + siguiente.nombre.toLowerCase() + ' a las ' + aTexto12h(aMinutos(siguiente.abre))
         : 'Cerrado por hoy.'
     };
   }
@@ -268,6 +274,47 @@
 
   var elementoQueAbrio = null;
 
+  /* Todo lo que puede recibir el foco con el tabulador. Va como LISTA y no como
+     un solo texto separado por comas: en CSS, "#modalPedido a, button" significa
+     "los enlaces DE la ventana y TODOS los botones de la página", así que el
+     prefijo hay que pegárselo a cada uno por separado. */
+  var ENFOCABLES = [
+    'button:not([disabled])', '[href]', 'input:not([disabled])',
+    'textarea', 'select', '[tabindex]:not([tabindex="-1"])'
+  ];
+  var SELECTOR_MODAL = ENFOCABLES.map(function (x) { return '#modalPedido ' + x; }).join(', ');
+
+  /**
+   * Encierra el foco dentro de la ventana del pedido.
+   * POR QUÉ: la ventana se anuncia como aria-modal="true", o sea "detrás de mí
+   * no hay nada". Sin esto era mentira: a los seis tabuladores el foco se
+   * escapaba al menú de atrás y al banner de cookies, y quien usa teclado o
+   * lector de pantalla se perdía sin saber que la ventana seguía abierta.
+   * Cómo: si va hacia adelante y está en el último, salta al primero; si va
+   * hacia atrás desde el primero, salta al último.
+   */
+  function encerrarFoco(e) {
+    if (e.key !== 'Tab') { return; }
+    var caja = $('#modalPedido');
+    // Solo lo que de verdad se ve: el paso del formulario y el del turno se
+    // turnan con hidden, y un elemento oculto no debe recibir el foco.
+    var lista = $$(SELECTOR_MODAL).filter(function (el) {
+      return el.getClientRects().length > 0;   // descarta lo que está en el paso oculto
+    });
+    if (!lista.length) { return; }
+
+    var primero = lista[0], ultimo = lista[lista.length - 1];
+    if (e.shiftKey && document.activeElement === primero) {
+      e.preventDefault(); ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault(); primero.focus();
+    } else if (!caja.contains(document.activeElement)) {
+      // Red de seguridad: si el foco terminó fuera por cualquier motivo,
+      // se devuelve al primer elemento de la ventana.
+      e.preventDefault(); primero.focus();
+    }
+  }
+
   function abrirModal() {
     if (!estadoActual.aceptaPedidos) { return; }
     if (unidadesCarrito() === 0) { return; }
@@ -279,12 +326,14 @@
     $('#errorForm').classList.remove('visible');
     $('#modalPedido').classList.add('abierto');
     document.body.style.overflow = 'hidden';   // evita el scroll de fondo en iOS
+    document.addEventListener('keydown', encerrarFoco, true);
     $('#campoNombre').focus();
   }
 
   function cerrarModal() {
     $('#modalPedido').classList.remove('abierto');
     document.body.style.overflow = '';
+    document.removeEventListener('keydown', encerrarFoco, true);
     if (elementoQueAbrio) { elementoQueAbrio.focus(); }
   }
 
@@ -645,7 +694,11 @@
         medirEvento('clic_' + el.getAttribute('data-evento'));
       });
     });
-    $('a[href^="tel:"]').addEventListener('click', function () { medirEvento('clic_telefono'); });
+    // Son DOS enlaces tel: (contacto y footer). Con $ solo se enganchaba el
+    // primero y el del pie no se medía nunca.
+    $$('a[href^="tel:"]').forEach(function (a) {
+      a.addEventListener('click', function () { medirEvento('clic_telefono'); });
+    });
   }
 
   // Con defer el HTML ya está listo, pero se comprueba igual por si el archivo

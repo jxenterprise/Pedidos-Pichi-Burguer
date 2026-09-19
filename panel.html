@@ -109,13 +109,20 @@
         <p id="subtituloPanel">Los pedidos aparecen aquí apenas los envía el cliente.</p>
       </div>
 
-      <div class="pestanas" role="tablist">
-        <button type="button" class="pestana activa" id="tabActivos" role="tab" aria-selected="true" aria-controls="listaActivos">
-          Activos <span class="pestana__n" id="nActivos">0</span>
-        </button>
-        <button type="button" class="pestana" id="tabHistorial" role="tab" aria-selected="false" aria-controls="listaHistorial">
-          Historial <span class="pestana__n" id="nHistorial">0</span>
-        </button>
+      <!-- "Actualizar" NO va dentro del role="tablist": un tablist solo puede
+           contener pestañas, y meter ahí un botón normal hace que el lector de
+           pantalla lo anuncie como si fuera una tercera pestaña. Por eso las dos
+           pestañas van en su propio contenedor con display:contents, que las
+           deja exactamente en la misma fila sin cambiar nada visual. -->
+      <div class="pestanas">
+        <div class="pestanas__tabs" role="tablist">
+          <button type="button" class="pestana activa" id="tabActivos" role="tab" aria-selected="true" aria-controls="listaActivos">
+            Activos <span class="pestana__n" id="nActivos">0</span>
+          </button>
+          <button type="button" class="pestana" id="tabHistorial" role="tab" aria-selected="false" aria-controls="listaHistorial">
+            Historial <span class="pestana__n" id="nHistorial">0</span>
+          </button>
+        </div>
         <button type="button" class="pestana" id="btnRefrescar" style="margin-left:auto">Actualizar</button>
       </div>
 

@@ -100,7 +100,9 @@ no lo autorizó para este proyecto y la identidad del cliente manda.
 - **Tarjeta de plato** (`.plato`): fondo `--negro-sup`, borde `--linea`, radio
   `--radio`, nombre en Archivo mayúsculas, descripción en `--texto-suave`, precio
   en Inter 700, y botón "Agregar" que se transforma en un contador −/+.
-- **Botón** (`.btn`): radio `--radio-full`, altura mínima 48px, peso 700.
+- **Botón** (`.btn`): radio `--radio-sm` (10px), altura mínima 48px, peso 700.
+  (`--radio-full` NO es para botones: se usa en las píldoras del semáforo, en los
+  chips de la barra de categorías y en el contador del panel.)
   Variantes: `.btn--rojo` (acción principal), `.btn--ama` (amarillo, aceptar),
   `.btn--linea` (contorno, secundario).
 - **Sección**: `<section>` con `padding: var(--espacio-seccion) 0`, título `h2`
@@ -130,6 +132,11 @@ zonas nuevas ni duplicar estas.** Nunca hay zonas en el CSS, el JS ni el `<head>
 no el cliente** — tocan JSON-LD y geo tags, y ahí es donde se rompe el SEO local
 sin que nadie se dé cuenta.
 
+**Fuera de zona pero igual de delicado**: la sección `#preguntas` (FAQ visible) y
+el bloque `FAQPage` del `<head>` tienen que decir **exactamente lo mismo**. Si se
+cambia una pregunta hay que cambiar las dos, y si se borra la sección hay que
+borrar también el `FAQPage`. Ver decisión 13.
+
 ---
 
 ## 🧭 MAPA DEL CÓDIGO
@@ -140,7 +147,7 @@ Registro de todo el código. **Se suma, nunca se borra lo anterior.**
 
 | Archivo | Qué contiene |
 |---|---|
-| `index.html` | Página del cliente. Barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, horarios, contacto, mapa condicionado, FAQ, footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
+| `index.html` | Página del cliente. Barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, bebidas, cómo pedir, **preguntas frecuentes (`#preguntas`)**, horarios, contacto, mapa condicionado, footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
 | `panel.html` | Panel del vendedor. Pantalla de clave → pestañas Activos / Historial |
 | `404.html` | Error con el diseño del sitio |
 | `privacidad.html` | Ley 1581 de 2012 (datos personales) |
@@ -243,6 +250,53 @@ escrituras si alguien intentara inundar el sistema.
 Obligatorio en Colombia por la Resolución 32.126 de 2022 de la SIC, que es **más
 estricta que Europa**: el consentimiento debe ser previo, expreso e informado.
 
+**13. La FAQ tiene que estar VISIBLE, no solo en el JSON-LD.**
+Durante la revisión de septiembre se encontró que el `<head>` le declaraba a
+Google un bloque `FAQPage` con cuatro preguntas que **no existían en la página**.
+Google exige que el contenido de un `FAQPage` se vea; declararlo sin mostrarlo
+incumple su política de datos estructurados y puede costar una acción manual.
+Se creó la sección `#preguntas` con las cuatro preguntas y respuestas idénticas
+al JSON-LD. Usa `<details>`/`<summary>`: abre y cierra sin JavaScript, funciona
+con teclado y Google lo acepta como contenido visible aunque arranque plegado.
+⚠ Si algún día se quita la sección, hay que quitar también el `FAQPage`.
+
+**14. Las barras fijas van con `backdrop-filter` y casi opacas.**
+Estaban a `rgba(0,0,0,.94)` / `.92` / `.97` **sin desenfoque**, y se leía el
+contenido pasando por detrás: el botón rojo "Agregar" se veía cruzando la barra
+superior y la del carrito al hacer scroll. Ahora van a `.98` con
+`backdrop-filter: blur(16px)`, más un bloque `@supports not` que las pinta
+opacas en los navegadores que no saben desenfocar. ⚠ No bajar la opacidad: el
+efecto de profundidad ya lo da el desenfoque.
+
+**15. El precio se escribe IGUAL en los cuatro sitios: `$16.000`, sin espacio.**
+`Intl` mete un espacio fino entre el signo y el número. `pesos()` antes lo
+cambiaba por un espacio normal y quedaba `$ 16.000` en el carrito, en el mensaje
+de WhatsApp y en el panel, distinto de lo que decía la tarjeta del plato. Ahora
+se quita del todo (`.replace(/\s/g, '')`) en `js/script.js` y en `js/panel.js`.
+
+**16. El teléfono del cliente se normaliza antes de armar los enlaces del panel.**
+El cliente escribe su celular como quiere. Si lo escribía con el indicativo
+(`573001234567`), el panel le pegaba otro 57 y armaba `tel:+57573001234567` y
+`wa.me/57573001234567`: el vendedor **no podía llamarlo ni escribirle**.
+`telefonoLocal()` en `js/panel.js` quita el `00` internacional y el `57` cuando
+el número queda de 12 dígitos. ⚠ Si algún día se agregan otros países, esta
+función es el único sitio que hay que tocar.
+
+**17. La ventana del pedido encierra el foco (`encerrarFoco`).**
+Se anuncia como `aria-modal="true"` — "detrás de mí no hay nada" — pero el
+tabulador se escapaba al menú de atrás y al banner de cookies a los seis saltos.
+Ojo con el selector: `'#modalPedido a, button'` en CSS significa "los enlaces de
+la ventana y TODOS los botones de la página". Por eso `ENFOCABLES` es una lista
+y el prefijo se le pega a cada selector por separado.
+
+**18. `.barra` va con `min-height`, nunca con `height`.**
+Tenía `height: var(--alto-barra)` y `padding-top: env(safe-area-inset-top)`. Con
+`box-sizing: border-box`, en un iPhone con notch el padding se comía el espacio
+del contenido y además abría un hueco antes de la barra de categorías, que se
+coloca a `var(--alto-barra) + el notch`. Hoy no se nota porque el `<meta
+viewport>` **no lleva `viewport-fit=cover`** y por eso todos los `env(safe-area-
+inset-*)` del CSS valen 0. Se dejó blindado para el día que se agregue.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -273,6 +327,7 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 | **Razón social o nombre del responsable, NIT o cédula, correo de contacto** | `privacidad.html` (4), `terminos.html` (1), `compras.html` (2), `cookies.html` (1) | Lo exige la Ley 1581 de 2012, porque el sistema guarda nombre y teléfono de la gente. **Es el pendiente más importante de los tres**: sin un correo real, el cliente no puede ejercer sus derechos sobre sus datos |
 | **Measurement ID de GA4** (`G-XXXXXXXXXX`) | `js/config.js` → `analytics.measurementId` | JX decidió instalarlo después. El snippet ya está listo y condicionado al consentimiento; solo falta pegar el ID |
 | **Coordenadas exactas del local** | `index.html` línea ~59 (geo tags) y JSON-LD `geo` | Ahora están a nivel de barrio (10.398, −75.489). JX va a pasar el enlace de Google Maps del local; de ahí se sacan las coordenadas exactas |
+| **Clave nueva para el MODO LOCAL** | `js/panel.js` → `HASH_CLAVE_LOCAL` | El hash que hay hoy corresponde a `pichiburguer2026`, y se sacó por diccionario **al primer intento** en la revisión de sept. 2026. No afecta al modo `auto`/`nube` (ahí la clave la revisa Cloudflare y no está en el código), pero **nunca se puede poner `modo: 'local'` con el panel expuesto en internet mientras el hash siga siendo el de una palabra adivinable**. JX tiene que pasar una clave larga y sin palabras del negocio para recalcular el hash |
 
 ### ✔ Datos CONFIRMADOS por JX — no volver a preguntar
 
@@ -332,6 +387,63 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 - **Costo del domicilio resuelto**: no hay tarifa fija, se acuerda por WhatsApp.
   Dejó de ser un `{POR CONFIRMAR}` y pasó a ser una decisión del negocio.
 - **GA4 aplazado** por decisión de JX: el snippet queda listo, falta el ID.
+
+---
+
+### 19 de septiembre de 2026 · Revisión completa y correcciones
+
+Revisión pedida por JX: responsive, errores y "que todo funcione". Se probó en
+navegador real (Chromium) y con un KV falso en memoria, no solo leyendo código.
+
+**Lo que se probó:** 14 tamaños de 320 a 1920 px más celular acostado en las 7
+páginas; el semáforo en 7 momentos del día con el reloj congelado en hora de
+Colombia; el flujo completo de pedido; las 20 comprobaciones de la API; la
+limpieza sabatina en 4 momentos de la semana; y el panel con pedidos sembrados.
+
+**Lo que salió BIEN y no se tocó:** cero scroll horizontal y cero desbordes en
+todos los tamaños; el semáforo y el corte de 15 minutos antes del cierre; los
+turnos consecutivos; el recálculo del total en el servidor (se le mandó
+`total: 0` y un precio de −5.000 y respondió 32.000 y 0); el freno de 200
+pedidos; el 401 cuando falta `PANEL_CLAVE`; la limpieza de los sábados; el
+consentimiento de cookies (nada de Google carga antes de aceptar); los precios
+coherentes en los 3 sitios; y que el banner de cookies **no** tapa "Hacer el
+pedido" en ningún tamaño (el arreglo de la entrega inicial sigue funcionando).
+
+**Bugs encontrados y corregidos:**
+1. **"cerramos a las 11:00 p. m.."** — doble punto en los 4 mensajes del
+   semáforo, visible en la portada todo el día. `aTexto12h()` ya devolvía el
+   punto de "m." y el mensaje le sumaba otro.
+2. **"p. m." se partía en dos líneas** en celulares angostos. Ahora lleva
+   espacios duros (`\u00A0`).
+3. **Las tres barras fijas dejaban ver el contenido por detrás** — el botón rojo
+   "Agregar" se leía cruzando la barra superior y la del carrito. Ver decisión 14.
+4. **El precio se escribía distinto** en la tarjeta (`$16.000`) y en el carrito,
+   el WhatsApp y el panel (`$ 16.000`). Ver decisión 15.
+5. **PANEL: "Llamar" y "WhatsApp" no servían** si el cliente escribía su celular
+   con el 57. Salía `tel:+57573001234567`. Ver decisión 16.
+6. **La etiqueta amarilla quedaba pegada a la barra** al saltar por categorías:
+   el `scroll-margin-top` valía exactamente el alto de las dos barras, cero aire,
+   y la rotación de −1.2° hacía que la esquina se metiera debajo. Se le sumaron
+   18px.
+7. **El `FAQPage` del `<head>` no existía en la página.** Ver decisión 13.
+8. **La ventana del pedido no encerraba el foco.** Ver decisión 17.
+9. **`<label>` huérfanos** (sin `for`) rotulando los grupos de entrega y pago.
+   Pasaron a `<span class="campo__titulo">`, que se ve igual; el nombre
+   accesible del grupo ya lo daba el `aria-labelledby` del `role="radiogroup"`.
+10. **"Actualizar" estaba dentro del `role="tablist"`** del panel y el lector de
+    pantalla lo anunciaba como una tercera pestaña. Las dos pestañas se movieron
+    a un contenedor propio con `display: contents` (cero cambio visual).
+11. **Solo se medía el primero de los dos enlaces `tel:`** (el del pie nunca).
+12. **`.barra` con `height` fijo** — blindado. Ver decisión 18.
+
+**Limpieza menor:** se quitó `pestanaActual` de `js/panel.js` (se asignaba y
+nunca se leía); el año del copyright de la 404 y las 4 legales ahora se calcula
+solo (antes decía 2026 fijo y esas páginas no cargan JS); `sitemap.xml` al día;
+y se corrigió la ficha de diseño de este archivo, que decía que los botones
+usaban `--radio-full` cuando usan `--radio-sm`.
+
+**Pendiente nuevo para JX:** la clave del modo local es adivinable. Está anotado
+arriba en la tabla de `{POR CONFIRMAR}`.
 
 ---
 

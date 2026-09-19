@@ -42,14 +42,15 @@
      vez. Se usa sessionStorage y NO localStorage a propósito: al cerrar la
      pestaña se borra sola. */
   var clave = '';
-  var pestanaActual = 'activos';
   var idsConocidos = {};      // para detectar cuáles pedidos son nuevos
   var temporizador = null;
 
   var formatoPeso = new Intl.NumberFormat('es-CO', {
     style: 'currency', currency: 'COP', maximumFractionDigits: 0
   });
-  function pesos(n) { return formatoPeso.format(n); }
+  /* Sin espacio entre el signo y el número, igual que el menú y el carrito
+     de la página del cliente. Intl mete un espacio fino que se quita. */
+  function pesos(n) { return formatoPeso.format(n).replace(/\s/g, ''); }
 
 
   /* ==========================================================================
@@ -289,15 +290,18 @@
     pie.appendChild(total);
 
     // Llamar y escribir al cliente sin tener que copiar el número a mano.
+    // El número pasa por telefonoLocal() para que no salga +5757… si el cliente
+    // ya había escrito el indicativo.
+    var tel = telefonoLocal(p.telefono);
     var llamar = document.createElement('a');
     llamar.className = 'btn btn--linea';
-    llamar.href = 'tel:+57' + p.telefono;
+    llamar.href = 'tel:+57' + tel;
     llamar.textContent = 'Llamar';
     pie.appendChild(llamar);
 
     var wa = document.createElement('a');
     wa.className = 'btn btn--linea';
-    wa.href = 'https://wa.me/57' + p.telefono + '?text=' +
+    wa.href = 'https://wa.me/57' + tel + '?text=' +
               encodeURIComponent('Hola ' + p.nombre + ', tu pedido de Pichi Burguer (turno ' + p.turno + ') ya está listo.');
     wa.target = '_blank';
     wa.rel = 'noopener';
@@ -320,6 +324,23 @@
 
     art.appendChild(pie);
     return art;
+  }
+
+  /**
+   * Deja el celular en el formato local de 10 dígitos, listo para pegarle el
+   * indicativo del país.
+   * POR QUÉ EXISTE: el cliente escribe su número como quiere. Si lo escribe con
+   * el indicativo ("573001234567" o "+57 300 123 4567"), concatenarle otro 57
+   * dejaba el enlace en +5757301234567: el botón "Llamar" no marcaba y el de
+   * WhatsApp abría un chat con un número que no existe.
+   * @param {string} bruto  el teléfono tal como quedó guardado en el pedido
+   * @returns {string} solo dígitos, sin indicativo de país
+   */
+  function telefonoLocal(bruto) {
+    var d = String(bruto || '').replace(/\D/g, '');
+    if (d.indexOf('00') === 0) { d = d.slice(2); }                  // marcación internacional vieja: 0057…
+    if (d.length === 12 && d.indexOf('57') === 0) { d = d.slice(2); } // 57 + celular de 10 dígitos
+    return d;
   }
 
   /** Convierte la marca de tiempo del pedido a "6 sept, 7:42 p. m." */
@@ -377,7 +398,6 @@
 
   /** Cambia entre las pestañas de activos e historial. */
   function cambiarPestana(cual) {
-    pestanaActual = cual;
     var esActivos = cual === 'activos';
     $('#tabActivos').classList.toggle('activa', esActivos);
     $('#tabHistorial').classList.toggle('activa', !esActivos);
