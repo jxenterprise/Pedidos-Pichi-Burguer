@@ -39,6 +39,60 @@
 
 
   /* ==========================================================================
+     0) MODO PRUEBA
+     Qué hace: deja armar y enviar un pedido fuera del horario, para que JX
+     pueda comprobar el circuito completo sin esperar a las 6 de la tarde.
+     Cómo se enciende: entrando con index.html?prueba=1 (el botón "Probar la
+     página" del panel abre justamente esa dirección).
+     Se recuerda en sessionStorage para que no se apague al moverse por la
+     página, y se borra sola al cerrar la pestaña: así nadie se queda en modo
+     prueba sin darse cuenta.
+     QUÉ NO HACE: no esconde nada. El pedido viaja completo hasta el panel, con
+     su turno real, pero marcado como prueba de punta a punta — franja naranja
+     en la página, campo `prueba` en el servidor, franja naranja en la tarjeta
+     del panel y aviso en el mensaje de WhatsApp. El vendedor no se puede
+     confundir, y el panel tiene un botón para borrarlos todos de un golpe.
+     ========================================================================== */
+
+  var CLAVE_PRUEBA = 'pichi_modo_prueba';
+  var modoPrueba = false;
+
+  function iniciarModoPrueba() {
+    var pedidoPorUrl = /[?&]prueba=1(&|$)/.test(window.location.search);
+    var recordado = false;
+    try { recordado = sessionStorage.getItem(CLAVE_PRUEBA) === '1'; } catch (e) {}
+
+    modoPrueba = pedidoPorUrl || recordado;
+    if (!modoPrueba) { return; }
+
+    try { sessionStorage.setItem(CLAVE_PRUEBA, '1'); } catch (e) {}
+    document.body.classList.add('modo-prueba');
+    medirFranja();
+    // Al girar el teléfono el texto de la franja cambia de una a dos líneas, así
+    // que hay que volver a medir o la barra del logo queda tapada.
+    window.addEventListener('resize', medirFranja);
+  }
+
+  /**
+   * Le dice al CSS cuánto mide la franja de prueba de verdad.
+   * Por qué medirlo y no ponerlo fijo: en pantallas angostas el texto pasa a dos
+   * líneas y la franja crece. Con un valor fijo, la barra del logo quedaba
+   * debajo de la franja y no se veía el semáforo.
+   */
+  function medirFranja() {
+    var franja = $('#franjaPrueba');
+    if (!franja) { return; }
+    document.body.style.setProperty('--alto-franja', franja.offsetHeight + 'px');
+  }
+
+  /* Salir del modo prueba: el enlace de la franja vuelve a index.html sin el
+     parámetro, así que hay que borrar también lo recordado en la sesión. */
+  function salirModoPrueba() {
+    try { sessionStorage.removeItem(CLAVE_PRUEBA); } catch (e) {}
+  }
+
+
+  /* ==========================================================================
      1) SEMÁFORO ABIERTO / CERRADO
      Qué hace: compara la hora actual de Colombia con el horario de config.js y
      enciende la luz verde o roja, arriba y en la portada.
@@ -75,6 +129,17 @@
     var ahora = window.Almacen.ahoraColombia();
     var hoy = CFG.horarios.dias[ahora.diaSemana];
     var minutosAhora = ahora.hora * 60 + ahora.minuto;
+
+    // En modo prueba el sistema se comporta como si el local estuviera abierto,
+    // aunque sean las 3 de la tarde. Es el único punto donde se ignora el
+    // horario, y solo para quien entró a propósito con ?prueba=1.
+    if (modoPrueba) {
+      return {
+        abierto: true, aceptaPedidos: true, esPrueba: true,
+        texto: 'Modo prueba',
+        textoLargo: 'Modo prueba: el local está cerrado, pero puedes recorrer el pedido completo.'
+      };
+    }
 
     // Día marcado como cerrado en la configuración.
     if (!hoy || hoy.cerrado) {
@@ -152,9 +217,118 @@
     // Se guarda para que el botón de pedir sepa si puede abrir la ventana.
     estadoActual = e;
     actualizarBotonPedir();
+    // La cortina de cerrado se pone o se quita según el mismo estado: así no
+    // hay forma de que la barra diga "Abierto" y la cortina siga puesta.
+    actualizarCortina(e);
   }
 
   var estadoActual = { aceptaPedidos: false };
+
+
+  /* ==========================================================================
+     1bis) CORTINA DE CERRADO Y CUENTA REGRESIVA
+     Qué hace: tapa la página mientras el local no atiende y muestra cuánto
+     falta para abrir, al segundo.
+     Por qué tapa en vez de esconder: el menú sigue en el HTML debajo. Si se
+     ocultara de verdad, Google no leería los 15 platos de madrugada y el
+     negocio perdería justo lo que vino a buscar aquí.
+     Salida: el botón "Ver el menú de todas formas" la quita por lo que dure la
+     visita. PEDIR sigue bloqueado hasta la hora de abrir; eso no lo cambia.
+     ========================================================================== */
+
+  var CLAVE_VIO_MENU = 'pichi_vio_menu';
+  var relojCortina = null;
+
+  /**
+   * Calcula cuántos segundos faltan para que el local abra.
+   * Cómo: recorre los días de la semana desde hoy hasta encontrar el primero
+   * que abra y cuya hora de apertura todavía no haya pasado.
+   * @returns {{segundos:number, dia:object, esHoy:boolean}|null}
+   *   null si no hay ningún día abierto en la configuración.
+   */
+  function proximaApertura() {
+    var a = window.Almacen.ahoraColombia();
+    var segundosAhora = a.hora * 3600 + a.minuto * 60 + a.segundo;
+
+    for (var i = 0; i <= 7; i++) {
+      var d = CFG.horarios.dias[(a.diaSemana + i) % 7];
+      if (!d || d.cerrado) { continue; }
+      var faltan = i * 86400 + aMinutos(d.abre) * 60 - segundosAhora;
+      // faltan <= 0 significa que esa apertura ya pasó (es la de hoy más
+      // temprano): se sigue buscando en el día siguiente.
+      if (faltan > 0) { return { segundos: faltan, dia: d, esHoy: i === 0 }; }
+    }
+    return null;
+  }
+
+  /** Convierte 13563 segundos en "03:46:03". */
+  function aRelojLargo(segundos) {
+    var h = Math.floor(segundos / 3600);
+    var m = Math.floor((segundos % 3600) / 60);
+    var sg = segundos % 60;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(sg).padStart(2, '0');
+  }
+
+  /** Pone o quita la cortina según el estado del local. */
+  function actualizarCortina(estado) {
+    var cortina = $('#pantallaCerrado');
+    if (!cortina) { return; }
+
+    var yaVioElMenu = false;
+    try { yaVioElMenu = sessionStorage.getItem(CLAVE_VIO_MENU) === '1'; } catch (e) {}
+
+    // Se tapa solo cuando el local no está atendiendo. En "Cerrando" (los 15
+    // minutos finales) el local SÍ está abierto y hay gente adentro: taparlo
+    // ahí sería mentirle al cliente que va de camino.
+    var debeTapar = !estado.abierto && !modoPrueba && !yaVioElMenu;
+
+    cortina.hidden = !debeTapar;
+    cortina.classList.toggle('visible', debeTapar);
+    document.body.classList.toggle('cerrado-visible', debeTapar);
+
+    if (debeTapar) {
+      pintarCuentaRegresiva();
+      if (!relojCortina) { relojCortina = setInterval(pintarCuentaRegresiva, 1000); }
+    } else if (relojCortina) {
+      clearInterval(relojCortina);
+      relojCortina = null;
+    }
+  }
+
+  /** Escribe el horario y mueve la cuenta regresiva. Corre una vez por segundo. */
+  function pintarCuentaRegresiva() {
+    var prox = proximaApertura();
+    var reloj = $('#cerradoReloj');
+    var horario = $('#cerradoHorario');
+
+    if (!prox) {
+      reloj.textContent = '--:--:--';
+      horario.textContent = 'Escríbenos por WhatsApp para saber cuándo abrimos.';
+      return;
+    }
+
+    horario.textContent = (prox.esHoy ? 'Hoy abrimos de ' : 'Abrimos el ' + prox.dia.nombre.toLowerCase() + ' de ') +
+      aTexto12h(aMinutos(prox.dia.abre)) + ' a ' + aTexto12h(aMinutos(prox.dia.cierra));
+
+    if (prox.segundos <= 0) {
+      // Llegó la hora: se recalcula el estado, la cortina se quita sola y el
+      // botón de pedir se desbloquea sin que el cliente tenga que recargar.
+      pintarEstado();
+      return;
+    }
+    reloj.textContent = aRelojLargo(prox.segundos);
+  }
+
+  /** Quita la cortina por lo que dure la visita, sin desbloquear los pedidos. */
+  function verElMenu() {
+    try { sessionStorage.setItem(CLAVE_VIO_MENU, '1'); } catch (e) {}
+    pintarEstado();
+    medirEvento('clic_ver_menu_cerrado');
+    // El foco se lleva a la barra de categorías: quien usa teclado necesita
+    // saber dónde quedó parado cuando la cortina desaparece.
+    var primera = $('#navCategorias a');
+    if (primera) { primera.focus(); }
+  }
 
 
   /* ==========================================================================
@@ -255,7 +429,7 @@
     if (!btn) { return; }
     if (estadoActual.aceptaPedidos) {
       btn.disabled = false;
-      btn.textContent = 'Hacer el pedido';
+      btn.textContent = modoPrueba ? 'Hacer el pedido (prueba)' : 'Hacer el pedido';
     } else {
       btn.disabled = true;
       btn.textContent = 'Cerrado ahora';
@@ -412,7 +586,10 @@
     window.Almacen.crearPedido({
       nombre: nombre, telefono: telefono, tipo: tipo,
       direccion: direccion, pago: pago, notas: notas,
-      items: items, total: totalCarrito()
+      items: items, total: totalCarrito(),
+      // Viaja hasta el servidor para que el panel lo pinte marcado y el
+      // vendedor no se ponga a preparar una hamburguesa que nadie pidió.
+      prueba: modoPrueba
     }).then(function (pedido) {
       mostrarTurno(pedido);
       medirEvento('pedido_enviado', { valor: pedido.total });
@@ -470,6 +647,12 @@
      ========================================================================== */
   function enlaceWhatsApp(pedido) {
     var lineas = [];
+    // El aviso va de PRIMERO: si el vendedor solo alcanza a leer la primera
+    // línea de la notificación, esa línea tiene que decírselo.
+    if (pedido.prueba) {
+      lineas.push('⚠️ *PEDIDO DE PRUEBA — NO PREPARAR* ⚠️');
+      lineas.push('');
+    }
     lineas.push('*PEDIDO PICHI BURGUER*');
     lineas.push('Turno: *' + pedido.turno + '*');
     if (pedido.numero) { lineas.push('N° de pedido: ' + pedido.numero); }
@@ -645,6 +828,10 @@
     // Año del aviso de copyright, para que nunca quede desactualizado.
     $('#anio').textContent = new Date().getFullYear();
 
+    // El modo prueba se resuelve ANTES que nada: cambia el estado del local y
+    // por lo tanto si la cortina de cerrado se pone o no.
+    iniciarModoPrueba();
+
     pintarEstado();
     pintarHorarios();
     // Se revisa el horario cada minuto: si el local cierra mientras alguien
@@ -684,6 +871,16 @@
         $('#campoDireccion').hidden = ($('input[name="tipo"]:checked').value !== 'domicilio');
       });
     });
+
+    // Cortina de cerrado: la salida al menú.
+    var btnMenu = $('#btnVerMenu');
+    if (btnMenu) { btnMenu.addEventListener('click', verElMenu); }
+
+    // "Salir del modo prueba" de la franja naranja: el enlace ya vuelve a
+    // index.html sin el parámetro, pero hay que borrar lo guardado en la
+    // sesión o al llegar volvería a encenderse solo.
+    var salir = $('#franjaPrueba a');
+    if (salir) { salir.addEventListener('click', salirModoPrueba); }
 
     activarCategorias();
     iniciarCookies();

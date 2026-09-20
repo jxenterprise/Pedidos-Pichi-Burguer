@@ -8,7 +8,7 @@
      1. Acceso con clave
      2. Carga y refresco de los pedidos
      3. Dibujo de cada tarjeta de pedido
-     4. Acciones: entregado, borrar historial, salir
+     4. Acciones: entregado, borrar historial, borrar pruebas, probar, salir
      5. Arranque
 
    DEPENDE DE: js/config.js y js/almacen.js, que deben cargarse ANTES.
@@ -18,13 +18,13 @@
        encabezado y Cloudflare la compara con la variable de entorno
        PANEL_CLAVE. La clave NO está en este archivo ni en ningún archivo del
        sitio, así que no se puede sacar mirando el código.
-     · En modo local (una tablet fija en el mostrador, sin backend) no hay
-       servidor que revise nada, así que la comprobación se hace aquí con un
-       resumen criptográfico de la clave. Eso NO es seguridad de verdad: sirve
-       para que un cliente curioso no toque la tablet, nada más. En ese modo los
-       pedidos viven solo en ese aparato, así que no hay nada que robar de
-       lejos. Si alguna vez el panel va a estar expuesto en internet, tiene que
-       ser SIEMPRE en modo nube.
+     · En modo local (sistema.modo = 'local' en js/config.js) NO hay servidor
+       que revise nada, así que el panel simplemente NO ABRE y lo dice. Antes
+       había aquí un resumen SHA-256 de la clave; se quitó porque un resumen de
+       una palabra adivinable se rompe por diccionario en segundos, y la regla
+       de este proyecto es que la clave no exista en el código bajo ninguna
+       forma. ⚠ NUNCA volver a poner una clave, ni un hash de una clave, en
+       este archivo ni en ningún otro del repositorio.
    ========================================================================== */
 
 (function () {
@@ -32,10 +32,6 @@
 
   var CFG = window.PICHI_CONFIG;
   var $  = function (s) { return document.querySelector(s); };
-
-  /* Resumen SHA-256 de la clave, usado ÚNICAMENTE en modo local (ver aviso
-     de arriba). En modo nube este valor no se usa para nada. */
-  var HASH_CLAVE_LOCAL = '179dd6e34921eabb7886b4c898a0e6342f8b181c73f792b2eb8ac860f4e22275';
 
   /* La clave escrita se guarda en memoria mientras dura la sesión y en
      sessionStorage para que al refrescar la página no toque escribirla otra
@@ -57,16 +53,6 @@
      1) ACCESO CON CLAVE
      ========================================================================== */
 
-  /** Calcula el resumen SHA-256 de un texto (solo para el modo local). */
-  function hash(texto) {
-    var datos = new TextEncoder().encode(texto);
-    return crypto.subtle.digest('SHA-256', datos).then(function (buf) {
-      return Array.from(new Uint8Array(buf))
-        .map(function (b) { return b.toString(16).padStart(2, '0'); })
-        .join('');
-    });
-  }
-
   /**
    * Comprueba la clave y, si es correcta, abre el panel.
    * En modo nube la comprobación real la hace el servidor: se intenta listar
@@ -85,9 +71,14 @@
     var comprobacion;
 
     if (CFG.sistema.modo === 'local') {
-      comprobacion = hash(escrita).then(function (h) {
-        if (h !== HASH_CLAVE_LOCAL) { throw new Error('Clave incorrecta.'); }
-      });
+      // Sin servidor no hay dónde guardar la clave fuera del alcance del
+      // navegador: cualquier comprobación hecha aquí (aunque fuera contra un
+      // resumen criptográfico) se puede leer y romper abriendo el código. Antes
+      // había un hash aquí y se sacó por diccionario al primer intento. Así que
+      // en modo local el panel no abre, y se dice por qué.
+      comprobacion = Promise.reject(new Error(
+        'El panel solo funciona con el sistema en la nube. Revisa sistema.modo en js/config.js.'
+      ));
     } else {
       // La clave se manda al servidor; si está mal, la API responde 401.
       comprobacion = window.Almacen.listarPedidos(escrita).then(function () {});
@@ -221,7 +212,17 @@
   /** Construye la tarjeta de un pedido. */
   function tarjeta(p, esHistorial) {
     var art = document.createElement('article');
-    art.className = 'pedido' + (p.entregado ? ' entregado' : '') + (esHistorial ? ' viejo' : '');
+    art.className = 'pedido' + (p.entregado ? ' entregado' : '') + (esHistorial ? ' viejo' : '') +
+                    (p.prueba ? ' es-prueba' : '');
+
+    // Franja naranja arriba del todo: lo primero que se ve de la tarjeta, para
+    // que nadie se ponga a preparar un pedido que nadie pidió.
+    if (p.prueba) {
+      var aviso = document.createElement('span');
+      aviso.className = 'pedido__prueba';
+      aviso.textContent = '⚠ Pedido de prueba · no preparar';
+      art.appendChild(aviso);
+    }
 
     /* --- Encabezado: turno, nombre, celular, hora --- */
     var cab = document.createElement('div');
@@ -385,6 +386,33 @@
     });
   }
 
+  /**
+   * Borra los pedidos de prueba, dejando intactos los de verdad.
+   * Se pide confirmación igual que con el historial: no tiene vuelta atrás.
+   */
+  function borrarPruebas() {
+    if (!confirm('¿Borrar los pedidos marcados como PRUEBA?\n\nLos pedidos reales NO se tocan. Esta acción no se puede deshacer.')) {
+      return;
+    }
+    window.Almacen.borrarPruebas(clave).then(function (r) {
+      var n = r && typeof r.borrados === 'number' ? r.borrados : 0;
+      avisar(n === 1 ? 'Se borró 1 pedido de prueba' : 'Se borraron ' + n + ' pedidos de prueba');
+      idsConocidos = {};
+      cargarPedidos(true);
+    }).catch(function (err) {
+      avisar('No se pudo borrar: ' + err.message);
+    });
+  }
+
+  /**
+   * Abre la página del cliente en modo prueba, en una pestaña aparte.
+   * Para qué: el local abre 5 horas al día; sin esto, comprobar que el sistema
+   * funciona obligaría a esperar hasta las 6 de la tarde.
+   */
+  function probarLaPagina() {
+    window.open('index.html?prueba=1', '_blank', 'noopener');
+  }
+
   /** Cierra la sesión y vuelve a la pantalla de la clave. */
   function cerrarSesion() {
     clave = '';
@@ -429,6 +457,8 @@
     $('#tabHistorial').addEventListener('click', function () { cambiarPestana('historial'); });
     $('#btnRefrescar').addEventListener('click', function () { cargarPedidos(false); });
     $('#btnBorrarHistorial').addEventListener('click', borrarHistorial);
+    $('#btnBorrarPruebas').addEventListener('click', borrarPruebas);
+    $('#btnProbarPagina').addEventListener('click', probarLaPagina);
     $('#btnSalir').addEventListener('click', cerrarSesion);
 
     // Si el vendedor solo refrescó la página, se entra directo sin pedir clave.

@@ -747,6 +747,175 @@ body.cookies-visibles .wa-float { display: none; }
 
 
 /* ============================================================================
+   7bis) PANTALLA DE CERRADO Y MODO PRUEBA
+   Qué es: la cortina que tapa la página cuando el local no está atendiendo, con
+   el letrero de CERRADO colgado que se mece, la cuenta regresiva hasta la hora
+   de abrir y una salida para ver el menú.
+   Función: que nadie arme un pedido a las 3 de la tarde creyendo que se lo van a
+   preparar. El local abre 5 horas al día; sin esta cortina, 19 horas al día la
+   página se ve idéntica a cuando sí atienden.
+   POR QUÉ ES UNA CAPA ENCIMA Y NO OCULTA EL CONTENIDO: el menú sigue existiendo
+   en el HTML debajo. Si se ocultara con display:none, Google no vería los 15
+   platos ni los precios de madrugada, que es justo lo que este sitio necesita
+   posicionar. Así la cortina tapa, pero el contenido está y se indexa igual.
+   Depende de: js/script.js la muestra, la esconde y mueve la cuenta regresiva.
+   ========================================================================== */
+.cerrado {
+  position: fixed; inset: 0; z-index: 150;
+  display: none;
+  overflow-y: auto; overflow-x: hidden;
+  /* Mismo degradado rojizo de la portada, para que no parezca otra página. */
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(224,18,32,.16) 0%, rgba(0,0,0,0) 60%),
+    var(--negro);
+}
+.cerrado.visible { display: block; }
+/* Mientras la cortina está puesta, el fondo no se desplaza. */
+body.cerrado-visible { overflow: hidden; }
+
+.cerrado__int {
+  min-height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 30px clamp(16px, 5vw, 28px) calc(30px + env(safe-area-inset-bottom));
+  gap: 0;
+}
+.cerrado__logo { width: 84px; height: auto; border-radius: var(--radio-sm); margin-bottom: 16px; }
+.cerrado__lema {
+  font-family: var(--fuente-titulo); font-style: italic; font-weight: 800;
+  text-transform: uppercase; font-size: clamp(1.05rem, 4.4vw, 1.4rem);
+  color: var(--blanco); margin: 0;
+}
+
+/* --- El letrero colgado ---
+   Estructura: un clavo fijo arriba, y colgando de él un bloque (las dos cuerdas
+   + la tabla) que gira sobre el clavo. Por eso el transform-origin va en 50% 0:
+   es el punto exacto donde el letrero está clavado a la pared. */
+.letrero { position: relative; width: 258px; height: 192px; margin: 4px auto 2px; }
+.letrero__clavo {
+  position: absolute; top: 0; left: 50%; z-index: 2;
+  transform: translate(-50%, -50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--texto-suave);
+  box-shadow: 0 2px 5px rgba(0,0,0,.8);
+}
+.letrero__pendulo {
+  position: absolute; top: 0; left: 0; width: 100%;
+  transform-origin: 50% 0;
+  will-change: transform;
+  /* Dos animaciones encadenadas: la primera es el empujón inicial, que se va
+     apagando como un péndulo de verdad; la segunda toma el relevo con un vaivén
+     suave y permanente. Un solo @keyframes infinito no puede "irse calmando",
+     porque al repetirse volvería a empezar con el golpe fuerte. */
+  animation:
+    letrero-entrada 2.6s cubic-bezier(.4, .04, .3, 1) both,
+    letrero-vaiven 3.8s 2.6s ease-in-out infinite;
+}
+.letrero__cuerdas { display: block; width: 100%; height: 68px; overflow: visible; }
+.letrero__cuerdas line { stroke: var(--texto-tenue); stroke-width: 2; stroke-linecap: round; }
+.letrero__tabla {
+  display: block; width: 198px; margin: 0 auto; padding: 15px 10px;
+  /* Tabla clara sobre el negro de la página: es un objeto, no una superficie,
+     y es lo que lo hace leerse de lejos igual que el letrero de un local. */
+  background: var(--blanco); color: var(--rojo);
+  border: 4px solid var(--rojo); border-radius: var(--radio);
+  box-shadow: var(--sombra-alta);
+  font-family: var(--fuente-titulo); font-style: italic; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .02em; line-height: 1;
+  font-size: 1.95rem;
+}
+
+@keyframes letrero-entrada {
+  0%   { transform: rotate(-46deg); }
+  20%  { transform: rotate(32deg); }
+  40%  { transform: rotate(-21deg); }
+  58%  { transform: rotate(14deg); }
+  74%  { transform: rotate(-9deg); }
+  88%  { transform: rotate(6deg); }
+  100% { transform: rotate(-5deg); }
+}
+@keyframes letrero-vaiven {
+  0%, 100% { transform: rotate(-5deg); }
+  50%      { transform: rotate(5deg); }
+}
+
+.cerrado__horario {
+  margin: 18px 0 0; font-size: .95rem; font-weight: 600; color: var(--texto);
+  max-width: 34ch;
+}
+.cerrado__cuenta { margin: 10px 0 0; font-size: .85rem; color: var(--texto-suave); }
+.cerrado__reloj {
+  display: block; margin-top: 4px;
+  font-family: var(--fuente-titulo); font-style: italic; font-weight: 800;
+  font-size: clamp(2.1rem, 11vw, 3rem); line-height: 1;
+  color: var(--amarillo); font-variant-numeric: tabular-nums;
+}
+.cerrado__btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 24px; }
+.cerrado__salida { margin: 16px 0 0; }
+
+/* Gama baja: el letrero se encoge para que el vaivén no se salga de pantalla. */
+@media (max-width: 380px) {
+  .letrero { width: 216px; height: 168px; }
+  .letrero__tabla { width: 168px; padding: 12px 8px; font-size: 1.6rem; }
+  .letrero__cuerdas { height: 58px; }
+  .cerrado__logo { width: 68px; margin-bottom: 12px; }
+}
+/* Celular acostado: cabe poco alto, se recorta todo lo prescindible. */
+@media (max-height: 560px) and (orientation: landscape) {
+  .cerrado__logo { display: none; }
+  .letrero { width: 200px; height: 146px; }
+  .letrero__tabla { width: 156px; padding: 10px 8px; font-size: 1.45rem; }
+  .letrero__cuerdas { height: 50px; }
+  .cerrado__reloj { font-size: 1.9rem; }
+}
+/* A quien pidió menos movimiento se le deja el letrero quieto y derecho. */
+@media (prefers-reduced-motion: reduce) {
+  .letrero__pendulo { animation: none; transform: rotate(0deg); }
+}
+
+
+/* ============================================================================
+   7ter) MODO PRUEBA
+   Qué es: la franja naranja que avisa que lo que se está haciendo NO es un
+   pedido real. Se enciende con index.html?prueba=1 o desde el panel.
+   Función: que JX pueda probar el circuito completo a cualquier hora sin
+   esperar a las 6 de la tarde, y que ni él ni el vendedor confundan un pedido
+   de prueba con uno de verdad.
+   POR QUÉ NARANJA: es el color que el sistema ya usa para "ojo con esto"
+   (.pendiente y el borde de .aviso-caja). No se inventa un color nuevo.
+   ========================================================================== */
+.franja-prueba {
+  position: fixed; inset: 0 0 auto 0; z-index: 160;
+  display: none;
+  background: var(--naranja); color: var(--negro);
+  padding: 7px clamp(12px, 4vw, 24px);
+  padding-top: calc(7px + env(safe-area-inset-top));
+  font-size: .78rem; font-weight: 700; line-height: 1.35; text-align: center;
+}
+body.modo-prueba .franja-prueba { display: block; }
+/* La franja empuja todo lo fijo hacia abajo para no taparle nada al que prueba.
+   ⚠ --alto-franja NO se escribe a mano: lo mide js/script.js con el alto real
+   de la franja y lo vuelve a medir si se gira el teléfono. Se probó con un
+   valor fijo de 30px y en pantalla angosta el texto pasa a dos líneas: la
+   franja crecía a 48px y la barra del logo quedaba tapada. El valor de aquí es
+   solo el respaldo por si el JS no alcanzara a medir. */
+body.modo-prueba { --alto-franja: 48px; }
+body.modo-prueba .barra { top: var(--alto-franja); }
+body.modo-prueba .categorias { top: calc(var(--alto-barra) + var(--alto-franja) + env(safe-area-inset-top)); }
+body.modo-prueba .portada { padding-top: calc(var(--alto-barra) + 58px + var(--alto-franja) + env(safe-area-inset-top) + 26px); }
+body.modo-prueba section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px + var(--alto-franja)); }
+
+/* Marca del pedido de prueba dentro del panel del vendedor. */
+.pedido.es-prueba { border-left-color: var(--naranja); }
+.pedido__prueba {
+  display: block; margin: -16px -17px 12px; padding: 6px 17px;
+  background: var(--naranja); color: var(--negro);
+  border-radius: var(--radio) var(--radio) 0 0;
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+
+
+/* ============================================================================
    8) PANEL DEL VENDEDOR (panel.html)
    Qué es: la pantalla donde el vendedor ve los pedidos que entran.
    Función: reemplazar la libreta del mostrador. Turno 1 arriba, los siguientes

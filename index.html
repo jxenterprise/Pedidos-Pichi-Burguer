@@ -193,6 +193,82 @@
 <a class="skip-link" href="#menu">Saltar al menú</a>
 
 <!-- ===========================================================
+     FRANJA DE MODO PRUEBA
+     Qué es: el aviso de que se está probando la página fuera del
+              horario y que el pedido NO es real.
+     Cómo se enciende: entrando con index.html?prueba=1, o desde
+              el botón "Probar la página" del panel del vendedor.
+     Depende de: js/script.js le pone la clase al <body>.
+     =========================================================== -->
+<p class="franja-prueba" id="franjaPrueba" role="status">
+  MODO PRUEBA · el local está cerrado y este pedido NO es real.
+  <a href="index.html" style="color:inherit">Salir del modo prueba</a>
+</p>
+
+<!-- ===========================================================
+     SECCIÓN: PANTALLA DE CERRADO
+     Qué es: la cortina que tapa la página mientras el local no
+              está atendiendo, con el letrero colgado que se mece
+              y la cuenta regresiva hasta la hora de abrir.
+     Función: que nadie arme un pedido creyendo que se lo van a
+              preparar. El local abre 5 horas al día.
+     OJO: va oculta con "hidden" y la muestra js/script.js solo si
+          el local está cerrado. Si el JavaScript fallara, la
+          cortina no aparece y la página se ve normal — falla del
+          lado seguro, nunca dejando al cliente encerrado.
+     El contenido de la página sigue existiendo DEBAJO: esto tapa,
+     no borra. Así Google sigue leyendo el menú de madrugada.
+     Depende de: css/styles.css (.cerrado, .letrero) y js/script.js.
+     =========================================================== -->
+<div class="cerrado" id="pantallaCerrado" role="dialog" aria-modal="true"
+     aria-labelledby="cerradoTitulo" hidden>
+  <div class="cerrado__int">
+
+    <img class="cerrado__logo" src="img/logo-pichi-burguer-cartagena.webp"
+         alt="Logo de Pichi Burguer" width="84" height="84">
+
+    <p class="cerrado__lema" id="cerradoTitulo">Te esperamos pronto</p>
+
+    <!-- El letrero: un clavo, dos cuerdas y la tabla. Todo lo que cuelga del
+         clavo gira junto, por eso va dentro de .letrero__pendulo. -->
+    <div class="letrero" aria-hidden="true">
+      <span class="letrero__clavo"></span>
+      <div class="letrero__pendulo">
+        <svg class="letrero__cuerdas" viewBox="0 0 258 68" preserveAspectRatio="none" focusable="false">
+          <line x1="129" y1="1" x2="36" y2="64"/>
+          <line x1="129" y1="1" x2="222" y2="64"/>
+        </svg>
+        <span class="letrero__tabla">Cerrado</span>
+      </div>
+    </div>
+    <!-- El mismo texto, pero legible para un lector de pantalla: el letrero de
+         arriba es un dibujo y va marcado aria-hidden. -->
+    <span class="sr-only">El local está cerrado en este momento.</span>
+
+    <p class="cerrado__horario" id="cerradoHorario">Consultando el horario…</p>
+
+    <p class="cerrado__cuenta">
+      Abrimos en
+      <span class="cerrado__reloj" id="cerradoReloj" role="timer" aria-live="off">--:--:--</span>
+    </p>
+
+    <div class="cerrado__btns">
+      <a class="btn btn--ama"
+         href="https://wa.me/573004752529?text=Hola%2C%20quiero%20preguntar%20algo%20sobre%20Pichi%20Burguer"
+         target="_blank" rel="noopener" data-evento="whatsapp_cerrado">Escríbenos por WhatsApp</a>
+    </div>
+
+    <!-- La salida al menú. Se puede mirar y ver precios; PEDIR sigue bloqueado
+         hasta la hora de abrir, igual que antes. Sin esta salida, el cliente que
+         busca de día se estrella con un muro y se va a otro local. -->
+    <p class="cerrado__salida">
+      <button type="button" class="btn-texto" id="btnVerMenu">Ver el menú de todas formas</button>
+    </p>
+
+  </div>
+</div>
+
+<!-- ===========================================================
      SECCIÓN: BARRA SUPERIOR
      Qué es: barra fija con el logo y el semáforo de estado.
      Función: que el visitante sepa si el local está abierto sin

@@ -20,6 +20,7 @@
      · listarPedidos(clave)      → trae activos + historial (solo panel)
      · marcarEntregado(id,clave) → marca un pedido como entregado
      · borrarHistorial(clave)    → limpieza manual del historial
+     · borrarPruebas(clave)      → borra solo los pedidos marcados como prueba
    ========================================================================== */
 
 (function () {
@@ -143,6 +144,7 @@
     pedido.numero = hoy.replace(/-/g, '').slice(2) + '-' + String(pedido.turno).padStart(3, '0');
     pedido.creado = Date.now();     // sin esto, el panel manda todo al historial
     pedido.entregado = false;
+    pedido.prueba = pedido.prueba === true;   // mismo campo que pone el servidor
 
     doc.pedidos.push(pedido);
     guardarLocal(doc);
@@ -254,6 +256,22 @@
         return Promise.resolve({ ok: true });
       }
       return llamarApi('entregado', { id: id }, clave);
+    },
+
+    /**
+     * Borra únicamente los pedidos marcados como prueba, dejando intactos los
+     * de verdad. Lo usa el botón del panel al terminar de comprobar el sistema.
+     * @param {string} clave  clave del panel
+     */
+    borrarPruebas: function (clave) {
+      if (CFG.sistema.modo === 'local') {
+        var doc = leerLocal();
+        var antes = doc.pedidos.length;
+        doc.pedidos = doc.pedidos.filter(function (p) { return !p.prueba; });
+        guardarLocal(doc);
+        return Promise.resolve({ ok: true, borrados: antes - doc.pedidos.length });
+      }
+      return llamarApi('borrar-pruebas', {}, clave);
     },
 
     /**

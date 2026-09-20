@@ -147,7 +147,7 @@ Registro de todo el código. **Se suma, nunca se borra lo anterior.**
 
 | Archivo | Qué contiene |
 |---|---|
-| `index.html` | Página del cliente. Barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, bebidas, cómo pedir, **preguntas frecuentes (`#preguntas`)**, horarios, contacto, mapa condicionado, footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
+| `index.html` | Página del cliente. **Cortina de cerrado (`#pantallaCerrado`)**, **franja de modo prueba (`#franjaPrueba`)**, barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, bebidas, cómo pedir, preguntas frecuentes (`#preguntas`), horarios, contacto, mapa condicionado, footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
 | `panel.html` | Panel del vendedor. Pantalla de clave → pestañas Activos / Historial |
 | `404.html` | Error con el diseño del sitio |
 | `privacidad.html` | Ley 1581 de 2012 (datos personales) |
@@ -201,10 +201,13 @@ podría abrir la consola y enviar un pedido por $0.
 **comparación de tiempo constante** (`comparaSegura()`), para no filtrar la clave
 por el tiempo que tarda la respuesta. La clave **no aparece en texto plano en
 ningún archivo del proyecto** — verificado por la auditoría.
-En **modo local** (tablet en el mostrador, sin backend) se compara contra el hash
-SHA-256 `179dd6e34921eabb7886b4c898a0e6342f8b181c73f792b2eb8ac860f4e22275`. Eso
-**no es seguridad real**: solo evita que un cliente curioso toque la tablet. La
-seguridad de verdad está en el modo nube.
+En **modo local** el panel simplemente **NO ABRE**, y lo dice con un mensaje.
+Hasta septiembre de 2026 había aquí un resumen SHA-256 de una clave; se quitó
+porque el resumen de una palabra adivinable se rompe por diccionario en segundos
+(se comprobó: salió al primer intento). Ver decisión 21.
+⚠ **Regla dura del proyecto**: no puede existir una clave, ni un resumen de una
+clave, ni nada parecido, en ningún archivo del repositorio. La única clave vive
+en la variable `PANEL_CLAVE` de Cloudflare y la revisa el servidor.
 
 **6. El menú está escrito en el HTML, no inyectado por JS.**
 Los 15 platos con sus precios están en el `index.html` servido. El JS solo lee los
@@ -297,6 +300,53 @@ coloca a `var(--alto-barra) + el notch`. Hoy no se nota porque el `<meta
 viewport>` **no lleva `viewport-fit=cover`** y por eso todos los `env(safe-area-
 inset-*)` del CSS valen 0. Se dejó blindado para el día que se agregue.
 
+**19. Cortina de cerrado: TAPA la página, no la esconde.**
+El local abre 5 horas al día; las otras 19 la página se veía idéntica a cuando
+sí atienden y cualquiera podía armar un pedido creyendo que se lo preparaban.
+La cortina (`#pantallaCerrado`) es una capa fija con `z-index: 150` que cubre
+todo, con el letrero de CERRADO colgado que se mece y una cuenta regresiva al
+segundo hasta la hora de abrir.
+⚠ **Por qué es una capa encima y no `display:none` sobre el contenido**: el menú
+y los 15 precios siguen existiendo en el HTML debajo. Si se ocultaran de verdad,
+Google —que rastrea de madrugada, con el local cerrado— no leería el menú, que es
+exactamente lo que este sitio necesita posicionar. Tapar sí, borrar nunca.
+Lleva una salida, **"Ver el menú de todas formas"**, que la quita por lo que dure
+la visita (`sessionStorage`). PEDIR sigue bloqueado: eso no lo cambia la salida.
+Sin esa salida, el cliente que busca a las 2 de la tarde para pedir en la noche
+se estrella con un muro y se va a otro local.
+La cortina arranca con `hidden` en el HTML y la enciende el JS: si el JavaScript
+fallara, no aparece y la página se ve normal — **falla del lado seguro**, nunca
+dejando al cliente encerrado.
+En estado "Cerrando" (los 15 minutos finales) **no** se tapa: el local está
+abierto y hay gente adentro.
+
+**20. Modo prueba: `index.html?prueba=1`.**
+Para qué: JX no puede comprobar el sistema si tiene que esperar a las 6 de la
+tarde. En modo prueba `calcularEstado()` devuelve "abierto" y el pedido recorre
+el circuito COMPLETO — Cloudflare, turno real, panel.
+Está marcado de punta a punta para que nadie lo confunda con un pedido de verdad:
+franja naranja arriba de la página, `prueba: true` guardado en el servidor,
+aviso de primera línea en el mensaje de WhatsApp (`⚠️ PEDIDO DE PRUEBA — NO
+PREPARAR`), franja naranja en la tarjeta del panel, y un botón **"Borrar pedidos
+de prueba"** que los quita sin tocar ni uno de los reales.
+Se recuerda en `sessionStorage` para no apagarse al navegar, y se borra al cerrar
+la pestaña. El panel tiene el botón "Probar la página como cliente", que abre esa
+dirección en otra pestaña.
+⚠ **Los pedidos de prueba SÍ consumen turno y el contador NO se devuelve.**
+Reciclar un turno sería peor: dos clientes distintos podrían terminar con el
+mismo número. Por eso conviene probar antes de abrir y borrar las pruebas al
+terminar.
+⚠ El alto de la franja naranja (`--alto-franja`) **lo mide el JS**, no se escribe
+a mano: con un valor fijo de 30px, en pantalla angosta el texto pasaba a dos
+líneas y la franja tapaba la barra del logo.
+
+**21. La clave del panel no existe en el repositorio, en ninguna forma.**
+Ni en texto plano, ni como hash, ni en el CSS, ni en los comentarios, ni en el
+README, ni en este archivo. Vive **solo** en la variable de entorno
+`PANEL_CLAVE` de Cloudflare y la compara el servidor con tiempo constante.
+Consecuencia aceptada: con `sistema.modo = 'local'` el panel no abre. Es el
+precio de que la clave no se pueda sacar inspeccionando el navegador.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -327,7 +377,6 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 | **Razón social o nombre del responsable, NIT o cédula, correo de contacto** | `privacidad.html` (4), `terminos.html` (1), `compras.html` (2), `cookies.html` (1) | Lo exige la Ley 1581 de 2012, porque el sistema guarda nombre y teléfono de la gente. **Es el pendiente más importante de los tres**: sin un correo real, el cliente no puede ejercer sus derechos sobre sus datos |
 | **Measurement ID de GA4** (`G-XXXXXXXXXX`) | `js/config.js` → `analytics.measurementId` | JX decidió instalarlo después. El snippet ya está listo y condicionado al consentimiento; solo falta pegar el ID |
 | **Coordenadas exactas del local** | `index.html` línea ~59 (geo tags) y JSON-LD `geo` | Ahora están a nivel de barrio (10.398, −75.489). JX va a pasar el enlace de Google Maps del local; de ahí se sacan las coordenadas exactas |
-| **Clave nueva para el MODO LOCAL** | `js/panel.js` → `HASH_CLAVE_LOCAL` | El hash que hay hoy corresponde a `pichiburguer2026`, y se sacó por diccionario **al primer intento** en la revisión de sept. 2026. No afecta al modo `auto`/`nube` (ahí la clave la revisa Cloudflare y no está en el código), pero **nunca se puede poner `modo: 'local'` con el panel expuesto en internet mientras el hash siga siendo el de una palabra adivinable**. JX tiene que pasar una clave larga y sin palabras del negocio para recalcular el hash |
 
 ### ✔ Datos CONFIRMADOS por JX — no volver a preguntar
 
@@ -444,6 +493,47 @@ usaban `--radio-full` cuando usan `--radio-sm`.
 
 **Pendiente nuevo para JX:** la clave del modo local es adivinable. Está anotado
 arriba en la tabla de `{POR CONFIRMAR}`.
+
+### 20 de septiembre de 2026 · Puesta en marcha
+
+Pedido de JX: poner la web a funcionar ya. Tres cosas.
+
+**1. Cortina de cerrado (a partir de un video de referencia que pasó JX).**
+Letrero de CERRADO colgado de dos cuerdas que se mece como péndulo, "Te
+esperamos pronto" arriba, el horario del día y una cuenta regresiva en vivo al
+segundo. Mismos colores del sitio: fondo negro con el degradado rojizo de la
+portada, tabla blanca con borde y letras en `--rojo`, reloj en `--amarillo`.
+El vaivén son dos animaciones encadenadas: un empujón inicial que se va
+apagando (`letrero-entrada`, 2,6 s) y un vaivén suave permanente
+(`letrero-vaiven`). Un solo `@keyframes` infinito no sirve: al repetirse
+volvería a dar el golpe fuerte. Ver decisión 19.
+
+**2. Modo prueba.** Ver decisión 20.
+
+**3. Clave del panel fuera del código.** Se eliminó el hash SHA-256 que había en
+`js/panel.js` y toda la lógica de acceso en modo local. Ver decisión 21.
+
+**Archivos tocados:** `index.html` (cortina + franja), `css/styles.css`
+(bloques 7bis y 7ter), `js/script.js` (bloques 0 y 1bis, marcado del pedido),
+`js/almacen.js` (`borrarPruebas`, campo `prueba` en modo local),
+`js/panel.js` (hash fuera, marca de prueba, botones nuevos), `panel.html`
+(dos botones), `functions/api/pedidos.js` (campo `prueba`, acción
+`borrar-pruebas`).
+
+**Probado en navegador real:** la cortina aparece a las 14:14 y no a las 19:30;
+la cuenta regresiva calcula y corre; "Ver el menú" la quita pero deja PEDIR
+bloqueado; los 15 platos siguen en el HTML con la cortina puesta (lo que ve
+Google); el modo prueba desbloquea el pedido, lo marca en los cuatro sitios y se
+puede apagar; el panel entra solo con la clave del servidor y la clave no
+aparece en el HTML servido; borrar pruebas deja los reales intactos. Responsive
+comprobado en 10 tamaños de 320 a 1920 px más dos horizontales: el letrero nunca
+se sale de pantalla ni pisa el texto de abajo, y la franja naranja nunca tapa la
+barra del logo.
+
+**Bug encontrado y corregido durante el trabajo:** el alto de la franja de
+prueba estaba fijo en 30px; en pantallas angostas el texto pasa a dos líneas, la
+franja crecía a 48px y tapaba la barra del logo. Ahora lo mide el JS y lo vuelve
+a medir al girar el teléfono.
 
 ---
 
