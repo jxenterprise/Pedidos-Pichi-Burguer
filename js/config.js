@@ -76,6 +76,28 @@ window.PICHI_CONFIG = {
      ------------------------------------------------------------------------ */
   horarios: {
     zonaHoraria: 'America/Bogota',
+
+    /* ------------------------------------------------------------------------
+       ⚠⚠ TEMPORAL — ABIERTO 24 HORAS ⚠⚠   (decisión de JX, sept. 2026)
+
+       QUÉ HACE: con esto en true, el sistema se comporta como si el local
+       estuviera SIEMPRE abierto. El semáforo queda verde, la cortina de CERRADO
+       nunca aparece y se pueden hacer pedidos a cualquier hora.
+
+       POR QUÉ ESTÁ ASÍ: mientras JX termina de montar la operación, el sitio
+       tiene que poder usarse a cualquier hora sin tener que entrar en modo
+       prueba ni montar una web aparte. NO es que el local abra 24 horas.
+
+       👉 CÓMO VOLVER A LOS HORARIOS REALES: se pone en false. Con eso solo,
+          vuelven a mandar los horarios de "dias" de aquí abajo, que siguen
+          intactos (18:00–23:00 todos los días).
+          ⚠ PERO HAY QUE CAMBIAR 4 SITIOS MÁS o el sitio se contradice:
+          la tabla visible de index.html, el JSON-LD del <head>, la respuesta
+          de la FAQ sobre el horario, y llms.txt.
+          La lista exacta está en CLAUDE.md → decisión 23.
+       ------------------------------------------------------------------------ */
+    siempreAbierto: true,
+
     dias: {
       // 0 = domingo … 6 = sábado (mismo orden que Date.getDay() de JavaScript)
       0: { nombre: 'Domingo',   abre: '18:00', cierra: '23:00', cerrado: false, confirmado: true  },
@@ -88,6 +110,7 @@ window.PICHI_CONFIG = {
     },
     // Minutos antes del cierre en que se dejan de recibir pedidos nuevos.
     // Motivo: si alguien pide a las 22:59 no da tiempo de prepararlo.
+    // (Mientras siempreAbierto sea true, este valor no se usa: no hay cierre.)
     minutosAntesDelCierre: 15
   },
 

@@ -378,6 +378,37 @@ Comando para comprobar que no quedó ninguno:
 Al hacer el cambio hay que **volver a enviar el sitemap** en Google Search
 Console, porque el anterior apunta a direcciones que dejarán de existir.
 
+**23. ⚠ INTERRUPTOR DE 24 HORAS — ESTADO ACTUAL DEL SITIO (sept. 2026).**
+
+`js/config.js` → `horarios.siempreAbierto: true`.
+
+**QUÉ SIGNIFICA:** el sitio acepta pedidos a cualquier hora. El semáforo queda
+verde siempre, la cortina de CERRADO no aparece nunca y el corte de 15 minutos
+antes del cierre no se aplica.
+
+**POR QUÉ:** decisión de JX. Mientras termina de montar la operación, la web
+tiene que poder usarse a cualquier hora sin entrar en modo prueba ni levantar un
+sitio aparte. **NO es que el local abra 24 horas.** El horario real
+(18:00–23:00 todos los días) sigue guardado intacto en `horarios.dias`.
+
+**👉 CÓMO VOLVER A LOS HORARIOS REALES — hay que tocar 5 SITIOS.**
+Con cambiar solo el interruptor, la página se contradice: el semáforo diría
+"Cerrado" mientras la tabla y Google siguen anunciando 24 horas.
+
+| # | Archivo | Qué cambiar |
+|---|---|---|
+| 1 | `js/config.js` | `siempreAbierto: true` → `false` |
+| 2 | `index.html` tabla visible | las 7 filas `<td>Abierto 24 horas</td>` → `<td>6:00 p. m. – 11:00 p. m.</td>` |
+| 3 | `index.html` JSON-LD | `"opens": "00:00", "closes": "23:59"` → `"opens": "18:00", "closes": "23:00"` |
+| 4 | `index.html` FAQ **y** JSON-LD `FAQPage` | la pregunta "¿A qué hora puedo hacer un pedido?" vuelve a "¿Se puede pedir cuando el local está cerrado?" — **los dos sitios con el MISMO texto** (ver decisión 13) |
+| 5 | `llms.txt` | la sección "## Horarios" |
+
+Comprobación después de cambiarlo:
+`grep -n "Abierto 24 horas\|siempreAbierto\|00:00" index.html js/config.js llms.txt`
+
+⚠ Los comentarios de `index.html` (el del JSON-LD en el `<head>` y el de la
+ZONA EDITABLE · HORARIOS) también avisan de esto. Actualizarlos al volver.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -417,7 +448,7 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 | WhatsApp | +57 300 4752529 |
 | Dirección | Cra 58A #6, Bernardo Jaramillo, Cartagena de Indias, Bolívar |
 | **Dominio** | **`https://pedidos-pichi-burguer-ctg.pages.dev`** — es donde vive el sitio HOY (decisión de JX, sept. 2026). El dominio propio `pedidos-pichiburguerctg.com` **se conectará más adelante**; cuando pase, hay que cambiarlo en los 7 sitios de la tabla de abajo |
-| **Horarios** | **Todos los días 18:00–23:00, sin día de descanso** (confirmado sept. 2026) |
+| **Horarios** | Horario REAL del local: **todos los días 18:00–23:00**, sin día de descanso (confirmado sept. 2026). ⚠ **PERO EL SITIO ESTÁ HOY EN MODO 24 HORAS** por decisión de JX, mientras monta la operación — ver decisión 23 para volver a lo real |
 | Menú | 15 platos con sus precios reales, transcritos del menú impreso del local |
 | Pagos | Efectivo, Nequi, Transferencia |
 | Entrega | Domicilio **y** para recoger |
@@ -565,6 +596,37 @@ barra del logo.
 prueba estaba fijo en 30px; en pantallas angostas el texto pasa a dos líneas, la
 franja crecía a 48px y tapaba la barra del logo. Ahora lo mide el JS y lo vuelve
 a medir al girar el teléfono.
+
+### 21 de septiembre de 2026 · En producción, abierto 24 horas
+
+**El sitio salió al aire**: `https://pedidos-pichi-burguer-ctg.pages.dev`
+
+- Cloudflare Pages quedó configurado: espacio KV `pichi-burguer-pedidos`
+  enlazado como `PEDIDOS`, y la clave del panel como **secreto** `PANEL_CLAVE`.
+- El dominio del código pasó del `.com` (que no sirve el sitio) al `pages.dev`
+  real. Ver decisión 22.
+- **Interruptor de 24 horas encendido** por decisión de JX. Ver decisión 23.
+  El horario real (18:00–23:00) queda guardado y documentado para volver.
+
+**Comprobado contra el sitio EN VIVO** (no contra una copia local):
+la web responde en 0,6 s; el KV quedó enlazado; se creó un pedido real de prueba
+(turno 1) y **el servidor ignoró un total falso de $1.000 y cobró los $38.000
+correctos**; el panel devuelve 401 sin clave y con clave falsa; **la clave no
+aparece en los 138 KB que sirve el sitio**; las 7 páginas cargan; la 404 sale con
+el diseño del sitio; las 4 cabeceras de seguridad están puestas; consola limpia.
+
+**Probado el modo 24 horas en 6 momentos del día** (madrugada, mediodía, justo
+antes de abrir, el corte de los 15 minutos, después de cerrar y medianoche): en
+los seis se puede pedir, la cortina no aparece y la tabla dice "Abierto 24
+horas". Un pedido hecho a las 3 de la madrugada **sin** modo prueba sale como
+pedido real, sin marca de prueba ni en el panel ni en el WhatsApp.
+
+**Nota sobre el modo prueba:** NO se eliminó. Con el sitio abierto 24 horas ya
+no hace falta para poder pedir, pero sigue sirviendo para lo otro que hace:
+marcar un pedido como PRUEBA para que el vendedor no lo cocine, y borrarlos
+todos de un golpe. Si algún día estorba, se quita el bloque 0 de `js/script.js`,
+la franja de `index.html`, el campo `prueba` del servidor y los dos botones del
+panel.
 
 ---
 

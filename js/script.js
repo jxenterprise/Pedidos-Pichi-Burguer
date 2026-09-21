@@ -141,6 +141,18 @@
       };
     }
 
+    // Interruptor de 24 horas (js/config.js → horarios.siempreAbierto).
+    // TEMPORAL mientras JX termina de montar la operación: el sitio tiene que
+    // poder usarse a cualquier hora. Al ponerlo en false vuelven a mandar los
+    // horarios de config.js, que siguen intactos. Ver decisión 23 del CLAUDE.md.
+    if (CFG.horarios.siempreAbierto) {
+      return {
+        abierto: true, aceptaPedidos: true,
+        texto: 'Abierto ahora',
+        textoLargo: 'Abierto ahora · recibimos pedidos a toda hora.'
+      };
+    }
+
     // Día marcado como cerrado en la configuración.
     if (!hoy || hoy.cerrado) {
       return {
@@ -348,7 +360,11 @@
       if (!cfg) { return; }
 
       var celda = fila.querySelector('td');
-      if (cfg.cerrado) {
+      // Con el interruptor de 24 horas puesto, la tabla no puede seguir
+      // anunciando 6 a 11: diría una cosa y el semáforo otra.
+      if (CFG.horarios.siempreAbierto) {
+        celda.textContent = 'Abierto 24 horas';
+      } else if (cfg.cerrado) {
         celda.textContent = 'Cerrado';
       } else if (cfg.confirmado) {
         celda.textContent = aTexto12h(aMinutos(cfg.abre)) + ' – ' + aTexto12h(aMinutos(cfg.cierra));

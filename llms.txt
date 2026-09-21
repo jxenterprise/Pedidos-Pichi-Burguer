@@ -26,8 +26,9 @@
 - Moneda: peso colombiano (COP)
 
 ## Horarios
-- Lunes a domingo: 6:00 p. m. a 11:00 p. m.
-- Abren todos los días, sin día de descanso.
+- Por ahora se reciben pedidos las 24 horas, todos los días.
+- El horario de atención del local es de 6:00 p. m. a 11:00 p. m., pero mientras
+  el sistema termina de montarse la página acepta pedidos a cualquier hora.
 
 ## Notas
 - Los precios están en pesos colombianos y son los del menú del local.
