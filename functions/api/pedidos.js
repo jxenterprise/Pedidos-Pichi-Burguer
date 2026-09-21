@@ -337,5 +337,38 @@ export async function onRequest({ request, env }) {
     return json({ ok: true });
   }
 
+  /* ACCIÓN: borrar-pedido — quita UN pedido concreto, el que escoja el vendedor
+     Para qué: un pedido repetido, uno que el cliente canceló por teléfono, o una
+     prueba que quedó ahí. "Entregado" lo deja en la lista; esto lo borra.
+     ⚠ EL CONTADOR DE TURNOS NO SE DEVUELVE, y es a propósito: si al borrar el
+     turno 3 el contador volviera a 2, el siguiente cliente recibiría otra vez
+     el número 3 y habría dos personas esperando el mismo turno en el mostrador.
+     Es mejor que falte un número a que se repita. */
+  if (accion === 'borrar-pedido') {
+    const id = String(datos.id || '');
+    if (!id) { return json({ error: 'Falta decir cuál pedido.' }, 400); }
+
+    const indice = await leerJson(kv, 'indice:dias', []);
+    for (const d of indice) {
+      const doc = await leerJson(kv, 'dia:' + d, null);
+      if (!doc) continue;
+
+      const quedan = doc.pedidos.filter(p => p.id !== id);
+      if (quedan.length === doc.pedidos.length) continue;   // no estaba en este día
+
+      if (quedan.length) {
+        doc.pedidos = quedan;
+        await kv.put('dia:' + d, JSON.stringify(doc));
+      } else {
+        // Era el único del día: se borra el documento entero y el día sale del
+        // índice, para no dejar una clave vacía ocupando cupo.
+        await kv.delete('dia:' + d);
+        await kv.put('indice:dias', JSON.stringify(indice.filter(x => x !== d)));
+      }
+      return json({ ok: true });
+    }
+    return json({ error: 'Pedido no encontrado.' }, 404);
+  }
+
   return json({ error: 'Acción no reconocida.' }, 400);
 }

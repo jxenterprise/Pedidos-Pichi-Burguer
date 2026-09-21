@@ -19,6 +19,7 @@
      · crearPedido(datos)        → guarda un pedido y devuelve su turno y número
      · listarPedidos(clave)      → trae activos + historial (solo panel)
      · marcarEntregado(id,clave) → marca un pedido como entregado
+     · borrarPedido(id, clave)   → borra un pedido suelto
      · borrarHistorial(clave)    → limpieza manual del historial
    ========================================================================== */
 
@@ -254,6 +255,23 @@
         return Promise.resolve({ ok: true });
       }
       return llamarApi('entregado', { id: id }, clave);
+    },
+
+    /**
+     * Borra UN pedido concreto, el que el vendedor escoja.
+     * ⚠ No devuelve el número de turno: ver el porqué en la función del
+     * servidor. Repetir un turno es peor que saltárselo.
+     * @param {string} id     identificador del pedido
+     * @param {string} clave  clave del panel
+     */
+    borrarPedido: function (id, clave) {
+      if (CFG.sistema.modo === 'local') {
+        var doc = leerLocal();
+        doc.pedidos = doc.pedidos.filter(function (p) { return p.id !== id; });
+        guardarLocal(doc);
+        return Promise.resolve({ ok: true });
+      }
+      return llamarApi('borrar-pedido', { id: id }, clave);
     },
 
     /**

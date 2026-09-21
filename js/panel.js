@@ -9,7 +9,7 @@
      2. Carga y refresco de los pedidos
      3. Dibujo de cada tarjeta de pedido
      3bis. Avisos: campana, notificación y pantalla encendida
-     4. Acciones: entregado, borrar historial, salir
+     4. Acciones: entregado, borrar un pedido, borrar historial, salir
      5. Arranque
 
    DEPENDE DE: js/config.js y js/almacen.js, que deben cargarse ANTES.
@@ -317,6 +317,19 @@
       pie.appendChild(ok);
     }
 
+    // Borrar este pedido. Va de último y con aspecto de icono, no de botón
+    // grande: el dedo tiene que caer antes en "Entregado", que es la acción de
+    // todos los días. Borrar no tiene vuelta atrás, así que no compite por el
+    // mismo espacio visual.
+    var borrar = document.createElement('button');
+    borrar.type = 'button';
+    borrar.className = 'pedido__borrar';
+    borrar.textContent = '🗑';
+    borrar.title = 'Borrar este pedido';
+    borrar.setAttribute('aria-label', 'Borrar el pedido del turno ' + p.turno + ' de ' + p.nombre);
+    borrar.addEventListener('click', function () { borrarPedido(p, borrar); });
+    pie.appendChild(borrar);
+
     art.appendChild(pie);
     return art;
   }
@@ -507,6 +520,28 @@
       avisar('No se pudo guardar: ' + err.message);
       boton.disabled = false;
       boton.textContent = 'Entregado';
+    });
+  }
+
+  /**
+   * Borra un pedido suelto.
+   * La confirmación dice el turno Y el nombre a propósito: en una lista de
+   * tarjetas parecidas, un "¿seguro?" pelado no evita que se borre la
+   * equivocada. Así el vendedor lee a quién va a borrar antes de aceptar.
+   */
+  function borrarPedido(p, boton) {
+    if (!confirm('¿Borrar el pedido del turno ' + p.turno + ' — ' + p.nombre + '?\n\n' +
+                 'Se borra para siempre y no se puede deshacer.\n' +
+                 'El número de turno NO se vuelve a usar.')) {
+      return;
+    }
+    boton.disabled = true;
+    window.Almacen.borrarPedido(p.id, clave).then(function () {
+      avisar('Pedido del turno ' + p.turno + ' borrado');
+      cargarPedidos(false);
+    }).catch(function (err) {
+      avisar('No se pudo borrar: ' + err.message);
+      boton.disabled = false;
     });
   }
 

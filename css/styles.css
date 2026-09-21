@@ -983,6 +983,25 @@ body.cerrado-visible { overflow: hidden; }
 }
 .pedido__pie .btn { min-height: 44px; padding: 0 15px; font-size: .88rem; }
 
+/* Botón de borrar un pedido. Discreto a propósito: es una acción sin vuelta
+   atrás y no puede competir por el dedo con "Entregado", que es la de todos los
+   días. Solo se pone rojo al pasar por encima. 44px para que siga siendo un
+   objetivo táctil cómodo aunque se vea pequeño. */
+.pedido__borrar {
+  width: 44px; height: 44px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-sm);
+  color: var(--texto-tenue);
+  font-size: 1rem; line-height: 1; cursor: pointer;
+  transition: color .18s ease, border-color .18s ease;
+}
+.pedido__borrar:disabled { opacity: .4; cursor: not-allowed; }
+@media (hover: hover) {
+  .pedido__borrar:hover { color: #FF8B93; border-color: rgba(224,18,32,.55); }
+}
+
 .vacio { text-align: center; color: var(--texto-tenue); padding: 46px 20px; }
 .vacio strong { display: block; color: var(--texto-suave); font-size: 1.05rem; margin-bottom: 6px; }
 

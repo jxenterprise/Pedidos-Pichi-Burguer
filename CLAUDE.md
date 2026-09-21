@@ -460,6 +460,27 @@ volumen. La preferencia va en `localStorage` (es del aparato, no de la sesión).
 plano. Por eso se vuelve a pedir en `visibilitychange`. Si se quita esa línea,
 el arreglo deja de servir justo cuando más falta hace.
 
+**25. Borrar un pedido suelto (acción `borrar-pedido`).**
+
+Lo pidió JX: un pedido repetido, uno que el cliente canceló por teléfono o una
+prueba que quedó ahí. "Entregado" lo deja en la lista; esto lo quita.
+
+⚠ **EL CONTADOR DE TURNOS NO SE DEVUELVE, y es a propósito.** Si al borrar el
+turno 3 el contador volviera a 2, el siguiente cliente recibiría otra vez el
+número 3 y habría **dos personas esperando el mismo turno en el mostrador**. Es
+mejor que falte un número a que se repita. Lo mismo valía para los pedidos de
+prueba cuando existían.
+
+**Detalles del diseño, que no son casualidad:**
+- El botón va **de último y con aspecto de icono** (🗑, 44×44 px, gris). Borrar
+  no tiene vuelta atrás y no puede competir por el dedo con "Entregado", que es
+  la acción de todos los días. Solo se pone rojo al pasar el cursor.
+- La confirmación dice **el turno Y el nombre**: en una lista de tarjetas
+  parecidas, un "¿seguro?" pelado no evita que se borre la equivocada.
+- Si el pedido era el último de su día, el documento `dia:AAAA-MM-DD` se borra
+  entero y el día sale de `indice:dias`, para no dejar una clave vacía gastando
+  cupo del plan gratuito.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -718,6 +739,19 @@ turnos vuelva a 1. Los pedidos de prueba del día gastaron los turnos 1, 2 y 3,
 así que el primer cliente real recibiría el turno 4. Se borran las claves
 `dia:AAAA-MM-DD` e `indice:dias` desde Cloudflare → Workers KV →
 `pichi-burguer-pedidos` → Pares de KV.
+
+### 21 de septiembre de 2026 (cierre) · Borrar pedidos sueltos
+
+Último pedido de JX del día: poder borrar cualquier pedido desde el panel.
+Ver decisión 25. Botón 🗑 en cada tarjeta, acción `borrar-pedido` en el
+servidor y `borrarPedido()` en el almacén (nube y local).
+
+Probado: 401 sin clave, 400 sin decir cuál, 404 con un id inventado, borra el
+del medio dejando los otros dos, **el siguiente turno sigue siendo el 4 y no
+recicla el 2 borrado**, y si era el último del día el documento se borra entero
+y el día sale del índice. En el panel: el botón mide 44×44 en los tres tamaños
+probados, la confirmación nombra al cliente, cancelar no borra, y al vaciarse
+sale "No hay pedidos ahora mismo".
 
 ---
 
