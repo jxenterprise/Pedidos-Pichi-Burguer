@@ -31,7 +31,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Pichi Burguer · Pide tu hamburguesa en línea en Cartagena</title>
-<meta name="description" content="Pide en línea en Pichi Burguer, Cartagena: hamburguesas, perros, picadas, salchipapas y patacones. Domicilio o para recoger en el barrio Bernardo Jaramillo.">
+<meta name="description" content="Pide en línea en Pichi Burguer, Cartagena: hamburguesas, perros, picadas, salchipapas y patacones. Pide desde el celular y pasa a recogerlo en el barrio Bernardo Jaramillo.">
 <link rel="canonical" href="https://pedidos-pichi-burguer-ctg.pages.dev/">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 <meta name="theme-color" content="#000000">
@@ -178,7 +178,7 @@
       "@type": "FAQPage",
       "@id": "https://pedidos-pichi-burguer-ctg.pages.dev/#faq",
       "mainEntity": [
-        { "@type": "Question", "name": "¿Pichi Burguer hace domicilios?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Se puede pedir a domicilio o para recoger en el local, en la Cra 58A #6, barrio Bernardo Jaramillo, Cartagena. El valor del domicilio se acuerda por WhatsApp según el barrio." } },
+        { "@type": "Question", "name": "¿Dónde recojo mi pedido?", "acceptedAnswer": { "@type": "Answer", "text": "En el local, en la Cra 58A #6, barrio Bernardo Jaramillo, Cartagena. Por ahora todos los pedidos son para recoger: pides desde el celular, recibes tu número de turno y pasas por él." } },
         { "@type": "Question", "name": "¿Cómo pido por la página?", "acceptedAnswer": { "@type": "Answer", "text": "Se escogen los productos del menú, se escribe el nombre y el teléfono y se envía el pedido. La página entrega de inmediato un número de turno y el pedido llega al local." } },
         { "@type": "Question", "name": "¿Qué medios de pago aceptan?", "acceptedAnswer": { "@type": "Answer", "text": "Efectivo, Nequi y transferencia." } },
         { "@type": "Question", "name": "¿A qué hora puedo hacer un pedido?", "acceptedAnswer": { "@type": "Answer", "text": "Por ahora recibimos pedidos a toda hora, todos los días. La página muestra siempre, en la barra de arriba, si el local está abierto o cerrado en ese momento." } }
@@ -212,7 +212,7 @@
      aria-labelledby="cerradoTitulo" hidden>
   <div class="cerrado__int">
 
-    <img class="cerrado__logo" src="img/logo-pichi-burguer-cartagena.webp"
+    <img class="cerrado__logo" src="img/logo-pichi-burguer-cartagena-440.webp"
          alt="Logo de Pichi Burguer" width="84" height="84">
 
     <p class="cerrado__lema" id="cerradoTitulo">Te esperamos pronto</p>
@@ -267,7 +267,7 @@
 <header class="barra">
   <div class="barra__int">
     <a class="barra__marca" href="#inicio">
-      <img class="barra__logo" src="img/logo-pichi-burguer-cartagena.webp"
+      <img class="barra__logo" src="img/logo-pichi-burguer-cartagena-440.webp"
            alt="Logo de Pichi Burguer" width="38" height="38">
       <span class="barra__nombre">Pichi Burguer</span>
     </a>
@@ -312,7 +312,7 @@
       <!-- La imagen del logo es la más grande de la pantalla inicial, así que
            se carga con prioridad alta y SIN "lazy": es la que define la
            velocidad percibida de la página. -->
-      <img class="portada__logo" src="img/logo-pichi-burguer-cartagena.webp"
+      <img class="portada__logo" src="img/logo-pichi-burguer-cartagena-440.webp"
            alt="Logo de Pichi Burguer, hamburguesería en el barrio Bernardo Jaramillo de Cartagena"
            width="220" height="220" fetchpriority="high">
 
@@ -339,7 +339,7 @@
 
       <div class="portada__datos">
         <span>📍 Cra 58A #6 · Bernardo Jaramillo</span>
-        <span>🛵 Domicilio y para recoger</span>
+        <span>🛍️ Pides y pasas a recogerlo</span>
       </div>
     </div>
   </section>
@@ -353,6 +353,32 @@
                    botón "Agregar" para armar el carrito y el total.
        =========================================================== -->
   <div id="menu">
+
+    <!-- ===========================================================
+         REPETIR EL ÚLTIMO PEDIDO
+         Qué es: un atajo para el cliente que ya pidió antes.
+         Función: en comida rápida mucha gente repite siempre lo
+                  mismo. Que le tome un toque en vez de rearmar el
+                  pedido plato por plato.
+         Arranca oculto; js/script.js lo muestra solo si encuentra un
+         pedido anterior guardado en ESTE celular. Los precios NO se
+         guardan: se vuelven a leer del menú al agregarlo, para que
+         nunca se cobre un precio viejo.
+         =========================================================== -->
+    <section class="repetir" id="repetirPedido" hidden>
+      <div class="contenedor">
+        <div class="repetir__caja">
+          <div class="repetir__txt">
+            <h2>¿Lo mismo de la otra vez?</h2>
+            <p id="repetirDetalle"></p>
+          </div>
+          <div class="repetir__btns">
+            <button type="button" class="btn btn--ama" id="btnRepetir">Agregarlo al carrito</button>
+            <button type="button" class="btn-texto" id="btnOlvidarPedido">No, gracias</button>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- ▼▼▼ ZONA EDITABLE · PRODUCTOS ▼▼▼
          QUÉ CAMBIAR: nombre, descripción y precio de cada plato; y agregar o
@@ -717,7 +743,7 @@
           <span class="paso__n" aria-hidden="true">2</span>
           <div>
             <h3>Deja tu nombre y celular</h3>
-            <p>Dices si es domicilio o para recoger y cómo vas a pagar.</p>
+            <p>Escoges cómo vas a pagar y listo.</p>
           </div>
         </article>
         <article class="paso">
@@ -755,11 +781,10 @@
 
       <div class="faq">
         <details class="faq__item">
-          <summary>¿Pichi Burguer hace domicilios?</summary>
+          <summary>¿Dónde recojo mi pedido?</summary>
           <div class="faq__resp">
-            <p>Sí. Se puede pedir a domicilio o para recoger en el local, en la Cra 58A #6,
-            barrio Bernardo Jaramillo, Cartagena. El valor del domicilio se acuerda por
-            WhatsApp según el barrio.</p>
+            <p>En el local, en la Cra 58A #6, barrio Bernardo Jaramillo, Cartagena. Por ahora todos
+            los pedidos son para recoger: pides desde el celular, recibes tu número de turno y pasas por él.</p>
           </div>
         </details>
 
@@ -989,24 +1014,13 @@
           <p class="campo__ayuda">Se usa solo para avisarte cuando tu pedido esté listo.</p>
         </div>
 
-        <div class="campo">
-          <span class="sr-only" id="etqEntrega">Forma de entrega</span>
-          <span class="campo__titulo" aria-hidden="true">¿Cómo lo quieres?</span>
-          <div class="opciones" role="radiogroup" aria-labelledby="etqEntrega">
-            <input type="radio" id="tipoRecoger" name="tipo" value="recoger" checked>
-            <label for="tipoRecoger">Paso a recogerlo</label>
-            <input type="radio" id="tipoDomicilio" name="tipo" value="domicilio">
-            <label for="tipoDomicilio">A domicilio</label>
-          </div>
-        </div>
-
-        <!-- Solo se muestra si escoge domicilio; lo controla js/script.js -->
-        <div class="campo" id="campoDireccion" hidden>
-          <label for="campoDir">Dirección y barrio *</label>
-          <input type="text" id="campoDir" name="direccion" autocomplete="street-address"
-                 maxlength="160" placeholder="Ej: Cra 60 #12-34, barrio El Campestre">
-          <p class="campo__ayuda">El valor del domicilio se acuerda por WhatsApp según el barrio.</p>
-        </div>
+        <!-- Aquí vivía el selector "domicilio / recoger" y el campo de dirección.
+             El local dejó de hacer domicilios (sept. 2026): todos los pedidos son
+             para recoger, así que preguntarlo sobraba y solo alargaba el
+             formulario. Ver decisión 27 del CLAUDE.md para volverlo a poner. -->
+        <p class="campo__ayuda" style="margin:-4px 0 15px">
+          📍 Los pedidos son <strong>para recoger en el local</strong>, Cra 58A #6, Bernardo Jaramillo.
+        </p>
 
         <div class="campo">
           <span class="sr-only" id="etqPago">Forma de pago</span>
@@ -1044,6 +1058,14 @@
           Se prepara por orden de llegada. Guarda esta pantalla o toma una captura.
         </p>
 
+        <!-- Cómo va la cola. Se llena y se refresca solo mientras esta pantalla
+             esté abierta. Arranca oculto: si el sistema no puede responder, no
+             se le muestra al cliente una caja vacía. -->
+        <div class="cola" id="colaTurnos" hidden>
+          <p class="cola__estado" id="colaEstado">Consultando la cola…</p>
+          <p class="cola__detalle" id="colaDetalle"></p>
+        </div>
+
         <div class="turno__datos" id="turnoDatos"></div>
 
         <a class="btn btn--rojo btn--ancho" id="btnWhatsAppPedido"
@@ -1060,6 +1082,29 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ===========================================================
+     INVITACIÓN A INSTALAR LA APP
+     Qué es: el aviso para poner el ícono del local en la pantalla
+              de inicio del celular.
+     Función: el cliente que la instala vuelve a pedir mucho más,
+              porque ya no tiene que acordarse de la dirección web.
+     Arranca oculto. Lo muestra js/script.js, y SOLO cuando el
+     navegador avisa que se puede instalar (Android), o cuando
+     detecta un iPhone, donde la instalación es manual y hay que
+     explicarla. Nunca sale si ya está instalada.
+     =========================================================== -->
+<div class="instalar" id="avisoInstalar" role="dialog" aria-label="Instalar la app de Pichi Burguer" hidden>
+  <img src="img/logo-pichi-burguer-cartagena-440.webp" alt="" width="44" height="44" aria-hidden="true">
+  <div class="instalar__txt">
+    <strong>Ten Pichi Burguer a un toque</strong>
+    <span id="instalarComo">Instálala en tu celular y pide sin buscar la página.</span>
+  </div>
+  <div class="instalar__btns">
+    <button type="button" class="btn btn--ama" id="btnInstalar">Instalar</button>
+    <button type="button" class="btn-texto" id="btnCerrarInstalar" aria-label="No instalar">Ahora no</button>
   </div>
 </div>
 

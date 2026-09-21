@@ -17,6 +17,7 @@
 
    FUNCIONES PÚBLICAS QUE EXPONE (window.Almacen):
      · crearPedido(datos)        → guarda un pedido y devuelve su turno y número
+     · verTurnos()               → por dónde va la cola (público, sin clave)
      · listarPedidos(clave)      → trae activos + historial (solo panel)
      · marcarEntregado(id,clave) → marca un pedido como entregado
      · borrarPedido(id, clave)   → borra un pedido suelto
@@ -203,7 +204,7 @@
      * Qué hace: le asigna turno y número, lo guarda y devuelve el pedido completo.
      * En modo 'auto': intenta la nube; si falla por lo que sea, guarda local y
      * NO le muestra ningún error al cliente (el pedido igual sale por WhatsApp).
-     * @param {object} pedido  { nombre, telefono, tipo, direccion, pago, items, total, notas }
+     * @param {object} pedido  { nombre, telefono, pago, items, total, notas }
      * @returns {Promise<object>} pedido con turno, numero y fecha
      */
     crearPedido: function (pedido) {
@@ -225,6 +226,26 @@
           Almacen.ultimoModoUsado = 'local';
           return crearPedidoLocal(pedido);
         });
+    },
+
+    /**
+     * Pregunta por dónde va la cola de turnos. NO lleva clave: la usa el
+     * cliente desde su pantalla de turno, y por eso el servidor solo devuelve
+     * números — ni un nombre ni un teléfono.
+     * @returns {Promise<{preparando:number|null, enCola:number, ultimoEntregado:number|null}>}
+     */
+    verTurnos: function () {
+      if (CFG.sistema.modo === 'local') {
+        // En modo local el cliente solo ve sus propios pedidos, así que la cola
+        // se calcula con lo que hay en este aparato.
+        var vivos = leerLocal().pedidos.filter(function (p) { return !p.entregado; });
+        var turnos = vivos.map(function (p) { return p.turno; });
+        return Promise.resolve({
+          preparando: turnos.length ? Math.min.apply(null, turnos) : null,
+          enCola: turnos.length, ultimoEntregado: null
+        });
+      }
+      return llamarApi('turnos', {});
     },
 
     /**

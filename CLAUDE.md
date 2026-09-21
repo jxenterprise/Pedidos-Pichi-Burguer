@@ -498,6 +498,106 @@ celular de 320px eso es justo lo que importa.
 `.portada`**, o los títulos de categoría vuelven a quedar pegados a la barra
 (el bug que se arregló el 19 de sept.).
 
+**27. ⛔ SOLO PARA RECOGER — el domicilio se quitó (sept. 2026).**
+
+Decisión de JX: *"por ahora la gente solo lo va a ir a recoger"*. El formulario
+ya no pregunta la forma de entrega ni la dirección, y el servidor **fija
+`tipo: 'recoger'` a mano**, sin aceptar lo que mande el navegador — así nadie
+puede colar un pedido "a domicilio" que nadie va a llevar.
+
+**Efecto de lado bueno:** el formulario pasó de 6 campos a 4. Menos fricción es
+más pedidos terminados.
+
+⚠ **Se tocaron también las páginas legales, y eso NO era opcional**:
+`privacidad.html` declaraba que se recogía la dirección del cliente. Una
+política de datos que dice recoger algo que ya no se recoge es un problema
+legal, no un detalle de redacción. `compras.html` prometía servicio a domicilio
+y `terminos.html` hablaba del valor del envío.
+
+**👉 SI VUELVE EL DOMICILIO — hay que tocar 9 sitios:**
+
+| # | Archivo | Qué devolver |
+|---|---|---|
+| 1 | `js/config.js` | `entrega.domicilio: true` |
+| 2 | `index.html` formulario | el `radiogroup` de entrega y el campo `#campoDireccion` |
+| 3 | `index.html` portada | "Pides y pasas a recogerlo" → mencionar domicilio |
+| 4 | `index.html` FAQ **y** JSON-LD | la pregunta "¿Dónde recojo mi pedido?" (las dos con el mismo texto, ver decisión 13) |
+| 5 | `js/script.js` | leer `tipo` y `direccion`, validarlos y mandarlos; la línea "Entrega" del WhatsApp |
+| 6 | `functions/api/pedidos.js` | volver a aceptar `tipo` y guardar `direccion` |
+| 7 | `js/panel.js` | la etiqueta Domicilio/Recoge y la fila "Dirección" de la tarjeta |
+| 8 | `css/styles.css` | `.pedido__tipo` y `.pedido__tipo.domicilio` |
+| 9 | Legales | `compras.html` (sección 3), `privacidad.html` (los datos que se recogen), `terminos.html` (precios) y `llms.txt` |
+
+**28. Tres mejoras para el cliente (sept. 2026).**
+
+**Repetir el último pedido** (`#repetirPedido`). En comida rápida mucha gente
+repite siempre lo mismo; rearmarlo plato por plato es la fricción más tonta que
+puede tener un sistema de pedidos.
+⚠ **NO se guardan los precios**, solo los identificadores y las cantidades. Al
+agregarlo, los precios se releen del menú de la página. Si se guardaran, un
+cliente que pidió hace un mes volvería con los precios viejos — y cobrar un
+precio distinto al publicado va contra el Estatuto del Consumidor. También se
+descartan los platos que ya no estén en el menú.
+Vive en `localStorage`: es de ese aparato y no viaja a ningún servidor.
+
+**Cómo va la cola** (acción pública `turnos`). Mientras el cliente tiene abierta
+la pantalla de su turno, le dice *"Faltan 2 antes que tú · están preparando el
+turno 8"*. Le quita la ansiedad y le quita llamadas al local.
+⚠ **Esa acción NO lleva clave**, así que devuelve **solo números**: turno en
+preparación, cuántos en cola y último entregado. Si devolviera la lista de
+pedidos, cualquiera sacaría los nombres y celulares de todos los clientes del
+día con una sola petición. **Nunca agregarle campos sin pensar en eso.**
+Pregunta cada 30 s, solo con la pantalla abierta y visible, y se corta sola a
+los 45 minutos.
+
+**Instalar la app** (`#avisoInstalar`). Son dos mundos: Android avisa con
+`beforeinstallprompt` y ahí el botón instala de verdad; iPhone no tiene ese
+evento, la instalación es manual y lo único honesto es explicar los dos pasos.
+El texto se decide por **si hay evento**, no por si es un iPhone: si algún día
+Safari lo soporta, el aviso se adapta solo.
+⚠ No aparece mientras el banner de cookies esté en pantalla: el consentimiento
+manda, y dos cajas abajo a la vez es justo el amontonamiento que rompió esta
+página una vez (decisión 9).
+
+**29. El panel, después de usarlo de verdad en el local.**
+
+JX lo probó en el mostrador y salieron tres cosas. Ninguna era un fallo técnico;
+las tres eran el sistema funcionando sin que la persona se diera cuenta:
+
+- **El botón de borrar no se veía.** Se había hecho gris y discreto a propósito,
+  para que no compitiera con "Entregado". Se pasó de largo: **un botón que el
+  vendedor no encuentra es un botón que no existe.** Ahora va rojo, con fondo y
+  con la palabra "Borrar" al lado del icono. Lo que lo mantiene fuera del camino
+  del dedo ya no es ser invisible, sino ir de último, ser más angosto que
+  "Entregado" y pedir confirmación nombrando al cliente.
+- **"Actualizar" parecía roto.** Sí consultaba al servidor, pero si no había
+  novedades la pantalla quedaba idéntica y no pasaba nada visible. Ahora se
+  bloquea y dice "Buscando…", y al terminar avisa qué encontró — **aunque la
+  respuesta sea "nada"**. Un botón que no da señal de vida es un botón en el que
+  nadie confía.
+- **La campana sonaba una sola vez** y se perdía entre el ruido de la freidora.
+  Ahora suena **3 veces** con 0,9 s entre una y otra. Menos pausa suena a alarma
+  de carro; más pausa parece que entraron tres pedidos distintos.
+  ⚠ Las repeticiones se programan todas de una con el reloj del audio, **no con
+  `setTimeout`**: el reloj de audio no se desordena aunque el celular esté
+  ocupado, y un `setTimeout` puede llegar tarde o no llegar.
+
+**30. El logo pesado se partió en dos archivos.**
+
+`logo-pichi-burguer-cartagena.webp` son 1254×1254 y **110 KB**: era el 75% del
+peso de la página, sirviendo una imagen enorme para un hueco de 220px.
+Se generó `logo-pichi-burguer-cartagena-440.webp` (440×440, **21 KB**) y es el
+que usan las 7 páginas. **89 KB menos en cada primera visita.**
+
+⚠ **El original NO se borró y NO se toca**: el JSON-LD del `<head>` lo sigue
+usando como `image` del negocio, porque Google quiere una imagen grande para la
+ficha. Ese archivo no lo descarga el cliente, solo lo lee el buscador.
+
+⚠ Esto es una **excepción expresa a la regla de imágenes** de este archivo
+("conservando resolución original"), aprobada por JX. La regla sigue valiendo
+para los originales; lo que se permite es **generar derivados más pequeños para
+servirlos**, siempre en WebP y sin tocar el original.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -540,8 +640,8 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 | **Horarios** | Horario REAL del local: **todos los días 18:00–23:00**, sin día de descanso (confirmado sept. 2026). ⚠ **PERO EL SITIO ESTÁ HOY EN MODO 24 HORAS** por decisión de JX, mientras monta la operación — ver decisión 23 para volver a lo real |
 | Menú | 15 platos con sus precios reales, transcritos del menú impreso del local |
 | Pagos | Efectivo, Nequi, Transferencia |
-| Entrega | Domicilio **y** para recoger |
-| **Costo del domicilio** | **No hay tarifa fija**: depende del barrio y se acuerda por WhatsApp. Esto NO es un pendiente, es la forma de trabajar del local. Si algún día ponen tarifa, se escribe el número en `entrega.costoDomicilio` y el sistema la suma solo |
+| **Entrega** | **SOLO para recoger** en el local (decisión de JX, sept. 2026). El domicilio se quitó del sistema entero — ver decisión 27 para devolverlo |
+| ~~Costo del domicilio~~ | Ya no aplica: no hay domicilio. Se deja anotado que existió y que no tenía tarifa fija (se acordaba por WhatsApp), por si el servicio vuelve |
 | Archivado | 5 horas → historial |
 | Borrado del historial | Sábado 7:00 a. m. |
 | Arquitectura | A + B: Cloudflare KV **y** respaldo por WhatsApp |
@@ -801,6 +901,34 @@ Corregido. Ver decisión 26.
 logo pesa 111 KB de los 148 KB de la página, porque se sirve el original de
 1254×1254 para un hueco de 220px. Una versión de 440px bajaría la página a unos
 60 KB. Son **3 de cada 4 KB** que descarga el cliente.
+
+### 21 de septiembre de 2026 (noche) · Solo recoger + 5 mejoras + panel
+
+**1. Se quitó el domicilio de todo el sistema.** Ver decisión 27. Tocó 9 sitios,
+incluidas las 3 páginas legales que lo prometían o declaraban recoger la
+dirección del cliente. El formulario pasó de 6 campos a 4.
+
+**2. Las 5 mejoras que JX escogió de la lista de recomendaciones:**
+- Logo partido en dos archivos: **89 KB menos por visita**. Decisión 30.
+- Repetir el último pedido. Decisión 28.
+- Ver la cola de turnos en vivo. Decisión 28.
+- Invitación a instalar la app. Decisión 28.
+- "Avisar listo" en el panel: el botón de WhatsApp ya no abre un chat en blanco,
+  manda el mensaje escrito con el nombre, el turno y la dirección. Para un
+  pedido ya entregado cambia a un agradecimiento.
+
+**3. Tres arreglos del panel tras usarlo en el mostrador.** Ver decisión 29:
+el botón de borrar ahora se ve, "Actualizar" da señal de vida, y la campana
+suena 3 veces.
+
+**Bug propio encontrado y corregido durante el trabajo:** el aviso de instalar
+mostraba las instrucciones de iPhone aunque el navegador sí pudiera instalar,
+porque miraba el modelo del aparato antes que la capacidad real. Ahora decide
+por si existe el evento del navegador.
+
+**Probado**: 7 comprobaciones del flujo solo-recoger, 13 de las mejoras del
+cliente (incluida la que confirma que repetir un pedido usa los precios de HOY
+y no los guardados), 12 del panel, 22 del servidor y 6 de borrar pedidos.
 
 ---
 

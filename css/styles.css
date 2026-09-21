@@ -595,7 +595,8 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
 .campo input::placeholder, .campo textarea::placeholder { color: var(--texto-tenue); }
 .campo__ayuda { font-size: .78rem; color: var(--texto-tenue); margin: 6px 0 0; }
 
-/* Grupo de opciones tipo "pastilla" (recoger/domicilio y método de pago). */
+/* Grupo de opciones tipo "pastilla". Hoy solo lo usa el método de pago;
+   antes también el selector domicilio/recoger, que se quitó en sept. 2026. */
 .opciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .opciones input { position: absolute; opacity: 0; pointer-events: none; }
 .opciones label {
@@ -633,6 +634,40 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
 .turno__datos div { display: flex; gap: 12px; padding: 4px 0; }
 .turno__datos div span:first-child { color: var(--texto-suave); min-width: 88px; }
 .turno__datos div span:last-child { font-weight: 600; }
+
+
+/* --- Cómo va la cola, dentro de la pantalla del turno ---
+   Va en amarillo sobre negro, el mismo par que el número de turno: lo que el
+   cliente viene a mirar cada rato tiene que leerse de un vistazo, sin buscar. */
+.cola {
+  margin: 18px 0 0; padding: 14px 16px;
+  background: var(--negro); border: 1px solid var(--linea);
+  border-left: 3px solid var(--amarillo);
+  border-radius: var(--radio); text-align: left;
+}
+.cola__estado { margin: 0; font-size: 1rem; font-weight: 700; color: var(--blanco); }
+.cola__detalle { margin: 4px 0 0; font-size: .85rem; color: var(--texto-suave); }
+.cola.es-tuyo { border-left-color: var(--verde); }
+.cola.es-tuyo .cola__estado { color: #7FE39A; }
+
+
+/* --- "¿Lo mismo de la otra vez?" ---
+   Tarjeta ancha arriba del menú. Usa el mismo patrón de .aviso-caja (fondo de
+   superficie, borde de color a la izquierda) para que no parezca pegada de
+   otra web. El borde va amarillo porque es una oportunidad, no una alerta. */
+.repetir { padding-block: var(--espacio-seccion) 0; }
+.repetir__caja {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+  background: var(--negro-sup);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--amarillo);
+  border-radius: var(--radio);
+  padding: 18px 20px;
+}
+.repetir__txt { flex: 1 1 260px; min-width: 0; }
+.repetir__caja h2 { font-size: clamp(1.1rem, 4.2vw, 1.35rem); margin: 0 0 .35em; }
+.repetir__caja p { margin: 0; color: var(--texto-suave); font-size: .9rem; }
+.repetir__btns { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
 
 /* ============================================================================
@@ -730,6 +765,33 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
    La clase la pone js/script.js al agregar el primer producto. */
 body.carrito-visible .wa-float { bottom: calc(96px + env(safe-area-inset-bottom)); }
 @media (hover: hover) { .wa-float:hover { transform: scale(1.06); } }
+
+/* --- Invitación a instalar la app ---
+   Se coloca ABAJO y no arriba: arriba compite con el menú y con el semáforo,
+   que es a lo que el cliente vino. Abajo se ve, pero no estorba.
+   z-index 90: por debajo del banner de cookies (95) y de la ventana del pedido
+   (100), porque el consentimiento y la compra mandan sobre esto. */
+.instalar {
+  position: fixed; inset: auto 12px 12px; z-index: 90;
+  max-width: 460px; margin-inline: auto;
+  display: none; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--negro-sup-2); border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio); box-shadow: var(--sombra-alta);
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+}
+.instalar.visible { display: flex; }
+.instalar img { width: 44px; height: 44px; border-radius: var(--radio-sm); flex-shrink: 0; }
+.instalar__txt { flex: 1 1 180px; min-width: 0; font-size: .86rem; line-height: 1.4; }
+.instalar__txt strong { display: block; color: var(--blanco); }
+.instalar__txt span { color: var(--texto-suave); }
+.instalar__btns { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.instalar .btn { min-height: 44px; padding: 0 18px; font-size: .9rem; }
+/* Se aparta de la barra del carrito, igual que el banner de cookies. Sin esto
+   taparía el botón "Hacer el pedido", que es el error que ya se cometió una vez
+   con las cookies (ver decisión 9). */
+body.carrito-visible .instalar { bottom: calc(88px + env(safe-area-inset-bottom)); }
+/* Y nunca compite con el banner de cookies: mientras haya que decidir eso,
+   esto no aparece (lo controla js/script.js). */
 
 /* --- Banner de cookies ---
    ⚠ PUNTO DELICADO (detectado probando en celular): cuando el cliente ya tenía
@@ -967,12 +1029,6 @@ body.cerrado-visible { overflow: hidden; }
   text-transform: none;
 }
 .pedido__meta { font-size: .8rem; color: var(--texto-tenue); }
-.pedido__tipo {
-  flex-shrink: 0; font-size: .72rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .05em; padding: 5px 10px; border-radius: var(--radio-full);
-  border: 1px solid var(--linea-fuerte); color: var(--texto-suave);
-}
-.pedido__tipo.domicilio { border-color: rgba(254,155,5,.5); color: var(--naranja); }
 
 .pedido__items { list-style: none; margin: 0 0 12px; padding: 0; font-size: .9rem; }
 .pedido__items li {
@@ -995,23 +1051,37 @@ body.cerrado-visible { overflow: hidden; }
 }
 .pedido__pie .btn { min-height: 44px; padding: 0 15px; font-size: .88rem; }
 
-/* Botón de borrar un pedido. Discreto a propósito: es una acción sin vuelta
-   atrás y no puede competir por el dedo con "Entregado", que es la de todos los
-   días. Solo se pone rojo al pasar por encima. 44px para que siga siendo un
-   objetivo táctil cómodo aunque se vea pequeño. */
+/* Botón de borrar un pedido.
+   Primero se hizo gris y discreto para que no compitiera con "Entregado". JX
+   probó el panel de verdad y dijo lo obvio: no se veía. Un botón que el
+   vendedor no encuentra es un botón que no existe.
+   Ahora se lee de una: rojo sobre fondo rojo apagado, borde rojo y la palabra
+   "Borrar" al lado del icono. Lo que lo mantiene fuera del camino del dedo NO
+   es que sea invisible, sino que va de último, que es más angosto que
+   "Entregado" y que siempre pide confirmación nombrando al cliente. */
 .pedido__borrar {
-  width: 44px; height: 44px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: transparent;
-  border: 1px solid var(--linea);
+  min-height: 44px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 0 14px;
+  background: rgba(224,18,32,.12);
+  border: 1px solid rgba(224,18,32,.5);
   border-radius: var(--radio-sm);
-  color: var(--texto-tenue);
-  font-size: 1rem; line-height: 1; cursor: pointer;
-  transition: color .18s ease, border-color .18s ease;
+  color: #FF8B93;
+  font-family: var(--fuente-texto);
+  font-size: .88rem; font-weight: 700; line-height: 1; cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
 }
 .pedido__borrar:disabled { opacity: .4; cursor: not-allowed; }
 @media (hover: hover) {
-  .pedido__borrar:hover { color: #FF8B93; border-color: rgba(224,18,32,.55); }
+  .pedido__borrar:hover {
+    background: var(--rojo); border-color: var(--rojo); color: var(--blanco);
+  }
+}
+/* En celular angosto se queda solo el icono para no partir la fila de botones,
+   pero el color fuerte se mantiene: eso es lo que lo hace visible. */
+@media (max-width: 380px) {
+  .pedido__borrar { padding: 0 12px; }
+  .pedido__borrar .pedido__borrar-txt { display: none; }
 }
 
 .vacio { text-align: center; color: var(--texto-tenue); padding: 46px 20px; }

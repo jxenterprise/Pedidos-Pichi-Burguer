@@ -1,8 +1,8 @@
 # Pichi Burguer
 
 > Local de comida rápida en Cartagena de Indias (Colombia), barrio Bernardo Jaramillo.
-> Vende hamburguesas, perros calientes, picadas, salchipapas y patacones, con domicilio
-> y para recoger. Esta página es su sistema de pedidos en línea: muestra el menú con
+> Vende hamburguesas, perros calientes, picadas, salchipapas y patacones.
+> Los pedidos son para recoger en el local. Esta página es su sistema de pedidos en línea: muestra el menú con
 > precios reales, indica si el local está abierto o cerrado en ese momento y entrega un
 > número de turno al enviar el pedido.
 
@@ -21,7 +21,7 @@
 - Nombre: Pichi Burguer (se escribe "Burguer", como en el logo y el menú del local)
 - Dirección: Cra 58A #6, barrio Bernardo Jaramillo, Cartagena de Indias, Bolívar, Colombia
 - WhatsApp y teléfono: +57 300 4752529
-- Entrega: a domicilio y para recoger en el local
+- Entrega: solo para recoger en el local (no hay servicio a domicilio)
 - Medios de pago: efectivo, Nequi y transferencia
 - Moneda: peso colombiano (COP)
 

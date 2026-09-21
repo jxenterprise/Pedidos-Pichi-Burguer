@@ -116,19 +116,20 @@ window.PICHI_CONFIG = {
 
   /* --------------------------------------------------------------------------
      3) ENTREGA Y PAGOS
-     Confirmado por JX: hacen domicilio Y también se puede recoger en el local.
-     ✔ CONFIRMADO POR JX: el domicilio NO tiene tarifa fija — depende del
-       barrio y se acuerda por WhatsApp. Por eso el sistema no suma ningún
-       valor de envío y lo dice en el resumen del pedido. Esto NO es un dato
-       pendiente: es la forma de trabajar del local.
-       Si algún día ponen tarifa fija, se escribe el número en costoDomicilio
-       (ej. 4000) y el sistema la suma y la muestra sola.
+     ⚠ SOLO PARA RECOGER (decisión de JX, sept. 2026).
+     El local dejó de hacer domicilios: todos los pedidos son para recoger en
+     la Cra 58A #6. Por eso el formulario ya no pregunta la forma de entrega ni
+     la dirección, y el servidor fija tipo: 'recoger' a mano.
+
+     👉 SI VUELVE EL DOMICILIO: no basta con poner domicilio: true aquí. Hay que
+        devolver el selector y el campo de dirección al formulario, y tocar 8
+        sitios más. La lista exacta está en CLAUDE.md → decisión 27.
      ------------------------------------------------------------------------ */
   entrega: {
-    domicilio: true,
+    domicilio: false,                   // ⚠ ver el aviso de arriba
     recoger: true,
-    costoDomicilio: null,               // null = no se cobra ni se muestra valor
-    notaDomicilio: 'El valor del domicilio se acuerda por WhatsApp según el barrio.'
+    costoDomicilio: null,
+    notaDomicilio: ''
   },
   pagos: ['Efectivo', 'Nequi', 'Transferencia'],
 

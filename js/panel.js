@@ -126,7 +126,9 @@
    * @param {boolean} primeraVez  si es la carga inicial (no avisa de "nuevos")
    */
   function cargarPedidos(primeraVez) {
-    window.Almacen.listarPedidos(clave).then(function (datos) {
+    // Devuelve la promesa para que "Actualizar" pueda esperar el resultado y
+    // decirle al vendedor qué encontró.
+    return window.Almacen.listarPedidos(clave).then(function (datos) {
       marcarConexion(true, datos.modo || 'nube');
 
       // Detectar pedidos nuevos para avisar al vendedor con un aviso discreto.
@@ -158,6 +160,8 @@
         ' horas después de entrar. El historial se borra solo los sábados a las 7:00 a. m.' +
         (datos.proximaLimpieza ? ' Próximo borrado: ' + datos.proximaLimpieza + '.' : '');
 
+      return datos;
+
     }).catch(function (err) {
       marcarConexion(false);
       if (err.status === 401) {
@@ -167,6 +171,40 @@
       } else {
         avisar('Sin conexión: ' + err.message);
       }
+    });
+  }
+
+  /**
+   * "Actualizar" a mano.
+   * SÍ funcionaba antes: volvía a preguntarle al servidor. El problema era que
+   * no se notaba — si no había pedidos nuevos la pantalla quedaba idéntica y
+   * parecía que el botón estaba roto. Ahora se bloquea mientras consulta y
+   * después dice en voz alta qué encontró, aunque la respuesta sea "nada".
+   * Un botón que no da señal de vida es un botón en el que nadie confía.
+   */
+  function refrescarAMano() {
+    var b = $('#btnRefrescar');
+    var antes = Object.keys(idsConocidos).length;
+    b.disabled = true;
+    b.textContent = 'Buscando…';
+
+    cargarPedidos(false).then(function (datos) {
+      var nuevos = datos ? datos.activos.filter(function (p) { return !idsConocidos[p.id]; }).length : 0;
+      // idsConocidos ya lo actualizó cargarPedidos, así que se compara el total.
+      var total = Object.keys(idsConocidos).length;
+      if (total > antes) {
+        var n = total - antes;
+        avisar(n === 1 ? 'Llegó 1 pedido que no estaba' : 'Llegaron ' + n + ' pedidos que no estaban');
+      } else if (datos) {
+        var p = datos.activos.filter(function (x) { return !x.entregado; }).length;
+        avisar(p === 0 ? 'Lista al día · no hay pedidos por entregar'
+                       : 'Lista al día · ' + p + (p === 1 ? ' pedido por entregar' : ' pedidos por entregar'));
+      }
+    }).catch(function () {
+      // El aviso de error ya lo puso cargarPedidos; aquí no se repite.
+    }).then(function () {
+      b.disabled = false;
+      b.textContent = 'Actualizar';
     });
   }
 
@@ -237,11 +275,10 @@
                        (p.numero ? ' · N° ' + p.numero : '');
     quien.append(h3, meta);
 
-    var tipo = document.createElement('span');
-    tipo.className = 'pedido__tipo' + (p.tipo === 'domicilio' ? ' domicilio' : '');
-    tipo.textContent = p.tipo === 'domicilio' ? 'Domicilio' : 'Recoge';
-
-    cab.append(turno, quien, tipo);
+    // Aquí iba la etiqueta "Domicilio / Recoge". El local dejó de hacer
+    // domicilios (sept. 2026): todos los pedidos son para recoger, así que la
+    // etiqueta decía siempre lo mismo y solo apretaba la tarjeta en un celular.
+    cab.append(turno, quien);
     art.appendChild(cab);
 
     /* --- Lo que pidió --- */
@@ -261,7 +298,6 @@
     var extra = document.createElement('div');
     extra.className = 'pedido__extra';
     var filas = [];
-    if (p.tipo === 'domicilio' && p.direccion) { filas.push(['Dirección', p.direccion]); }
     if (p.pago) { filas.push(['Pago', p.pago]); }
     if (p.notas) { filas.push(['Notas', p.notas]); }
     if (filas.length) {
@@ -294,13 +330,23 @@
     llamar.textContent = 'Llamar';
     pie.appendChild(llamar);
 
+    // "Avisar listo" y no "WhatsApp": el vendedor no necesita un botón que abra
+    // un chat en blanco, necesita uno que mande EL mensaje. El texto ya va
+    // escrito con el nombre y el turno, así que es un toque y enviar.
+    // Para un pedido ya entregado no tiene sentido avisar que está listo, así
+    // que ahí el mensaje cambia a uno neutro de agradecimiento.
     var wa = document.createElement('a');
-    wa.className = 'btn btn--linea';
-    wa.href = 'https://wa.me/57' + tel + '?text=' +
-              encodeURIComponent('Hola ' + p.nombre + ', tu pedido de Pichi Burguer (turno ' + p.turno + ') ya está listo.');
+    wa.className = 'btn ' + (p.entregado ? 'btn--linea' : 'btn--ama');
+    wa.href = 'https://wa.me/57' + tel + '?text=' + encodeURIComponent(
+      p.entregado
+        ? 'Hola ' + p.nombre + ', gracias por tu pedido en Pichi Burguer. ¡Te esperamos pronto!'
+        : '¡Hola ' + p.nombre + '! Tu pedido de Pichi Burguer ya está listo 🍔\n' +
+          'Turno ' + p.turno + ' · puedes pasar a recogerlo cuando quieras.\n' +
+          'Cra 58A #6, Bernardo Jaramillo.'
+    );
     wa.target = '_blank';
     wa.rel = 'noopener';
-    wa.textContent = 'WhatsApp';
+    wa.textContent = p.entregado ? 'WhatsApp' : 'Avisar listo';
     pie.appendChild(wa);
 
     if (!p.entregado) {
@@ -324,7 +370,12 @@
     var borrar = document.createElement('button');
     borrar.type = 'button';
     borrar.className = 'pedido__borrar';
-    borrar.textContent = '🗑';
+    // Icono + palabra. Solo con el icono no se entendía qué hacía, y con el
+    // color gris de antes ni se veía. En pantallas muy angostas el CSS esconde
+    // la palabra y deja el icono, pero el color fuerte se queda.
+    var bIcono = document.createElement('span'); bIcono.textContent = '🗑'; bIcono.setAttribute('aria-hidden','true');
+    var bTxt = document.createElement('span'); bTxt.className = 'pedido__borrar-txt'; bTxt.textContent = 'Borrar';
+    borrar.append(bIcono, bTxt);
     borrar.title = 'Borrar este pedido';
     borrar.setAttribute('aria-label', 'Borrar el pedido del turno ' + p.turno + ' de ' + p.nombre);
     borrar.addEventListener('click', function () { borrarPedido(p, borrar); });
@@ -396,11 +447,23 @@
     try { return localStorage.getItem(CLAVE_AVISOS) === '1'; } catch (e) { return false; }
   }
 
+  /* Cuántas veces se repite la campana y cada cuánto.
+     ⚠ TRES REPETICIONES, pedido por JX después de usar el panel en el local:
+     una sola vez se pierde entre el ruido de la freidora y la gente. Tres
+     veces sí se oye y el vendedor voltea a mirar.
+     0,9 s entre una y otra: menos suena a alarma de carro; más y parece que
+     entraron tres pedidos distintos. */
+  var CAMPANA_VECES = 3;
+  var CAMPANA_PAUSA = 0.9;
+
   /**
-   * Toca tres notas cortas.
+   * Toca la campana: tres notas cortas, repetidas tres veces.
    * Se genera con el propio navegador en vez de bajar un archivo de sonido:
    * así no hay que esperar a que cargue, funciona sin internet y no se suma un
    * archivo más al proyecto.
+   * Las repeticiones se programan TODAS de una con el reloj del audio, no con
+   * setTimeout: el reloj de audio no se desordena aunque el celular esté
+   * ocupado, y un setTimeout sí puede llegar tarde o no llegar.
    */
   function sonarCampana() {
     try {
@@ -412,18 +475,21 @@
       if (audio.state === 'suspended') { audio.resume(); }
 
       var t0 = audio.currentTime;
-      [880, 1174.7, 1568].forEach(function (hz, i) {
-        var osc = audio.createOscillator();
-        var vol = audio.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = hz;
-        var t = t0 + i * 0.15;
-        vol.gain.setValueAtTime(0.0001, t);
-        vol.gain.linearRampToValueAtTime(0.35, t + 0.02);   // ataque rápido
-        vol.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
-        osc.connect(vol); vol.connect(audio.destination);
-        osc.start(t); osc.stop(t + 0.6);
-      });
+      for (var v = 0; v < CAMPANA_VECES; v++) {
+        var inicio = t0 + v * CAMPANA_PAUSA;
+        [880, 1174.7, 1568].forEach(function (hz, i) {
+          var osc = audio.createOscillator();
+          var vol = audio.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = hz;
+          var t = inicio + i * 0.15;
+          vol.gain.setValueAtTime(0.0001, t);
+          vol.gain.linearRampToValueAtTime(0.35, t + 0.02);   // ataque rápido
+          vol.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+          osc.connect(vol); vol.connect(audio.destination);
+          osc.start(t); osc.stop(t + 0.6);
+        });
+      }
     } catch (e) { /* sin sonido: quedan la notificación y el aviso en pantalla */ }
   }
 
@@ -604,7 +670,7 @@
     $('#formAcceso').addEventListener('submit', intentarEntrar);
     $('#tabActivos').addEventListener('click', function () { cambiarPestana('activos'); });
     $('#tabHistorial').addEventListener('click', function () { cambiarPestana('historial'); });
-    $('#btnRefrescar').addEventListener('click', function () { cargarPedidos(false); });
+    $('#btnRefrescar').addEventListener('click', refrescarAMano);
     $('#btnBorrarHistorial').addEventListener('click', borrarHistorial);
     $('#btnSalir').addEventListener('click', cerrarSesion);
     $('#btnAvisos').addEventListener('click', alternarAvisos);

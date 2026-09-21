@@ -229,8 +229,11 @@ export async function onRequest({ request, env }) {
       fechaDia: hoy,
       nombre,
       telefono,
-      tipo: datos.tipo === 'domicilio' ? 'domicilio' : 'recoger',
-      direccion: String(datos.direccion || '').trim().slice(0, 160),
+      // El local dejó de hacer domicilios (sept. 2026): TODO pedido es para
+      // recoger. Se fija aquí a mano y no se acepta lo que mande el navegador,
+      // para que nadie pueda colar un pedido "a domicilio" que nadie va a
+      // llevar. El campo se conserva por si vuelve el servicio algún día.
+      tipo: 'recoger',
       pago: String(datos.pago || '').slice(0, 30),
       notas: String(datos.notas || '').trim().slice(0, 200),
       items: items.map(i => ({
@@ -258,6 +261,40 @@ export async function onRequest({ request, env }) {
     }
 
     return json({ ok: true, pedido });
+  }
+
+  /* ------------------------------------------------------------------------
+     ACCIÓN PÚBLICA: turnos — para que el cliente vea cuánto falta
+     ------------------------------------------------------------------------
+     Qué devuelve: SOLO números. El turno que están preparando, cuántos hay en
+     cola y el último turno entregado. Nada más.
+
+     ⚠ POR QUÉ NO DEVUELVE NADA MÁS: esta acción no lleva clave, así que
+     cualquiera puede llamarla. Si devolviera la lista de pedidos, cualquiera
+     podría sacar los nombres y los celulares de todos los clientes del día con
+     una sola petición. Aquí no sale ni un nombre, ni un teléfono, ni un total.
+     ⚠ NUNCA agregarle campos a esta respuesta sin pensar en eso.
+
+     Cuánto cuesta: 1 lectura de KV, la misma que gasta el panel. El navegador
+     del cliente pregunta cada 30 segundos y solo mientras tiene la pantalla del
+     turno abierta, así que no se acerca ni de lejos al cupo diario.
+     ---------------------------------------------------------------------- */
+  if (accion === 'turnos') {
+    const hoy = fechaDia();
+    const doc = await leerJson(kv, 'dia:' + hoy, { turno: 0, pedidos: [] });
+
+    // "Preparando" es el turno más bajo que todavía no se ha entregado. Es lo
+    // que de verdad le importa al cliente: por dónde van.
+    const pendientes = doc.pedidos.filter(p => !p.entregado).map(p => p.turno);
+    const entregados = doc.pedidos.filter(p => p.entregado).map(p => p.turno);
+
+    return json({
+      ok: true,
+      preparando: pendientes.length ? Math.min(...pendientes) : null,
+      enCola: pendientes.length,
+      ultimoEntregado: entregados.length ? Math.max(...entregados) : null,
+      turnoDelDia: doc.turno
+    });
   }
 
   /* ------------------------------------------------------------------------

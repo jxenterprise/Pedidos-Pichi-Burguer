@@ -9,9 +9,12 @@
      2. Tabla de horarios
      3. Carrito de compras
      4. Ventana del pedido (formulario, envío y turno)
+     4bis. Cómo va la cola de turnos
+     4ter. Repetir el último pedido
      5. Mensaje de WhatsApp (el respaldo del sistema)
      6. Barra de categorías
      7. Cookies, Google Analytics y mapa
+     7bis. Instalar la app en el celular
      8. Arranque
 
    DEPENDE DE: js/config.js y js/almacen.js, que deben cargarse ANTES.
@@ -448,6 +451,7 @@
     pintarResumen();
     $('#pasoFormulario').hidden = false;
     $('#pasoTurno').hidden = true;
+    $('#colaTurnos').hidden = true;
     $('#errorForm').classList.remove('visible');
     $('#modalPedido').classList.add('abierto');
     document.body.style.overflow = 'hidden';   // evita el scroll de fondo en iOS
@@ -456,6 +460,9 @@
   }
 
   function cerrarModal() {
+    // Al cerrar la ventana se deja de preguntar por la cola: no tiene sentido
+    // gastar lecturas por alguien que ya no está mirando.
+    pararCola();
     $('#modalPedido').classList.remove('abierto');
     document.body.style.overflow = '';
     document.removeEventListener('keydown', encerrarFoco, true);
@@ -514,16 +521,11 @@
 
     var nombre = $('#campoNombre').value.trim();
     var telefono = $('#campoTelefono').value.replace(/\D/g, '');
-    var tipo = $('input[name="tipo"]:checked').value;
-    var direccion = $('#campoDir').value.trim();
     var pago = $('input[name="pago"]:checked').value;
     var notas = $('#campoNotas').value.trim();
 
     if (nombre.length < 2) { return mostrarError('Escribe tu nombre para saber de quién es el pedido.', $('#campoNombre')); }
     if (telefono.length < 7) { return mostrarError('Escribe un número de celular válido.', $('#campoTelefono')); }
-    if (tipo === 'domicilio' && direccion.length < 6) {
-      return mostrarError('Para el domicilio hace falta la dirección y el barrio.', $('#campoDir'));
-    }
     if (unidadesCarrito() === 0) { return mostrarError('El pedido está vacío.'); }
 
     var items = Object.keys(carrito).map(function (id) {
@@ -535,8 +537,7 @@
     boton.textContent = 'Enviando…';
 
     window.Almacen.crearPedido({
-      nombre: nombre, telefono: telefono, tipo: tipo,
-      direccion: direccion, pago: pago, notas: notas,
+      nombre: nombre, telefono: telefono, pago: pago, notas: notas,
       items: items, total: totalCarrito()
     }).then(function (pedido) {
       mostrarTurno(pedido);
@@ -560,7 +561,6 @@
       ['Pedido', pedido.numero || ('#' + pedido.turno)],
       ['Nombre', pedido.nombre],
       ['Hora', hora],
-      ['Entrega', pedido.tipo === 'domicilio' ? 'A domicilio' : 'Paso a recogerlo'],
       ['Pago', pedido.pago],
       ['Total', pesos(pedido.total)]
     ];
@@ -577,11 +577,169 @@
 
     $('#btnWhatsAppPedido').href = enlaceWhatsApp(pedido);
 
+    // Se guarda QUÉ pidió (sin precios) antes de vaciar el carrito, para poder
+    // ofrecerle repetirlo la próxima vez que entre.
+    guardarUltimoPedido();
+
+    // Y arranca el contador de la cola: "faltan 2 antes que tú".
+    arrancarCola(pedido.turno);
+
     // El carrito se vacía: el pedido ya salió y dejarlo lleno haría que el
     // cliente lo mandara dos veces sin darse cuenta.
     carrito = {};
     $$('.plato.en-carrito').forEach(function (p) { p.classList.remove('en-carrito'); });
     pintarCarrito();
+  }
+
+
+  /* ==========================================================================
+     4bis) CÓMO VA LA COLA
+     Qué hace: mientras el cliente tiene abierta la pantalla de su turno, le va
+     diciendo por dónde van. "Vas de tercero · están preparando el turno 11".
+     Por qué: hoy recibía su número y quedaba a ciegas. Eso genera ansiedad y,
+     sobre todo, genera llamadas al local preguntando "¿ya va?" — que es tiempo
+     que el vendedor no está cocinando.
+     Qué pide al servidor: SOLO números (ver la acción 'turnos'). Ni un nombre
+     ni un teléfono de nadie, porque esa consulta no lleva clave.
+     Cuánto gasta: 1 lectura de KV cada 30 segundos, y solo mientras la pantalla
+     está abierta y visible. Al cerrarla o al irse a otra aplicación, para.
+     ========================================================================== */
+
+  var relojCola = null;
+  var turnoDelCliente = null;
+  var colaDesde = 0;
+  var COLA_MAX_MINUTOS = 45;   // después de esto deja de preguntar sola
+
+  function arrancarCola(turno) {
+    turnoDelCliente = turno;
+    colaDesde = Date.now();
+    $('#colaTurnos').hidden = false;
+    pintarCola();
+    if (relojCola) { clearInterval(relojCola); }
+    relojCola = setInterval(pintarCola, 30000);
+  }
+
+  function pararCola() {
+    if (relojCola) { clearInterval(relojCola); relojCola = null; }
+  }
+
+  function pintarCola() {
+    // Si el cliente dejó la pantalla abierta y se fue, no tiene sentido seguir
+    // gastando lecturas: se corta a los 45 minutos.
+    if (Date.now() - colaDesde > COLA_MAX_MINUTOS * 60000) { pararCola(); return; }
+    if (document.hidden) { return; }   // en segundo plano no se pregunta
+
+    window.Almacen.verTurnos().then(function (c) {
+      var caja = $('#colaTurnos');
+      var estado = $('#colaEstado');
+      var detalle = $('#colaDetalle');
+
+      if (c.preparando === null) {
+        estado.textContent = 'Tu pedido ya entró a la cocina.';
+        detalle.textContent = 'Te avisamos por WhatsApp apenas esté listo.';
+        caja.classList.remove('es-tuyo');
+        return;
+      }
+
+      // Cuántos hay antes que él. Se cuenta por número de turno, que es el
+      // orden real en que se preparan.
+      var delante = Math.max(0, turnoDelCliente - c.preparando);
+
+      if (delante === 0) {
+        caja.classList.add('es-tuyo');
+        estado.textContent = '¡Están preparando el tuyo!';
+        detalle.textContent = 'Turno ' + turnoDelCliente + ' · ya puedes ir pasando.';
+      } else {
+        caja.classList.remove('es-tuyo');
+        estado.textContent = delante === 1 ? 'Falta uno antes que tú' : 'Faltan ' + delante + ' antes que tú';
+        detalle.textContent = 'Están preparando el turno ' + c.preparando + ' · el tuyo es el ' + turnoDelCliente + '.';
+      }
+    }).catch(function () {
+      // Sin conexión no se le muestra un error al cliente: se esconde la caja
+      // y ya. Su turno, que es lo que importa, lo sigue viendo arriba.
+      $('#colaTurnos').hidden = true;
+      pararCola();
+    });
+  }
+
+
+  /* ==========================================================================
+     4ter) REPETIR EL ÚLTIMO PEDIDO
+     Qué hace: si este celular ya pidió antes, ofrece volver a armar lo mismo
+     con un toque.
+     Por qué: en comida rápida mucha gente repite siempre lo mismo. Obligarlo a
+     rearmar el pedido plato por plato es la fricción más tonta que puede tener
+     un sistema de pedidos.
+     ⚠ NO SE GUARDAN LOS PRECIOS, solo los identificadores de los platos y las
+     cantidades. Al agregarlo, los precios se vuelven a leer del menú de la
+     página. Si se guardaran, un cliente que pidió hace un mes volvería con los
+     precios viejos — y publicar un precio que no es el real va contra el
+     Estatuto del Consumidor.
+     Vive en localStorage: es de ESTE aparato y no viaja a ningún servidor.
+     ========================================================================== */
+
+  var CLAVE_ULTIMO = 'pichi_ultimo_pedido';
+
+  /** Guarda qué pidió, sin precios. Se llama al confirmar un pedido. */
+  function guardarUltimoPedido() {
+    var lista = Object.keys(carrito).map(function (id) {
+      return { id: id, cantidad: carrito[id].cantidad };
+    });
+    if (!lista.length) { return; }
+    try {
+      localStorage.setItem(CLAVE_ULTIMO, JSON.stringify({ cuando: Date.now(), items: lista }));
+    } catch (e) { /* almacenamiento bloqueado: simplemente no se ofrece */ }
+  }
+
+  /** Lee el pedido anterior y descarta lo que ya no exista en el menú. */
+  function leerUltimoPedido() {
+    var guardado = null;
+    try { guardado = JSON.parse(localStorage.getItem(CLAVE_ULTIMO) || 'null'); } catch (e) {}
+    if (!guardado || !guardado.items || !guardado.items.length) { return null; }
+
+    // Si un plato salió del menú desde la última vez, se ignora. Sin esto, el
+    // botón agregaría un producto que ya no se vende.
+    var vivos = guardado.items.filter(function (it) {
+      return document.querySelector('.plato[data-id="' + it.id + '"]');
+    });
+    return vivos.length ? vivos : null;
+  }
+
+  function mostrarRepetir() {
+    var items = leerUltimoPedido();
+    var caja = $('#repetirPedido');
+    if (!caja) { return; }
+    if (!items) { caja.hidden = true; return; }
+
+    // El texto se arma con los nombres y precios de AHORA, no con los de antes.
+    var partes = [], total = 0;
+    items.forEach(function (it) {
+      var plato = document.querySelector('.plato[data-id="' + it.id + '"]');
+      var btn = plato.querySelector('.plato__agregar');
+      partes.push(it.cantidad + '× ' + btn.getAttribute('data-nombre'));
+      total += parseInt(btn.getAttribute('data-precio'), 10) * it.cantidad;
+    });
+    $('#repetirDetalle').textContent = partes.join(' · ') + ' — ' + pesos(total);
+    caja.hidden = false;
+  }
+
+  /** Mete el pedido anterior en el carrito, con los precios de hoy. */
+  function repetirPedido() {
+    var items = leerUltimoPedido();
+    if (!items) { return; }
+    items.forEach(function (it) {
+      var plato = document.querySelector('.plato[data-id="' + it.id + '"]');
+      for (var i = 0; i < it.cantidad; i++) { cambiarCantidad(plato, 1); }
+    });
+    $('#repetirPedido').hidden = true;
+    medirEvento('repitio_pedido');
+    // Se lleva al cliente al carrito para que vea que sí se agregó.
+    $('#carritoBarra').scrollIntoView({ block: 'nearest' });
+  }
+
+  function olvidarUltimoPedido() {
+    try { localStorage.removeItem(CLAVE_ULTIMO); } catch (e) {}
+    $('#repetirPedido').hidden = true;
   }
 
 
@@ -602,8 +760,7 @@
     lineas.push('');
     lineas.push('Cliente: ' + pedido.nombre);
     lineas.push('Celular: ' + pedido.telefono);
-    lineas.push('Entrega: ' + (pedido.tipo === 'domicilio' ? 'A DOMICILIO' : 'Paso a recogerlo'));
-    if (pedido.tipo === 'domicilio' && pedido.direccion) { lineas.push('Dirección: ' + pedido.direccion); }
+    lineas.push('Entrega: Paso a recogerlo');
     lineas.push('Pago: ' + pedido.pago);
     lineas.push('');
     lineas.push('*Pedido:*');
@@ -708,6 +865,9 @@
   function mostrarBanner(visible) {
     $('#bannerCookies').classList.toggle('visible', visible);
     document.body.classList.toggle('cookies-visibles', visible);
+    // Al desaparecer el banner queda libre la esquina de abajo: ahí sí se puede
+    // ofrecer la instalación, que estaba esperando su turno.
+    if (!visible) { setTimeout(mostrarInstalar, 800); }
   }
 
   /**
@@ -761,6 +921,117 @@
 
 
   /* ==========================================================================
+     7bis) INSTALAR LA APP EN EL CELULAR
+     Qué hace: ofrece poner el ícono del local en la pantalla de inicio.
+     Por qué: el cliente que la instala no tiene que acordarse de la dirección
+     web ni buscarla otra vez. Entra de un toque, como a cualquier aplicación.
+
+     SON DOS MUNDOS DISTINTOS Y HAY QUE TRATARLOS DISTINTO:
+       · Android/Chrome avisa solo con el evento beforeinstallprompt, y el
+         navegador muestra su propio cuadro de instalación. Ahí el botón
+         "Instalar" instala de verdad.
+       · iPhone/Safari NO tiene ese evento: la instalación es manual, por el
+         menú Compartir. Ahí no se puede instalar por código, así que lo único
+         honesto es explicarle los dos pasos. Prometer un botón que no instala
+         sería mentirle.
+
+     CUÁNDO NO SE MUESTRA:
+       · Si ya está instalada (se detecta con display-mode: standalone).
+       · Mientras el banner de cookies esté en pantalla: el consentimiento manda,
+         y dos cajas abajo a la vez es justo el amontonamiento que ya rompió esta
+         página una vez (ver decisión 9 del CLAUDE.md).
+       · Si el cliente dijo "ahora no": no se le vuelve a preguntar.
+     ========================================================================== */
+
+  var CLAVE_INSTALAR = 'pichi_instalar_no';
+  var eventoInstalar = null;
+
+  function yaEstaInstalada() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true;
+  }
+
+  function esIPhone() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  function dijoQueNo() {
+    try { return localStorage.getItem(CLAVE_INSTALAR) === '1'; } catch (e) { return false; }
+  }
+
+  function mostrarInstalar() {
+    var caja = $('#avisoInstalar');
+    if (!caja) { return; }
+    if (yaEstaInstalada() || dijoQueNo()) { return; }
+    // El banner de cookies manda: primero se decide eso.
+    if (document.body.classList.contains('cookies-visibles')) { return; }
+    // En Android solo se ofrece si el navegador dijo que se puede instalar.
+    if (!eventoInstalar && !esIPhone()) { return; }
+
+    // El texto depende de si se puede instalar de verdad o hay que explicarlo.
+    // Se mira PRIMERO si hay evento del navegador y no si es un iPhone: si
+    // algún día Safari soporta la instalación automática, este aviso se adapta
+    // solo en vez de seguir dando instrucciones que ya no harían falta.
+    if (eventoInstalar) {
+      $('#instalarComo').textContent = 'Instálala en tu celular y pide sin buscar la página.';
+      $('#btnInstalar').textContent = 'Instalar';
+    } else {
+      $('#instalarComo').textContent = 'Toca Compartir y luego "Añadir a pantalla de inicio".';
+      $('#btnInstalar').textContent = 'Entendido';
+    }
+    caja.hidden = false;
+    caja.classList.add('visible');
+  }
+
+  function esconderInstalar(paraSiempre) {
+    var caja = $('#avisoInstalar');
+    caja.classList.remove('visible');
+    caja.hidden = true;
+    if (paraSiempre) {
+      try { localStorage.setItem(CLAVE_INSTALAR, '1'); } catch (e) {}
+    }
+  }
+
+  function iniciarInstalar() {
+    var caja = $('#avisoInstalar');
+    if (!caja) { return; }
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+      // Se corta el cuadro automático del navegador para mostrarlo cuando
+      // convenga, no encima del menú apenas entra.
+      e.preventDefault();
+      eventoInstalar = e;
+      mostrarInstalar();
+    });
+
+    window.addEventListener('appinstalled', function () {
+      esconderInstalar(true);
+      medirEvento('instalo_app');
+    });
+
+    $('#btnInstalar').addEventListener('click', function () {
+      if (eventoInstalar) {
+        eventoInstalar.prompt();
+        eventoInstalar.userChoice.then(function (r) {
+          medirEvento('instalar_' + (r && r.outcome === 'accepted' ? 'si' : 'no'));
+          eventoInstalar = null;
+          esconderInstalar(true);
+        });
+      } else {
+        // iPhone: el botón solo cierra el aviso; la instrucción ya está leída.
+        esconderInstalar(true);
+      }
+    });
+
+    $('#btnCerrarInstalar').addEventListener('click', function () { esconderInstalar(true); });
+
+    // En iPhone no hay evento que esperar: se ofrece tras un momento, cuando ya
+    // vio el menú y no cuando acaba de entrar.
+    if (esIPhone()) { setTimeout(mostrarInstalar, 12000); }
+  }
+
+
+  /* ==========================================================================
      8) ARRANQUE
      Qué hace: conecta todos los botones y deja la página lista.
      Se ejecuta cuando el HTML ya está leído (los scripts van con defer).
@@ -803,19 +1074,26 @@
       if (e.key === 'Escape' && $('#modalPedido').classList.contains('abierto')) { cerrarModal(); }
     });
 
-    // El campo de dirección solo aparece si escoge domicilio.
-    $$('input[name="tipo"]').forEach(function (radio) {
-      radio.addEventListener('change', function () {
-        $('#campoDireccion').hidden = ($('input[name="tipo"]:checked').value !== 'domicilio');
-      });
-    });
-
     // Cortina de cerrado: la salida al menú.
     var btnMenu = $('#btnVerMenu');
     if (btnMenu) { btnMenu.addEventListener('click', verElMenu); }
 
+    // "¿Lo mismo de la otra vez?" — solo aparece si este celular ya pidió antes.
+    mostrarRepetir();
+    var btnRep = $('#btnRepetir');
+    if (btnRep) { btnRep.addEventListener('click', repetirPedido); }
+    var btnOlv = $('#btnOlvidarPedido');
+    if (btnOlv) { btnOlv.addEventListener('click', olvidarUltimoPedido); }
+
+    // Si el cliente se va a otra aplicación y vuelve, la cola se pone al día de
+    // una en vez de esperar los 30 segundos del siguiente ciclo.
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && relojCola) { pintarCola(); }
+    });
+
     activarCategorias();
     iniciarCookies();
+    iniciarInstalar();
 
     // Eventos de conversión: qué botones toca de verdad la gente.
     $$('[data-evento]').forEach(function (el) {
