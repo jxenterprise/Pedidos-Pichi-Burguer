@@ -1132,11 +1132,16 @@
 
       <!-- Salida para el caso raro: dos personas pidiendo desde el mismo
            celular. No se le deja crear otro turno sin más, pero tampoco se le
-           deja sin salida. -->
-      <p class="campo__ayuda" style="margin-top:18px;text-align:center">
+           deja sin salida.
+           ⚠ El enlace va en su PROPIA LÍNEA y con clase .encurso__salida, no
+           suelto dentro del párrafo: medido en 9 celulares reales, inline solo
+           medía 14px de alto y era casi imposible de acertar con el pulgar
+           (la regla del proyecto son 44px — decisión 26). -->
+      <p class="campo__ayuda" style="margin-top:18px;text-align:center;margin-bottom:0">
         ¿Es un pedido para otra persona?
-        <a id="encursoWhats" href="https://wa.me/573004752529" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
       </p>
+      <a class="encurso__salida" id="encursoWhats" href="https://wa.me/573004752529"
+         target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
     </div>
 
     <!-- Paso 2: turno confirmado (oculto hasta que se envía el pedido) -->

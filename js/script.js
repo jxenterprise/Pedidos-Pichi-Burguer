@@ -1198,16 +1198,18 @@
   var CLAVE_COOKIES = 'pichi_cookies';
 
   function iniciarCookies() {
-    var decision = null;
-    try { decision = localStorage.getItem(CLAVE_COOKIES); } catch (e) { /* almacenamiento bloqueado */ }
-
-    if (decision === 'aceptadas') {
-      cargarAnalytics();
-      cargarMapa();
-    } else if (decision !== 'rechazadas') {
-      mostrarBanner(true);
-    }
-
+    /* ⚠ LOS BOTONES SE ENGANCHAN ANTES DE DECIDIR NADA, y el orden importa.
+       Antes, la decisión iba primero: a un visitante que YA había aceptado las
+       cookies se le llamaba cargarMapa(), que BORRA el aviso del mapa y con él
+       el botón "Ver el mapa". Dos líneas después se le pedía un
+       addEventListener a ese botón que ya no existía → error de JavaScript →
+       la función se cortaba ahí y **nunca se ejecutaba lo que venía después**:
+       el aviso de instalar la app y TODA la medición de Analytics (clics en
+       WhatsApp, en el mapa y en el teléfono).
+       O sea: a todo cliente que volvía —los más valiosos— dejaba de medírsele
+       cualquier clic, en silencio. No se veía probando porque en una sesión
+       nueva la decisión aún no existe y el mapa no se carga de entrada.
+       Enganchar primero y decidir después lo hace imposible de repetir. */
     $('#btnAceptarCookies').addEventListener('click', function () {
       try { localStorage.setItem(CLAVE_COOKIES, 'aceptadas'); } catch (e) {}
       mostrarBanner(false);
@@ -1227,7 +1229,21 @@
     });
 
     // Botón "Ver el mapa": carga el mapa solo esta vez, sin activar la analítica.
-    $('#btnVerMapa').addEventListener('click', cargarMapa);
+    // Se comprueba que exista además del orden: si el mapa ya está puesto, el
+    // botón no está, y eso es normal — no un fallo que deba tumbar la página.
+    var verMapa = $('#btnVerMapa');
+    if (verMapa) { verMapa.addEventListener('click', cargarMapa); }
+
+    // Y AHORA sí se decide qué hacer con lo que el visitante ya había dicho.
+    var decision = null;
+    try { decision = localStorage.getItem(CLAVE_COOKIES); } catch (e) { /* almacenamiento bloqueado */ }
+
+    if (decision === 'aceptadas') {
+      cargarAnalytics();
+      cargarMapa();
+    } else if (decision !== 'rechazadas') {
+      mostrarBanner(true);
+    }
   }
 
   /**

@@ -1030,6 +1030,53 @@ importante.
 animación, y quien mira el panel cinco horas seguidas no aguanta un parpadeo
 rápido.
 
+**44. 🐛 EL BUG SILENCIOSO DE LAS COOKIES — Analytics dejaba de medir al cliente que VOLVÍA.**
+
+Salió en la auditoría final, y es el más difícil de ver de todos los que ha
+tenido este proyecto: **no se notaba mirando la página**, no daba un error
+visible y solo le pasaba al visitante que ya había estado antes.
+
+**La cadena:**
+1. `iniciarCookies()` leía la decisión guardada **primero**. Si decía
+   "aceptadas", llamaba a `cargarMapa()`.
+2. `cargarMapa()` **borra el aviso del mapa** (`#mapaAviso`), y con él el botón
+   "Ver el mapa".
+3. Dos líneas más abajo: `$('#btnVerMapa').addEventListener(...)` — sobre un
+   botón que **ya no existía**. `null.addEventListener` → excepción.
+4. La función se cortaba ahí, y con ella **todo lo que `iniciar()` llamaba
+   después**: `iniciarInstalar()` y, sobre todo, el enganche de los eventos de
+   Analytics.
+
+**Consecuencia:** a **todo cliente que volvía** —los que ya conocen el local,
+los que más valen— dejaba de medírsele cualquier clic: WhatsApp, el mapa, el
+teléfono. Y nunca le salía el aviso de instalar la app. **En silencio.**
+
+**Por qué ninguna prueba lo había visto:** todas empezaban con el navegador
+limpio. Ahí `decision` es `null`, el mapa no se carga de entrada, el botón sigue
+existiendo y no hay error. **El bug solo vive en la segunda visita.**
+
+**Cómo quedó:** los `addEventListener` van **primero** y la decisión **después**,
+más un `if (verMapa)` por si acaso. Enganchar antes de decidir lo hace imposible
+de repetir.
+
+⚠ **REGLA QUE SALE DE AQUÍ:** en cualquier función de arranque, **enganchar los
+eventos antes de ejecutar lógica que pueda cambiar el DOM**. Y probar siempre el
+caso del **visitante que vuelve**, no solo el de la primera visita: hay bugs que
+solo existen ahí. Se creó la batería `vuelve.js` para eso (15 comprobaciones,
+con las tres decisiones posibles de cookies).
+
+**45. La salida por WhatsApp de "ya tienes un pedido" medía 14px.**
+
+Medido en 9 celulares reales: el enlace *"Escríbenos por WhatsApp"* del paso
+`#pasoEnCurso` iba suelto dentro de un párrafo y daba **14px de alto** (34 en
+los más grandes), muy por debajo de los 44 de la decisión 26.
+
+Importa más de lo que parece porque es **la única salida** del cliente legítimo
+que pide para otra persona desde el mismo celular. Si no la puede tocar, se
+queda sin camino. Ahora va en su propia línea con la clase `.encurso__salida`,
+como bloque de 44px, subrayado y sin fondo para que **no compita** con el botón
+amarillo de "agrégalo a mi turno", que es lo que hará casi todo el mundo.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -1580,6 +1627,43 @@ precios salen de la carta, no se puede tocar el pedido de otro, entregado →
 turno nuevo, a los 21 minutos → turno nuevo) y 28 en navegador real de punta a
 punta, incluidas las marcas del panel en naranja y en rojo. Más 8 del bug del
 verde, con el caso de la cuenta exacta cuando falta un turno en medio.
+
+### 21 de septiembre de 2026 (auditoría final) · 323 comprobaciones, cero fallos
+
+JX: *"busca más errores posibles y si todo quedó en perfectas condiciones ya
+listo"*. Se buscaron de verdad, con dos baterías nuevas hechas para eso.
+
+**Auditoría del servidor (34 comprobaciones nuevas):** entradas basura (nombre
+en blanco, de 500 letras, teléfono con letras, cantidad 9999, cantidad negativa,
+200 platos, notas de 1000), inyección (`<script>`, carácter nulo, tildes y
+chino), métodos y acciones desconocidas, **siete variantes de la clave**,
+el cupo de KV con 200 pedidos reales, y las combinaciones raras del pedido en
+curso (entregar y volver a pedir, deshacer un entregado, borrar el que está en
+curso, ampliar hasta 40 platos, ampliar uno ya entregado).
+
+**Auditoría del cliente (12 comprobaciones nuevas):** accesibilidad de las 7
+páginas (imágenes sin `alt` o sin medidas, botones sin nombre, campos sin
+etiqueta, saltos en la jerarquía de títulos), títulos únicos, enlaces y anclas
+rotas, que todas las imágenes sean WebP y ninguna pase de 60KB, el peso total,
+**cero `console.log`, TODO o `debugger`** en el código servido, y un pedido
+monstruoso en el panel (turno 999, nombre de 56 letras sin espacios, 12 platos
+de nombre larguísimo, 20 unidades cada uno, notas de 180 caracteres) en 4 anchos.
+
+**Dos bugs reales encontrados y corregidos:**
+1. **El bug silencioso de las cookies.** Ver decisión 44. El peor de todos los
+   que ha tenido el proyecto porque no se veía: a todo cliente que volvía
+   dejaba de medírsele cualquier clic en Analytics.
+2. **La salida por WhatsApp medía 14px.** Ver decisión 45.
+
+**Dos falsos positivos que NO eran bugs, comprobados y descartados:**
+- *"La clave con un espacio al final entra"* — no es el código: `claveValida()`
+  compara longitud exacta y sin `trim`. **HTTP recorta los espacios de las
+  cabeceras por especificación**, así que el espacio nunca llega. Solo le sirve
+  a quien ya sabe la clave.
+- *"Hay TODO/FIXME en el código"* — era la palabra española **TODOS** y el
+  `G-XXXXXXXXXX` de GA4, que es un pendiente marcado a propósito.
+
+**Estado final: 323 comprobaciones en 18 baterías, cero fallos.**
 
 ---
 

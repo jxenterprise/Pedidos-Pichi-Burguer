@@ -701,6 +701,17 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
   padding: 9px 0; border-bottom: 1px solid var(--linea); font-size: .9rem;
 }
 .encurso__fila span:last-child { margin-left: auto; font-weight: 700; white-space: nowrap; }
+/* La salida por WhatsApp. Va como bloque y no como enlace suelto en la frase:
+   medido en 9 celulares, inline daba 14px de alto y el pulgar no lo acertaba.
+   Es subrayado y sin fondo para que NO compita con el botón amarillo de
+   "agrégalo a mi turno", que es lo que hará casi todo el mundo. */
+.encurso__salida {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 44px; margin-top: 2px;
+  color: var(--texto-suave); font-size: .84rem; font-weight: 600;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+@media (hover: hover) { .encurso__salida:hover { color: var(--texto); } }
 
 /* --- Seguimiento del pedido en curso ---
    Mismo lenguaje que la tarjeta de "repetir el último pedido" que va justo
