@@ -968,7 +968,10 @@ main a[href^="tel:"] {
   color: var(--texto-suave); font: inherit; font-size: .8rem; text-decoration: underline;
 }
 
-/* --- Crédito de JX Company (formato exacto obligatorio, no modificar) --- */
+/* --- Crédito de JX Enterprise (formato exacto obligatorio, no modificar) ---
+   ⚠ El nombre pasó de "JX Company" a "JX ENTERPRISE" el 21 de septiembre de
+   2026, por decisión de JX. Lo que NO cambia es el formato: el degradado
+   dorado, el espaciado de .18em y las mayúsculas por CSS. --- */
 .footer-dev {
   width: 100%;
   text-align: center;

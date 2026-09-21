@@ -8,7 +8,7 @@ Contexto para cualquier chat futuro (mío o de otra IA) que retome este proyecto
 ## 📌 Qué es este proyecto
 
 Sistema web de **pedidos por turnos** para **Pichi Burguer**, local de comida
-rápida en Cartagena (Bolívar, Colombia). Hecho por **JX Company**.
+rápida en Cartagena (Bolívar, Colombia). Hecho por **JX Enterprise**.
 
 No es una landing informativa: es un **sistema funcional de dos caras**.
 
@@ -1438,6 +1438,44 @@ del todo**, la notificación **no llega**. Es la misma limitación de la decisi�
 las actualizaciones lleguen al instante. Para ese caso sigue estando la capa 1:
 entra a la página y lo ve.
 
+**53. 🏷️ EL CRÉDITO DEL PIE: "JX COMPANY" → "JX ENTERPRISE".**
+
+**Decisión de JX del 21 de septiembre de 2026:** *"esta marca de agua en todas
+las páginas cambiarla, ya no será más COMPANY, ahora será en adelante
+ENTERPRISE... JX ENTERPRISE"*. Es el nombre de su propia empresa, así que manda
+él.
+
+**Dónde estaba** — el texto visible vive en **un solo `<span>` por página**,
+`<span class="footer-dev-co">`, y son **7 páginas**. Fuera del HTML aparecía
+además en `README.md` (3 veces), `llms.txt`, este archivo y los comentarios del
+CSS y de los 7 HTML. **Todo cambiado de una**, o el sitio diría un nombre y la
+documentación otro.
+
+⚠ **LO QUE NO SE TOCÓ, y era lo importante:** el comentario del crédito dice
+*"formato exacto obligatorio, no modificar"*, y eso sigue valiendo. **Lo que
+cambió es el nombre, no el formato**: el degradado dorado (`#E8C86A → #C9A84C`
+con `background-clip: text`), el peso 800, las mayúsculas por CSS y el
+`letter-spacing: .18em` quedan idénticos. Comprobado en la batería, no solo a
+ojo.
+
+⚠ **"ENTERPRISE" tiene 3 letras más que "COMPANY"**, y con `.18em` de
+espaciado eso no es gratis: había que comprobar que no se partiera ni se saliera
+en pantalla angosta. **Cabe en UNA línea hasta en un iPhone SE de 320px** —
+medido en 7 modelos.
+
+⚠ **NO se subió la versión del sitio por esto**, y lo dijo JX: *"no es necesario
+mover esta vez el v1 por esa cosita"*. Tiene sentido: **la versión existe para
+detectar que una actualización no llegó** (decisión 47), y aquí el propio cambio
+**es visible en el pie de las 7 páginas**. Si dice ENTERPRISE, llegó. La
+etiqueta sigue en `v1.2`.
+
+⚠ **Un falso positivo de la batería nueva, corregido:** contaba las líneas con
+`alto > fontSize × 1.6` y a 9,92px de letra el alto de UNA línea es **16px**,
+mientras el umbral daba **15,87** — cantaba "2 líneas" en todos los celulares,
+incluido un iPhone 14 Pro Max. Ahora cuenta las cajas de línea de verdad,
+agrupando los rectángulos del rango por su coordenada superior. **Un umbral que
+falla por décimas es un informe que miente.**
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -2237,6 +2275,35 @@ Las baterías que tocaban el mismo código vuelven a pasar: `segui.js` 27,
 
 **🏷️ VERSIÓN PUBLICADA: `v1.2`** en las 7 páginas.
 
+### lunes 21 de septiembre de 2026, 4:02 p. m. · El crédito pasa a JX ENTERPRISE
+
+JX: *"esta marca de agua en todas las páginas cambiarla, ya no será más COMPANY,
+ahora será en adelante ENTERPRISE"*. Ver decisión 53.
+
+Cambiado en **las 7 páginas** (el `<span class="footer-dev-co">`), más
+`README.md`, `llms.txt`, este archivo y los comentarios del CSS y de los 7 HTML.
+No queda ni un "JX Company" en el proyecto — solo dentro del comentario del CSS
+que explica el cambio, a propósito.
+
+**El formato NO se tocó**, que es lo que el propio comentario del código manda:
+el degradado dorado, el peso 800, las mayúsculas por CSS y el `letter-spacing`
+de .18em quedan idénticos. Lo que cambió es el nombre.
+
+**Probado (17 comprobaciones, `creditojx.js`):** que las 7 páginas lo digan, que
+conserven el dorado / las mayúsculas / el peso, y —lo que de verdad había que
+mirar, porque **"ENTERPRISE" tiene 3 letras más que "COMPANY"**— que no se salga
+ni se parta en 7 celulares reales. **Cabe en UNA línea hasta en un iPhone SE de
+320px.**
+
+**Un falso positivo corregido en la batería nueva:** contaba líneas con un
+umbral que fallaba por 0,13px y decía "parte en 2 líneas" en todos los modelos,
+incluido un iPhone grande. Ahora cuenta las cajas de línea de verdad. *Un umbral
+que falla por décimas es un informe que miente.*
+
+**Sin subir la versión**, por decisión de JX y con razón: la versión sirve para
+detectar una actualización que no llegó, y este cambio **se ve solo** en el pie
+de las 7 páginas. Sigue en **`v1.2`**.
+
 ---
 
-*Proyecto de JX Company · Cartagena, Colombia*
+*Proyecto de JX Enterprise · Cartagena, Colombia*

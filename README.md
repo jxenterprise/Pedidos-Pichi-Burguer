@@ -4,7 +4,7 @@ Sistema web de pedidos por turnos para **Pichi Burguer**, comida rápida en
 Cartagena de Indias, Bolívar, Colombia.
 
 **Dominio:** `pedidos-pichi-burguer-ctg.pages.dev`
-**Desarrollado por:** JX Company
+**Desarrollado por:** JX Enterprise
 
 ---
 
@@ -623,10 +623,10 @@ Si no, en Cloudflare → *Workers & Pages* → **KV** → `pichi-burguer-pedidos
 **El código fuente y todo el contenido de este sitio son propiedad de Pichi
 Burguer.** Se entregan todos los archivos sin minificar ni ofuscar, listos para
 abrir, leer y editar. No hay ninguna parte del sistema que dependa de un servicio
-propietario de JX Company.
+propietario de JX Enterprise.
 
 **Dominio y hosting**: por ser un negocio pequeño sin equipo técnico, el sitio
-queda alojado en la **cuenta de Cloudflare de JX Company**. Cuando el cliente lo
+queda alojado en la **cuenta de Cloudflare de JX Enterprise**. Cuando el cliente lo
 pida, se transfiere a su propia cuenta: se crea la cuenta de Cloudflare a su
 nombre, se le da acceso al repositorio, se mueve el dominio y se le entregan las
 credenciales de GA4 y Search Console. Sin costo y sin tiempo de caída.
@@ -728,5 +728,5 @@ inventado iría contra el Estatuto del Consumidor.
 ---
 
 <p align="center">
-  <sub>DISEÑO Y DESARROLLO: <b>JX COMPANY</b></sub>
+  <sub>DISEÑO Y DESARROLLO: <b>JX ENTERPRISE</b></sub>
 </p>
