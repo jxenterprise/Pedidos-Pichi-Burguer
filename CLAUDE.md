@@ -347,6 +347,37 @@ README, ni en este archivo. Vive **solo** en la variable de entorno
 Consecuencia aceptada: con `sistema.modo = 'local'` el panel no abre. Es el
 precio de que la clave no se pueda sacar inspeccionando el navegador.
 
+**22. El dominio vive en UN solo sitio conceptual, pero se escribe en 7.**
+Hoy el sitio se sirve desde `https://pedidos-pichi-burguer-ctg.pages.dev`.
+JX conectará `pedidos-pichiburguerctg.com` más adelante.
+
+⚠ **POR QUÉ IMPORTA QUE COINCIDA CON LA DIRECCIÓN REAL**: no es cosmético.
+El `canonical` le dice a Google cuál es la página "de verdad"; si apunta a un
+dominio que no sirve el sitio, Google deja de indexar el que sí funciona. Y las
+direcciones de `og:image`/`og:url` **tienen que ser absolutas y vivas**: si no,
+al compartir el enlace por WhatsApp no sale ni la foto ni el título — sale el
+enlace pelado. Para un local que se promociona por WhatsApp, eso es la diferencia
+entre que le den clic o no.
+
+**LOS 7 SITIOS, en orden. El día que se conecte el dominio propio hay que
+cambiarlos TODOS o el SEO queda a medias:**
+
+| # | Archivo | Qué hay que cambiar |
+|---|---|---|
+| 1 | `index.html` `<head>` | `canonical`, `og:url`, `og:image`, `twitter:image` |
+| 2 | `index.html` JSON-LD | `@id` del sitio, del negocio y del FAQ, `url`, `image` |
+| 3 | `sitemap.xml` | la etiqueta `<loc>` |
+| 4 | `robots.txt` | la línea `Sitemap:` del final |
+| 5 | `llms.txt` | los 9 enlaces de la sección "Secciones" |
+| 6 | `js/config.js` | `negocio.dominio` |
+| 7 | `functions/api/pedidos.js` | el comentario "SE ACTIVA EN" de la cabecera |
+
+Comando para comprobar que no quedó ninguno:
+`grep -rn "pages.dev" --include=*.html --include=*.js --include=*.txt --include=*.xml .`
+
+Al hacer el cambio hay que **volver a enviar el sitemap** en Google Search
+Console, porque el anterior apunta a direcciones que dejarán de existir.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -385,7 +416,7 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 | Nombre oficial | **Pichi Burguer** — con "gu", igual que el logo. El perfil de WhatsApp dice "Burger" pero manda el logo. Tiene que escribirse idéntico en todos lados o se rompe el SEO local |
 | WhatsApp | +57 300 4752529 |
 | Dirección | Cra 58A #6, Bernardo Jaramillo, Cartagena de Indias, Bolívar |
-| Dominio | pedidos-pichiburguerctg.com |
+| **Dominio** | **`https://pedidos-pichi-burguer-ctg.pages.dev`** — es donde vive el sitio HOY (decisión de JX, sept. 2026). El dominio propio `pedidos-pichiburguerctg.com` **se conectará más adelante**; cuando pase, hay que cambiarlo en los 7 sitios de la tabla de abajo |
 | **Horarios** | **Todos los días 18:00–23:00, sin día de descanso** (confirmado sept. 2026) |
 | Menú | 15 platos con sus precios reales, transcritos del menú impreso del local |
 | Pagos | Efectivo, Nequi, Transferencia |

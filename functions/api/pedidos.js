@@ -10,7 +10,7 @@
    todos los clientes a la vez. Si cada celular contara sus propios turnos,
    dos personas podrían salir las dos con el "turno 3".
 
-   SE ACTIVA EN: https://pedidos-pichiburguerctg.com/api/pedidos
+   SE ACTIVA EN: https://pedidos-pichi-burguer-ctg.pages.dev/api/pedidos
    Cloudflare enruta solo por la carpeta: functions/api/pedidos.js → /api/pedidos.
 
    ⚠ REQUIERE CONFIGURAR EN CLOUDFLARE (una sola vez, ver README.md):

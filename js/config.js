@@ -44,7 +44,7 @@ window.PICHI_CONFIG = {
     // Así lo exige la URL de wa.me; con espacios el enlace no abre.
     whatsapp: '573004752529',
     telefonoVisible: '+57 300 4752529',
-    dominio: 'https://pedidos-pichiburguerctg.com'
+    dominio: 'https://pedidos-pichi-burguer-ctg.pages.dev'
   },
 
   /* --------------------------------------------------------------------------

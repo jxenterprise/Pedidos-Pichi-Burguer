@@ -32,4 +32,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://pedidos-pichiburguerctg.com/sitemap.xml
+Sitemap: https://pedidos-pichi-burguer-ctg.pages.dev/sitemap.xml

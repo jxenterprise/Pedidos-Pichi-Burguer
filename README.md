@@ -3,7 +3,7 @@
 Sistema web de pedidos por turnos para **Pichi Burguer**, comida rápida en
 Cartagena de Indias, Bolívar, Colombia.
 
-**Dominio:** `pedidos-pichiburguerctg.com`
+**Dominio:** `pedidos-pichi-burguer-ctg.pages.dev`
 **Desarrollado por:** JX Company
 
 ---
@@ -81,7 +81,7 @@ WhatsApp.
 
 ### 4. Conectar el dominio
 
-*Custom domains* → *Set up a domain* → `pedidos-pichiburguerctg.com`.
+*Custom domains* → *Set up a domain* → `pedidos-pichi-burguer-ctg.pages.dev`.
 Cloudflare configura el HTTPS solo. Deja una sola versión canónica (con `www` o
 sin `www`, redirigiendo la otra) para no dividir el posicionamiento.
 
