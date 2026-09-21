@@ -2086,7 +2086,7 @@ página y dejó las otras seis en v1.0** — exactamente la desincronización qu
 versión existe para detectar. Corregido en los tres sitios donde estaba escrito
 (`index.html`, la decisión 47 y el README) y comprobado sobre las 7.
 
-**Estado final: 575 comprobaciones en 42 baterías, cero fallos.**
+**Estado final: 586 comprobaciones en 45 baterías, cero fallos.**
 
 ---
 
