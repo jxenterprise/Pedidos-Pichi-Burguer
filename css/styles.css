@@ -151,6 +151,19 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
    que se agregue a futuro usa estas clases; no se inventan estilos sueltos.
    Táctil: mínimo 48px de alto en todos, como exige el estándar de JX.
    ========================================================================== */
+/* ⚠⚠ REGLA QUE TIENE QUE IR ANTES QUE CUALQUIER `display`.
+   El atributo `hidden` del HTML lo aplica el navegador con su hoja por
+   defecto, que pierde contra CUALQUIER clase del sitio. Es decir:
+   `.btn { display: inline-flex }` anulaba `hidden` y el botón se quedaba a la
+   vista aunque el JS lo hubiera escondido.
+   Pasó de verdad: con el pedido ya en la plancha, el botón amarillo "Sí,
+   agrégalo a mi turno" seguía viéndose. El cliente lo tocaba, el servidor lo
+   rechazaba con razón, y en la pantalla no pasaba NADA — que es la peor forma
+   de fallar, porque el cliente cree que la página está rota.
+   Con esta línea, `hidden` gana siempre y en todo el sitio. Es la razón por la
+   que existe: que esconder algo signifique esconderlo. */
+[hidden] { display: none !important; }
+
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; padding: 0 22px;
@@ -727,27 +740,86 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
   padding: 9px 0; border-bottom: 1px solid var(--linea); font-size: .9rem;
 }
 .encurso__fila span:last-child { margin-left: auto; font-weight: 700; white-space: nowrap; }
-/* La salida por WhatsApp. Va como bloque y no como enlace suelto en la frase:
-   medido en 9 celulares, inline daba 14px de alto y el pulgar no lo acertaba.
-   Es subrayado y sin fondo para que NO compita con el botón amarillo de
-   "agrégalo a mi turno", que es lo que hará casi todo el mundo. */
-.encurso__salida {
+/* Cuando el pedido ya está en la cocina, la caja del turno pasa de naranja
+   (una pregunta) a roja apagada (un no se puede). El color dice de entrada
+   que esto no es una opción, es un aviso. */
+.encurso--cocina { border-left-color: var(--rojo); border-color: rgba(224,18,32,.35); }
+
+/* --- Aviso de "ya está en la cocina" ---
+   Es un AVISO, no un formulario: sin botón amarillo y sin la lista de lo que
+   quería agregar, porque ninguna de las dos se puede hacer ya. Centrado y con
+   el cocinero arriba para que se entienda antes de leer. */
+.encurso-alto { text-align: center; margin-bottom: 18px; }
+.encurso-alto__icono {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; margin-bottom: 12px;
+  border-radius: var(--radio-full);
+  background: rgba(254,155,5,.12); border: 1px solid rgba(254,155,5,.35);
+  font-size: 1.6rem; line-height: 1;
+}
+.encurso-alto__tit {
+  margin: 0 0 8px; font-size: 1.08rem; font-weight: 700; color: var(--blanco);
+  line-height: 1.3;
+}
+.encurso-alto__txt { margin: 0; font-size: .9rem; color: var(--texto-suave); line-height: 1.55; }
+/* Las dos salidas van numeradas: es una lista de qué hacer, no un párrafo. Con
+   el pedido ya en el fuego el cliente tiene prisa y lee en diagonal. */
+.encurso-alto__pasos {
+  margin: 0 0 18px; padding-left: 22px;
+  font-size: .9rem; color: var(--texto-suave); line-height: 1.55;
+}
+.encurso-alto__pasos li { margin-bottom: 9px; }
+.encurso-alto__pasos li::marker { color: var(--amarillo); font-weight: 700; }
+.encurso-alto__pasos b { color: var(--texto); }
+
+/* --- "¿Es un pedido para otra persona?" ---
+   Va separado por una línea arriba: no es parte de lo anterior, es otra cosa.
+   ⚠ Aquí NO se manda al WhatsApp del local: se le da el enlace de la página
+   para que la otra persona pida desde SU celular con SU número, y así tenga su
+   propio turno en vez de que alguien haga de intermediario. Ver decisión 50. */
+.encurso-otro {
+  border-top: 1px solid var(--linea); margin-top: 22px; padding-top: 18px;
+  text-align: center;
+}
+.encurso-otro__txt { margin: 0 0 4px; font-size: .92rem; font-weight: 700; color: var(--texto); }
+.encurso-otro__ayuda { margin: 0 0 12px; font-size: .84rem; color: var(--texto-tenue); line-height: 1.5; }
+.encurso-otro__fila {
+  display: flex; align-items: stretch; gap: 8px;
+  background: var(--negro); border: 1px solid var(--linea);
+  border-radius: var(--radio-sm); padding: 4px 4px 4px 12px;
+}
+.encurso-otro__link {
+  flex: 1; min-width: 0; display: flex; align-items: center;
+  font-family: var(--fuente-texto); font-size: .8rem; color: var(--texto-suave);
+  /* El enlace es largo y no tiene espacios: sin esto empuja el botón fuera de
+     la caja en un celular de 320px. */
+  overflow-wrap: anywhere; text-align: left;
+}
+.encurso-otro__btn {
+  /* ⚠ 44px, no 40: es un control y le toca el mínimo táctil del proyecto
+     (decisión 26). Salió a 40 en la revisión de 26 aparatos. */
+  flex-shrink: 0; min-height: 44px; padding: 0 14px;
+  background: var(--negro-sup-2); border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio-sm); color: var(--texto);
+  font-family: var(--fuente-texto); font-size: .82rem; font-weight: 700; cursor: pointer;
+  transition: background-color .18s ease, color .18s ease;
+}
+.encurso-otro__btn.copiado { background: var(--verde); border-color: var(--verde); color: #fff; }
+@media (hover: hover) {
+  .encurso-otro__btn:hover:not(.copiado) { border-color: var(--amarillo); color: var(--amarillo); }
+}
+.encurso-otro__wa {
   display: flex; align-items: center; justify-content: center;
-  min-height: 44px; margin-top: 2px;
-  color: var(--texto-suave); font-size: .84rem; font-weight: 600;
+  min-height: 44px; margin-top: 10px;
+  color: var(--texto-suave); font-size: .86rem; font-weight: 600;
   text-decoration: underline; text-underline-offset: 3px;
 }
-@media (hover: hover) { .encurso__salida:hover { color: var(--texto); } }
-/* Cuando el pedido ya está en la plancha, el WhatsApp deja de ser la salida de
-   un caso raro y pasa a ser LA acción: el botón amarillo se esconde y este se
-   queda solo. Por eso se pinta como botón de contorno en vez de enlace fino. */
-.encurso__salida--fuerte {
-  border: 1px solid var(--linea-fuerte); border-radius: var(--radio-sm);
-  color: var(--texto); text-decoration: none; font-size: .9rem; font-weight: 700;
-  margin-top: 8px;
-}
-@media (hover: hover) {
-  .encurso__salida--fuerte:hover { border-color: var(--amarillo); color: var(--amarillo); }
+@media (hover: hover) { .encurso-otro__wa:hover { color: var(--texto); } }
+/* En 320px el enlace y el botón no caben en una fila sin apretarse. */
+@media (max-width: 360px) {
+  .encurso-otro__fila { flex-direction: column; padding: 10px; gap: 10px; }
+  .encurso-otro__link { text-align: center; }
+  .encurso-otro__btn { width: 100%; }
 }
 
 /* --- Seguimiento del pedido en curso ---
@@ -1364,13 +1436,20 @@ body.cerrado-visible { overflow: hidden; }
    ⚠ El parpadeo es lento (1,8 s) y solo cambia el borde, no el texto. Un
    parpadeo rápido sería de los que el skill prohíbe, y además cansa la vista
    de quien mira el panel cinco horas seguidas. */
+/* ⚠ margin-top y margin-left: 0 — va DEBAJO del reloj de espera, no pegado a
+   su lado. Antes quedaban los dos en la misma línea, tocándose, y no se sabía
+   dónde terminaba uno y empezaba el otro. Son dos avisos distintos: cuánto
+   lleva esperando y que el cliente cambió el pedido. */
 .pedido__ampliado {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 3px 10px; border-radius: var(--radio-full);
+  margin-top: 7px; padding: 4px 11px; border-radius: var(--radio-full);
   background: rgba(254,155,5,.14); border: 1px solid rgba(254,155,5,.45);
   color: var(--naranja); font-size: .7rem; font-weight: 700;
-  letter-spacing: .04em; text-transform: uppercase;
+  letter-spacing: .04em; text-transform: uppercase; line-height: 1.5;
 }
+/* El reloj y esta etiqueta van uno debajo del otro, cada uno en su línea. */
+.pedido__quien .espera { display: inline-flex; margin-top: 7px; }
+.pedido__quien .espera + .pedido__ampliado { display: flex; width: fit-content; }
 .pedido.recien-ampliado { border-left-color: var(--naranja); }
 .pedido.ampliado-plancha {
   border-left-color: var(--rojo);

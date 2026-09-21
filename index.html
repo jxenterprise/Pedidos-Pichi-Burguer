@@ -292,10 +292,10 @@
            verdad al celular de alguien. Si dice la vieja, el navegador está
            sirviendo una copia guardada.
            ⚠ VIVE EN LAS 7 PÁGINAS. Para subirla se cambian todas de una:
-           grep -rl 'sitio-version">v' *.html | xargs sed -i 's/>v1\.0</>v1\.1</'
+           sed -i 's|\(class="sitio-version"[^>]*\)>v1\.1<|\1>v1.2<|' *.html
            y se anota en la bitácora de CLAUDE.md. -->
       <span class="barra__nombre">Pichi Burguer</span>
-      <span class="sitio-version" title="Versión publicada del sitio">v1.0</span>
+      <span class="sitio-version" title="Versión publicada del sitio">v1.1</span>
     </a>
     <p class="estado" id="estadoBarra" role="status">
       <span class="estado__luz" aria-hidden="true"></span>
@@ -1120,40 +1120,90 @@
          =========================================================== -->
     <div id="pasoEnCurso" hidden>
       <div class="modal__cab">
-        <h2>Ya tienes un pedido</h2>
+        <h2 id="encursoTitulo">Ya tienes un pedido</h2>
         <button type="button" class="modal__cerrar" id="btnCerrarEnCurso" aria-label="Cerrar">✕</button>
       </div>
 
-      <div class="encurso">
+      <div class="encurso" id="encursoCaja">
         <p class="encurso__turno">Turno <b id="encursoTurno">–</b></p>
         <p class="encurso__txt" id="encursoTexto"></p>
       </div>
 
-      <!-- El texto de estas tres líneas lo cambia el JS: no es lo mismo un
-           pedido que sigue en la fila (se puede sumar) que uno que ya está en
-           la plancha (ahí solo queda el WhatsApp). Ver decisión 46. -->
-      <p class="encurso__pregunta" id="encursoPregunta">¿Quieres sumarle lo que acabas de escoger?</p>
-      <div class="encurso__lista" id="encursoNuevo"></div>
+      <!-- ===================================================
+           A) SU PEDIDO SIGUE EN LA FILA → se le puede sumar
+           =================================================== -->
+      <div id="encursoPuede">
+        <p class="encurso__pregunta">¿Quieres sumarle lo que acabas de escoger?</p>
+        <div class="encurso__lista" id="encursoNuevo"></div>
 
-      <button type="button" class="btn btn--ama btn--ancho" id="btnAgregarAlPedido">
-        Sí, agrégalo a mi turno
-      </button>
-      <p class="campo__ayuda" id="encursoNota" style="margin-top:12px;text-align:center">
-        No sale otro turno: se suma a lo que ya pediste y lo recoges todo junto.
-      </p>
+        <button type="button" class="btn btn--ama btn--ancho" id="btnAgregarAlPedido">
+          Sí, agrégalo a mi turno
+        </button>
+        <p class="campo__ayuda" style="margin-top:12px;text-align:center">
+          No sale otro turno: se suma a lo que ya pediste y lo recoges todo junto.
+        </p>
+      </div>
 
-      <!-- Salida para el caso raro: dos personas pidiendo desde el mismo
-           celular. No se le deja crear otro turno sin más, pero tampoco se le
-           deja sin salida.
-           ⚠ El enlace va en su PROPIA LÍNEA y con clase .encurso__salida, no
-           suelto dentro del párrafo: medido en 9 celulares reales, inline solo
-           medía 14px de alto y era casi imposible de acertar con el pulgar
-           (la regla del proyecto son 44px — decisión 26). -->
-      <p class="campo__ayuda" id="encursoSalidaTxt" style="margin-top:18px;text-align:center;margin-bottom:0">
-        ¿Es un pedido para otra persona?
-      </p>
-      <a class="encurso__salida" id="encursoWhats" href="https://wa.me/573004752529"
-         target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+      <!-- ===================================================
+           B) YA ESTÁ EN LA COCINA → no se le puede sumar
+           Es un AVISO, no un formulario: no lleva ni el botón
+           amarillo ni la lista de lo que quería agregar,
+           porque ninguna de las dos cosas se puede hacer ya.
+           Dejarlas ahí es lo que hacía que el cliente tocara
+           un botón que no respondía. Ver decisión 49.
+           =================================================== -->
+      <div id="encursoNoPuede" hidden>
+        <div class="encurso-alto">
+          <span class="encurso-alto__icono" aria-hidden="true">👨‍🍳</span>
+          <p class="encurso-alto__tit">Tu pedido ya está en la cocina</p>
+          <p class="encurso-alto__txt">
+            Lo sentimos, cuando el cocinero ya empezó no podemos agregarle nada
+            desde la página. Pero todavía tienes dos formas:
+          </p>
+        </div>
+
+        <ol class="encurso-alto__pasos">
+          <li>
+            <b>Escríbenos ahora por WhatsApp</b> con lo que quieres agregar.
+            Si todavía alcanza, te lo metemos.
+          </li>
+          <li>
+            O <b>pásate por el local</b> y lo pides ahí mismo cuando recojas
+            tu turno.
+          </li>
+        </ol>
+
+        <a class="btn btn--ama btn--ancho" id="encursoWhatsAlto"
+           href="https://wa.me/573004752529" target="_blank" rel="noopener">
+          Escribir por WhatsApp
+        </a>
+        <p class="campo__ayuda" style="margin-top:12px;text-align:center">
+          Tu turno no cambia: sigue siendo el mismo.
+        </p>
+      </div>
+
+      <!-- ===================================================
+           SALIDA COMÚN: el pedido es para OTRA persona.
+           ⚠ NO se le manda a WhatsApp: se le da el enlace de
+           la página para que se lo PASE a esa persona y pida
+           desde su propio celular, con su propio número. Así
+           cada quien tiene su turno y nadie hace de
+           intermediario. Ver decisión 50.
+           =================================================== -->
+      <div class="encurso-otro">
+        <p class="encurso-otro__txt">¿Es un pedido para otra persona?</p>
+        <p class="encurso-otro__ayuda">
+          Pásale el enlace y que pida desde su celular, con su propio número.
+          Así cada uno recibe su turno.
+        </p>
+        <div class="encurso-otro__fila">
+          <code class="encurso-otro__link" id="encursoEnlace">pedidos-pichi-burguer-ctg.pages.dev</code>
+          <button type="button" class="encurso-otro__btn" id="btnCopiarEnlace">Copiar</button>
+        </div>
+        <a class="encurso-otro__wa" id="encursoCompartir" href="#" target="_blank" rel="noopener">
+          Enviar el enlace por WhatsApp
+        </a>
+      </div>
     </div>
 
     <!-- Paso 2: turno confirmado (oculto hasta que se envía el pedido) -->

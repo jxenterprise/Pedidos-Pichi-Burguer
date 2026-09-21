@@ -136,7 +136,7 @@ Todo esto está en `/panel.html`, después de escribir la clave.
 | **Empezar / 🔥 En plancha** | Marca que ese pedido ya se está preparando | Separa "ya lo estoy haciendo" de "ya lo entregué". **Al tocarlo, al cliente le cambia el estado en su celular** y, si activó el aviso, le suena. Además te sale por 10 segundos un botón **"Avisar al cliente"** que abre WhatsApp con el mensaje ya escrito |
 | **Entregado** | Lo marca como entregado | Durante **10 segundos** sale un "Deshacer" por si fue sin querer |
 | **🗑 Borrar** | Quita el pedido para siempre | Para un pedido repetido o uno que el cliente canceló por teléfono. Pide confirmación diciendo el turno **y** el nombre |
-| **Llamar / Avisar listo** | Abre el teléfono o WhatsApp con el mensaje ya escrito | El mensaje lleva el nombre, el turno y la dirección del local |
+| **Avisar listo** | Abre WhatsApp con el mensaje ya escrito | Lleva el nombre, el turno y la dirección del local. ⚠ El botón **"Llamar"** se quitó el 21 de septiembre: en el mostrador no se llama, se escribe — una llamada interrumpe a quien está cocinando y no deja registro. El teléfono **sigue a la vista** en la tarjeta por si toca marcarlo a mano |
 | **Actualizar** | Vuelve a consultar ahora mismo | El panel se refresca solo cada 15 segundos; esto es por si no quieres esperar |
 
 **El reloj de cada tarjeta** dice cuánto lleva esperando ese pedido, y el color
@@ -201,6 +201,42 @@ sacar otro turno**.
 > y **tú decides** si alcanza a metérselo. Si te arrepientes y lo sacas de la
 > plancha, la puerta se vuelve a abrir sola.
 
+#### Qué ve el cliente cuando su pedido YA está en la cocina
+
+Esto se rehízo el 21 de septiembre porque estaba mal de dos maneras.
+
+**Lo que pasaba antes:** le salía el botón amarillo *"Sí, agrégalo a mi turno"*
+igual que siempre. Lo tocaba, el servidor lo rechazaba con razón… **y en la
+pantalla no pasaba nada.** El cliente no entendía que le habían dicho que no:
+entendía que **la página estaba rota** — y una página rota no se vuelve a abrir.
+(La causa era un detalle del CSS que hacía imposible esconder cualquier botón.
+Al arreglarlo aparecieron **otros dos botones rotos por lo mismo**, que nadie
+había reportado. Ver "Lo que ya se probó", más abajo.)
+
+**Lo que ve ahora:** una pantalla distinta, no el mismo formulario apagado.
+
+> 👨‍🍳 **Tu pedido ya está en la cocina**
+> Lo sentimos: cuando el cocinero ya empezó, no podemos agregarle nada desde
+> la página.
+> **1.** Escríbenos por WhatsApp ahora mismo y te decimos si alcanza
+> **2.** O pásate por el local antes de 20 minutos y se lo dices en el mostrador
+
+El botón de WhatsApp le va **con su turno y lo que quería agregar ya escritos**,
+así que a ti te llega todo listo y **decides tú** si alcanza a metérselo.
+
+#### Si el pedido es para otra persona
+
+Antes lo mandábamos a **tu WhatsApp**, y eso estaba mal: convertía al cliente en
+intermediario de **dos pedidos que el sistema no puede separar**. El segundo
+entraba por chat, a mano, **sin turno, sin aparecer en el panel y sin
+seguimiento** — justo lo que esta web existe para evitar. Y a ti te llegaba
+trabajo extra: transcribir un pedido mientras cocinas.
+
+Ahora la página le muestra **el enlace de la web**, con un botón **"Copiar"** y
+otro para **enviarlo por WhatsApp a quien sea**. La otra persona pide **desde su
+celular con su número**, y por eso tiene **su propio turno, su propio
+seguimiento y su propio aviso**.
+
 > ⚠ **Por qué el teléfono y no la IP.** Pensamos en bloquear por IP y lo
 > descartamos: en un barrio varias casas comparten el mismo wifi, y los
 > operadores móviles le dan la misma IP a cientos de personas a la vez.
@@ -212,13 +248,21 @@ sacar otro turno**.
 Solo puede hacerlo **mientras su pedido siga en la fila**. Aun así te avisa,
 porque puede que ya hubieras leído la tarjeta:
 
-1. **La tarjeta se marca** en naranja: `➕ Ampliado hace 1 min`.
+1. **La tarjeta se marca** en naranja: `➕ AGREGÓ ALGO recién`.
 2. **La campana suena las 5 veces**, igual que un pedido nuevo.
 3. **Al cliente se le abre WhatsApp** con lo que agregó, para que te llegue
    también por ahí.
 
-Si alguna vez vieras una tarjeta **roja parpadeando** con `⚠️ Agregó algo ·
-REVISA`, es un pedido ampliado de antes de este cambio: revísalo igual.
+> Antes esa etiqueta decía *"Ampliado recién"* y JX preguntó qué significaba.
+> Tenía razón: **"ampliado" es la palabra del código, no la del mostrador.**
+> Lo que necesitas saber es que **ese cliente le sumó platos a un pedido que
+> quizá ya leíste**, así que hay que volver a mirar la lista antes de
+> entregarlo. Por eso ahora lo dice con esas palabras, va **en su propia
+> línea** debajo del reloj de espera (antes iban pegados) y al pasar el cursor
+> te lo explica entero.
+
+Si alguna vez vieras una tarjeta **roja parpadeando** con `⚠️ AGREGÓ ALGO ·
+REVISA LA LISTA`, es un pedido ampliado de antes de este cambio: revísalo igual.
 
 Si tocas "Actualizar" justo en ese momento, **el aviso de REVISA no se borra**:
 manda sobre el mensaje normal de "Lista al día".
@@ -583,7 +627,7 @@ Lo que falta **no es código**: son datos que solo el negocio puede dar.
 | Qué falta | Quién lo hace | Qué pasa si no se hace |
 |---|---|---|
 | **Razón social o nombre del responsable, NIT o cédula y un correo de contacto** | El negocio | **Es lo más importante.** Las 4 páginas legales tienen 7 marcadores `{POR CONFIRMAR}` (4 en `privacidad.html`, 1 en cada una de las otras tres). Sin un correo real, un cliente no puede ejercer sus derechos sobre sus datos, y la Ley 1581 de 2012 lo exige porque el sistema guarda nombres y teléfonos |
-| **Vaciar el KV** | JX, en Cloudflare | Los pedidos de prueba del día gastaron turnos, así que el primer cliente real no empezaría en el 1 |
+| **Comprobar que los turnos empiezan en 1** | JX | Si probaste el sitio hoy, esos pedidos gastaron turnos y el primer cliente real no empezaría en el 1. **No hace falta entrar a Cloudflare**: mira el comando de "Vaciar los pedidos y reiniciar los turnos en 1", más arriba. Si dice `"turnoDelDia": 0`, ya está |
 | **Precios de bebidas y adiciones** | El negocio | Hoy la página dice que sí las venden y que se piden por el campo de notas. Publicar un precio inventado iría contra el Estatuto del Consumidor |
 | **Coordenadas exactas del local** | JX, desde el enlace de Google Maps | Ahora están a nivel de barrio. Afecta qué tan preciso sale en el mapa |
 | **Identificador de GA4** (`G-XXXXXXXXXX`) | JX | No se sabría cuánta gente entra. El código ya está listo, solo falta pegar el ID |
@@ -595,7 +639,7 @@ de más arriba.
 
 ### La versión del sitio
 
-Al lado de **PICHI BURGUER**, arriba, verás una etiqueta gris: **v1.0**.
+Al lado de **PICHI BURGUER**, arriba, verás una etiqueta gris: **v1.1**.
 
 Sirve para una cosa concreta: **saber si una actualización llegó de verdad.**
 Si publicas un cambio y en tu celular sigue diciendo el número viejo, es que el
@@ -605,7 +649,8 @@ navegador te está mostrando una copia guardada, no la página nueva.
 uno), desde la carpeta del proyecto:
 
 ```bash
-grep -rl 'sitio-version">v' *.html | xargs sed -i 's/>v1\.0</>v1\.1</'
+sed -i 's|\(class="sitio-version"[^>]*\)>v1\.1<|\1>v1.2<|' *.html
+grep -h 'class="sitio-version"' *.html | grep -o 'v1\.[0-9]*' | sort | uniq -c   # tiene que decir "7 v1.2"
 ```
 
 Y anota en `CLAUDE.md` qué trae esa versión.
@@ -625,6 +670,24 @@ Y anota en `CLAUDE.md` qué trae esa versión.
   corta a los 200 pedidos del día, y la cola pública no filtra ni un nombre.
 - **La lógica del servidor** con un almacén KV falso: turnos, recálculo del
   total, corte de 5 horas, borrado de los sábados y conteo de operaciones.
+
+**Del 21 de septiembre por la tarde**, con los cuatro arreglos que pidió JX:
+
+- **Los 6 botones del sitio que se escondían mal.** El fallo que reportó JX (el
+  botón amarillo que no hacía nada) no era de esa pantalla: era **del sitio
+  entero**. Al arreglarlo se auditaron las 7 páginas y salieron dos más que
+  estaban rotos **sin que nadie lo hubiera notado**:
+  - El botón **"🔔 Avísame cuando lo estén preparando"** aparecía en celulares
+    que **no pueden notificar** — o sea, en **todo iPhone sin la app instalada**.
+    El cliente lo tocaba y no pasaba nada.
+  - La **✕** del buscador del panel salía con la casilla vacía.
+- **Un botón nuevo que medía 40px** ("Copiar" el enlace), por debajo del mínimo
+  de 44 del proyecto. Lo cazó la revisión de 26 aparatos, y se corrigió.
+- **Diez arneses de prueba corregidos o retirados.** Ninguno era un fallo del
+  código: daban por bueno lo que estaba mal (una prueba pedía que el botón
+  "Avísame" saliera **siempre**, y pasaba **porque el bug lo mostraba**) o
+  probaban cosas que ya no existen, como el modo prueba. **Una prueba que pasa
+  gracias a un bug es peor que no tener la prueba.**
 
 ---
 

@@ -1155,9 +1155,17 @@ no sirve para lo que se creó.
 **👉 CÓMO SUBIR LA VERSIÓN** (v1.0 → v1.1 → v1.2, de uno en uno):
 
 ```bash
-grep -rl 'sitio-version">v' *.html | xargs sed -i 's/>v1\.0</>v1\.1</'
-grep -c 'sitio-version' *.html     # las 7 deben decir 1
+sed -i 's|\(class="sitio-version"[^>]*\)>v1\.1<|\1>v1.2<|' *.html
+grep -h 'class="sitio-version"' *.html | grep -o 'v1\.[0-9]*' | sort | uniq -c   # tiene que decir "7 v1.2"
 ```
+
+⚠ **El comando que estaba escrito aquí NO servía**, y se descubrió al usarlo el
+21 de septiembre para pasar a v1.1: `grep -rl 'sitio-version">v'` solo acierta
+si el texto va **pegado** a la clase, y en 6 de las 7 páginas en medio está el
+`title="Versión publicada del sitio"`. Resultado: **cambiaba una sola página y
+dejaba las otras seis atrás** — justo la desincronización que la versión existe
+para detectar. El comando de arriba ancla en la clase y **no le importa qué
+atributos haya en medio**: comprobado, las 7 a la vez.
 
 Y se anota en la bitácora de este archivo qué trae esa versión. ⚠ Si una página
 se desincroniza, lo canta la batería `version.js`, que comprueba que las 7 digan
@@ -1185,6 +1193,161 @@ de categorías: los dedos ganan, la pantalla no pierde.
 exige en la batería es 32px para enlaces del pie (van apilados, lo que importa
 es no tocar el de al lado) y **44px para todo lo que sea un control**. Mezclar
 los dos criterios llenaba el informe de ruido y escondía los fallos de verdad.
+
+**49. 🐛 EL BOTÓN AMARILLO QUE NO HACÍA NADA — `hidden` perdía contra `display`.**
+
+**Lo encontró JX usando la página**, y su frase lo dice todo: *"cuando ya el
+vendedor le dio a comenzar y decidió pedir otra con el mismo número de teléfono
+y le doy en el botón amarillo y simplemente no hace nada"*.
+
+**Qué pasaba, y por qué es peor de lo que parece:**
+La decisión 46 dejó bien hecha la mitad importante —el servidor frena la
+ampliación si el pedido ya está en la plancha— pero la página seguía
+**mostrando el botón amarillo "Sí, agrégalo a mi turno"**. El cliente lo tocaba,
+el servidor lo rechazaba con razón, y en la pantalla **no pasaba NADA**. Es la
+peor forma de fallar: el cliente no cree que le dijeron que no, cree que la
+página está rota, y una página rota no se vuelve a abrir.
+
+**La causa, que vale para todo el proyecto:**
+`js/script.js` hacía `$('#btnAgregarAlPedido').hidden = true`. Correcto. Pero el
+atributo `hidden` lo aplica el navegador desde su **hoja de estilos por
+defecto**, y esa pierde contra **cualquier** clase del sitio:
+
+```css
+.btn { display: inline-flex; }   /* gana */
+[hidden]  /* la del navegador: display: none  → pierde */
+```
+
+O sea que **cualquier elemento con clase `.btn` era imposible de esconder** con
+`hidden`. No era un fallo de esa pantalla: era un fallo de todo el sitio
+esperando a que alguien lo pisara.
+
+**Cómo quedó:** una sola línea, arriba del todo en el bloque de botones de
+`css/styles.css`:
+```css
+[hidden] { display: none !important; }
+```
+⚠ **Es el único `!important` que se acepta sin discusión en este proyecto**, y
+tiene que ir **antes que cualquier regla de `display`**. Lo que hace es que
+esconder algo signifique esconderlo. Sin ella, cada vez que alguien escriba
+`.loQueSea { display: … }` vuelve a romper un `hidden` que hoy funciona, y no se
+entera hasta que un cliente lo pisa.
+
+**⚠ NO ERA UN BOTÓN: ERAN TRES.** Después del arreglo se auditaron las 7
+páginas borrando esa regla del CSS en caliente y midiendo qué elementos con
+`hidden` se quedaban a la vista igual. Salieron **seis**, y **tres de ellos
+estaban rotos de verdad para un cliente**:
+
+| Elemento | Qué pasaba | ¿Lo veía alguien? |
+|---|---|---|
+| `#btnAgregarAlPedido` | El botón amarillo con el pedido en la plancha | **Sí** — es el que reportó JX |
+| `#colaAvisar` | El botón **"🔔 Avísame cuando lo estén preparando"** salía en navegadores que **no pueden notificar** | **Sí, en TODO iPhone sin la app instalada.** Ahí no existe `Notification`, el JS lo escondía, el CSS lo mostraba igual, y al tocarlo no pasaba nada — **el mismo fallo que reportó JX, en otro sitio** |
+| `#btnLimpiarBuscar` | La **✕** del buscador del panel salía con la casilla vacía | **Sí**, cada vez que el vendedor abría el panel |
+| `#mapaAviso`, `#avisoFlotante`, `#encursoWhatsAlto` | Mismo problema latente | No: se quitan del DOM o se manejan por clase. Quedan protegidos igual |
+
+Es exactamente lo que hacía falta demostrar: **no era un fallo de esa pantalla,
+era un fallo del sitio**. Una línea de CSS arregló los tres a la vez, y cierra
+la puerta a los que habrían aparecido después.
+
+⚠ La batería `segui.js` **daba por bueno** el caso de `#colaAvisar`: pedía que
+el botón apareciera siempre, y pasaba **porque el bug lo mostraba**. Corregida:
+ahora comprueba la regla de verdad — el botón aparece **solo si este navegador
+puede notificar**. Una prueba que pasa gracias al bug es peor que no tenerla.
+
+**Y el aviso se rediseñó entero, que era la otra mitad de lo que pidió JX**
+(*"la idea es innovar y que saliera un modal o algo así diciéndole al cliente
+que lo sentimos, ya su pedido está en preparación... y que avise por WhatsApp o
+llegue personalmente al local antes de 20 minutos... lo dejamos muy simple y
+seco"*).
+
+Antes era **el mismo formulario con el botón escondido**: seguía la pregunta
+"¿quieres sumarle lo que escogiste?" y seguía la lista de platos, sin nada que
+hacer con ella. Ahora son **dos bloques distintos** (`#encursoPuede` y
+`#encursoNoPuede`) y el JS muestra uno u otro:
+
+| Su pedido está… | Qué ve |
+|---|---|
+| En la fila (`nuevo`) | La pregunta, la lista y el botón amarillo. Igual que antes |
+| **En la plancha** | 👨‍🍳 **"Tu pedido ya está en la cocina"**, la explicación, y **dos salidas numeradas**: escribir por WhatsApp (con el turno y lo que quería, ya escrito) o pasar por el local |
+
+⚠ **Es un AVISO, no un formulario con el botón apagado.** No se pinta la lista
+de lo que quería agregar: enseñar lo que el cliente no puede tener es
+justamente lo que lo deja con la sensación de que el sistema le falló. Se le
+dice qué pasó, por qué, y **a dónde ir** — las dos salidas, no una.
+
+⚠ **El título de la ventana también cambia** ("Ya tienes un pedido" → "Tu
+pedido ya se está preparando") y la caja del turno pasa de naranja a roja
+apagada (`.encurso--cocina`). El color y el título dicen que esto no es una
+pregunta **antes de que el cliente lea una sola palabra**.
+
+⚠ El botón de WhatsApp lleva **el turno y lo que quería agregar ya escritos**.
+El vendedor no tiene que preguntar nada: lee y decide si alcanza. Sigue
+decidiendo él (decisión 46), pero con la información en la mano.
+
+**50. 🔗 "¿ES PARA OTRA PERSONA?" → SE LE DA EL ENLACE, NO EL WHATSAPP DEL LOCAL.**
+
+**JX:** *"lo que dice '¿es un pedido para otra persona? mejor pide aquí'... no
+pongamos el WhatsApp, deja el mismo link de la web ahí, y que si es para otra
+persona que simplemente le mande el link y lo haga desde su propio celular"*.
+
+**Por qué tenía razón, y no es un detalle de redacción:**
+Mandar a esa persona al WhatsApp del local convierte al cliente en
+**intermediario de dos pedidos que el sistema no puede separar**. Ese segundo
+pedido entra por chat, a mano, sin turno, sin quedar en el panel y sin
+seguimiento — justo lo que este sistema existe para evitar. Y al vendedor le
+llega trabajo extra en hora pico: transcribir un pedido mientras cocina.
+
+Con el enlace, **la otra persona pide desde su celular con su número**, y por
+eso mismo obtiene **su propio turno, su propio seguimiento (decisión 39) y su
+propio aviso**. La regla de "un teléfono, un turno" (decisión 42) deja de ser un
+estorbo y pasa a ser exactamente lo que debe ser: cada persona, su pedido.
+
+**Cómo quedó** (`.encurso-otro`, al final de la ventana y separado por una línea
+porque **no es parte de lo anterior**, es otra cosa):
+- El enlace a la vista, en su caja: `pedidos-pichi-burguer-ctg.pages.dev`.
+- Botón **"Copiar"**, que confirma en sí mismo con **"¡Copiado!"** en verde y
+  vuelve solo a los 2 segundos.
+- **"Enviar el enlace por WhatsApp"**, que usa `wa.me/?text=…` **sin número**:
+  abre el selector de contactos para mandárselo **a quien sea**. Antes era
+  `wa.me/573004752529`, que es el del local — el error de fondo.
+
+⚠ **Si no hay permiso de portapapeles** (o el sitio se abre por http), el botón
+**selecciona el texto** y cambia a "Cópialo". Un botón "Copiar" que no copia y
+además no avisa es peor que no tener botón.
+
+⚠ **El enlace sale de `CFG.negocio.dominio`, no escrito a mano.** El día que se
+conecte el dominio propio (decisión 22) este sitio se actualiza solo. En el HTML
+queda el texto por defecto por si el JS fallara, y por eso **sigue contando como
+uno de los 7 sitios** donde vive el dominio.
+
+**51. Fuera el botón "Llamar" del panel, y qué decía la etiqueta naranja.**
+
+Dos cosas del mismo día, las dos de JX mirando el panel de verdad.
+
+**"Llamar" se quitó por completo** (*"que no quede basura de eso"*). El pie de
+la tarjeta tenía cinco botones y en el mostrador **no se llama, se escribe**:
+una llamada interrumpe a quien está cocinando y no deja registro. El teléfono
+**sigue a la vista** en la tarjeta por si hay que marcarlo a mano.
+⚠ `telefonoLocal()` **se queda**: la sigue usando el botón de WhatsApp, y es la
+que evita el `+5757…` de la decisión 16.
+
+**La etiqueta decía "AMPLIADO RECIÉN" y JX preguntó qué significaba.** Con
+razón: *"ampliado"* es la palabra del **código**, no la del mostrador. Lo que el
+vendedor necesita saber no es el nombre del campo, es **que el cliente le agregó
+platos a un pedido que él quizá ya leyó**. Ahora dice **"➕ AGREGÓ ALGO recién"**
+(y **"⚠️ AGREGÓ ALGO · REVISA LA LISTA"** en el caso rojo), con un `title` que
+lo explica entero al pasar el cursor.
+
+⚠ **Y estaba mal puesta**: iba en la misma línea que el reloj de espera,
+pegada, sin saberse dónde terminaba uno y empezaba el otro. Ahora va **debajo,
+en su propia línea, con 7px de aire**. Son **dos avisos distintos** —cuánto
+lleva esperando y que el pedido cambió— y ponerlos juntos los hacía ilegibles a
+los dos.
+
+⚠ **Regla que sale de aquí, y vale para todo el proyecto:** *una etiqueta que
+el usuario tiene que preguntar qué significa está mal escrita.* Se nombra **lo
+que pasó**, no cómo se llama el campo por dentro. Misma familia que la decisión
+38: si quien usa el sistema pregunta, el texto es el que falla, no la persona.
 
 ### Verificación hecha antes de entregar
 
@@ -1849,6 +2012,81 @@ Company (lleva formato exacto obligatorio que no se modifica).
 
 **Estado final: 724 comprobaciones (360 funcionales + 364 pantallas), cero
 fallos.**
+
+### lunes 21 de septiembre de 2026, 2:54 p. m. · Los 4 arreglos que pidió JX, y 3 bugs más que salieron detrás
+
+JX, con capturas: *"NADA, NO hemos arreglado nada"*. Tenía razón en las cuatro.
+
+**1. El botón amarillo que no hacía nada.** Ver decisión 49. La causa no era de
+esa pantalla: era **de todo el sitio**. `hidden` perdía contra cualquier clase
+con `display`, así que esconder un botón no lo escondía.
+**Y al arreglarlo aparecieron dos botones más rotos por lo mismo**, que nadie
+había reportado porque nadie sabía que estaban ahí:
+- **"🔔 Avísame cuando lo estén preparando"** salía en celulares que **no pueden
+  notificar** — es decir, en **todo iPhone sin la app instalada**. El cliente lo
+  tocaba y no pasaba nada: *el mismo fallo que reportó JX, en otro sitio*.
+- La **✕** del buscador del panel salía con la casilla vacía, cada vez que el
+  vendedor abría el panel.
+Se auditaron las **7 páginas** borrando la regla del CSS en caliente para
+encontrarlos todos: salieron 6, tres de ellos rotos de verdad.
+
+**2. El aviso de "ya está en la cocina" se rehízo entero**, porque JX dijo que
+estaba *"muy simple y seco"*. Ya no es el formulario con el botón apagado: es
+un bloque aparte (`#encursoNoPuede`) con el cocinero, el título en rojo y **dos
+salidas numeradas** — WhatsApp con el turno y lo que quería ya escrito, o pasar
+por el local. Ver decisión 49.
+
+**3. Fuera el botón "Llamar" del panel** y **la etiqueta naranja ahora se
+entiende**: "AMPLIADO RECIÉN" → **"➕ AGREGÓ ALGO recién"**, en su propia línea
+y con 7px de aire (antes iba pegada al reloj de espera). Ver decisión 51.
+
+**4. "¿Es un pedido para otra persona?" ya no manda al WhatsApp del local**:
+muestra **el enlace de la web**, con botón **Copiar** y "Enviar el enlace por
+WhatsApp" **sin número**, para mandárselo a quien sea. Así la otra persona pide
+desde su celular y tiene **su propio turno**. Ver decisión 50.
+
+**Un bug propio, encontrado por la revisión de 26 aparatos:** el botón nuevo
+**"Copiar" medía 40px**, por debajo del mínimo de 44 del proyecto (decisión 26).
+Corregido antes de subir.
+
+**Seis arneses de prueba corregidos — ninguno era un fallo del código**, y esto
+importa porque un informe con fallos falsos esconde los de verdad:
+
+| Arnés | Qué daba por bueno / por malo |
+|---|---|
+| `segui.js` | Pedía que el botón "Avísame" saliera **siempre**, y pasaba **porque el bug lo mostraba**. Ahora comprueba la regla: sale solo si el navegador puede notificar |
+| `tactil2.js` | Medía la ✕ del buscador **con la casilla vacía** (0×0). Ahora escribe algo antes, que es cuando el dedo la toca |
+| `api.mjs`, `api2.mjs`, `precios.mjs` | Reusaban **el mismo teléfono** en todos los pedidos y chocaban con el freno de la decisión 42; `api.mjs` además usaba nombres de platos que no están en `CARTA`, y por eso los totales daban $0 |
+| `limpieza.mjs` | Llamaba "viernes" al **2026-09-19, que es sábado**, y sembraba "nunca he limpiado" — con eso, limpiar era lo CORRECTO cualquier día. Culpaba al servidor de acertar |
+| `ampliar.js`, `panel3.js`, `avisos.js`, `h24.js` | Esperaban la campana a 3 toques (hoy son 5), la etiqueta vieja, el markup viejo y el campo `prueba` que ya no existe |
+| `cerrado.js` | Reportaba 4 fallos porque el sitio está en **modo 24 horas** y la cortina no aparece nunca. Ahora detecta el interruptor y se salta solo, diciendo por qué |
+
+**Tres arneses retirados a `viejas/`** (`resp2.js`, `panel.js`, `panel2.js`):
+probaban el **modo prueba**, que se eliminó entero (decisión 20). No se borran,
+se guardan con una nota de qué probaban y qué batería los cubre hoy.
+
+⚠ **REGLA QUE SALE DE ESTE DÍA:** *una prueba que pasa gracias a un bug es peor
+que no tener la prueba.* La de `segui.js` llevaba días en verde tapando un botón
+roto en todos los iPhone. Cuando una batería empiece a fallar tras un arreglo,
+lo primero es preguntarse si la que estaba mal era la prueba.
+
+**Y un arnés más, que se delató solo:** `version.js` comprobaba que las 7
+páginas dijeran **`v1.0` literal**. Al subir a **v1.1** soltó **8 fallos
+falsos**. Se volvió ciego al número: ahora comprueba el **formato** (`vN.N`) y
+que **las 7 digan lo mismo**, que es la regla de verdad de la decisión 47.
+Escribir el valor esperado a mano convierte un arnés en algo que caduca solo.
+
+**🏷️ VERSIÓN PUBLICADA: `v1.1`** en las 7 páginas. Trae los 4 arreglos de JX,
+los 2 botones rotos que aparecieron detrás y el botón "Copiar" a 44px.
+
+⚠ **Y el comando documentado para subir la versión ESTABA MAL** — se descubrió
+usándolo: `grep -rl 'sitio-version">v'` solo acierta si el texto va pegado a la
+clase, y en 6 de las 7 páginas en medio está el `title`. **Cambió una sola
+página y dejó las otras seis en v1.0** — exactamente la desincronización que la
+versión existe para detectar. Corregido en los tres sitios donde estaba escrito
+(`index.html`, la decisión 47 y el README) y comprobado sobre las 7.
+
+**Estado final: 575 comprobaciones en 42 baterías, cero fallos.**
 
 ---
 

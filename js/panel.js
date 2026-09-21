@@ -525,9 +525,16 @@
     if (ampliado) {
       var amp = document.createElement('span');
       amp.className = 'pedido__ampliado';
+      /* ⚠ DICE QUÉ PASÓ, no cómo se llama por dentro. Antes decía "Ampliado
+         recién" y JX preguntó qué significaba — con razón: "ampliado" es la
+         palabra del código, no la del mostrador. Lo que el vendedor necesita
+         saber es que el cliente AGREGÓ algo a un pedido que él quizá ya leyó,
+         y que por eso tiene que volver a mirar la lista. */
       amp.textContent = p.ampliadoEnPlancha
-        ? '⚠️ Agregó algo · REVISA'
-        : '➕ Ampliado ' + haceCuanto(minutosDesde(p.ampliado));
+        ? '⚠️ AGREGÓ ALGO · REVISA LA LISTA'
+        : '➕ AGREGÓ ALGO ' + haceCuanto(minutosDesde(p.ampliado));
+      amp.title = 'Este cliente le sumó platos al pedido después de enviarlo. ' +
+                  'Vuelve a leer la lista antes de entregarlo.';
       quien.appendChild(amp);
     }
 
@@ -576,15 +583,14 @@
     total.textContent = pesos(p.total);
     pie.appendChild(total);
 
-    // Llamar y escribir al cliente sin tener que copiar el número a mano.
-    // El número pasa por telefonoLocal() para que no salga +5757… si el cliente
-    // ya había escrito el indicativo.
+    /* El número pasa por telefonoLocal() para que no salga +5757… si el cliente
+       ya había escrito el indicativo.
+       ⚠ Aquí había un botón "Llamar" (tel:). Lo quitó JX el 21 de septiembre de
+       2026: el pie ya tenía cinco botones y en el mostrador no se llama, se
+       escribe. El teléfono sigue a la vista en la tarjeta por si hace falta
+       marcarlo a mano, y telefonoLocal() se queda porque la sigue usando el
+       botón de WhatsApp. */
     var tel = telefonoLocal(p.telefono);
-    var llamar = document.createElement('a');
-    llamar.className = 'btn btn--linea';
-    llamar.href = 'tel:+57' + tel;
-    llamar.textContent = 'Llamar';
-    pie.appendChild(llamar);
 
     // "Avisar listo" y no "WhatsApp": el vendedor no necesita un botón que abra
     // un chat en blanco, necesita uno que mande EL mensaje. El texto ya va
@@ -672,7 +678,8 @@
    * indicativo del país.
    * POR QUÉ EXISTE: el cliente escribe su número como quiere. Si lo escribe con
    * el indicativo ("573001234567" o "+57 300 123 4567"), concatenarle otro 57
-   * dejaba el enlace en +5757301234567: el botón "Llamar" no marcaba y el de
+   * dejaba el enlace en +5757301234567: el botón "Llamar" (ya retirado) no
+   * marcaba y el de
    * WhatsApp abría un chat con un número que no existe.
    * @param {string} bruto  el teléfono tal como quedó guardado en el pedido
    * @returns {string} solo dígitos, sin indicativo de país

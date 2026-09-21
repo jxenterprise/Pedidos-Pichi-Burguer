@@ -596,36 +596,73 @@
       caja.appendChild(fila);
     });
 
-    /* ⛔ Con el pedido YA EN LA PLANCHA no se ofrece agregar: el vendedor leyó
-       la comanda y la carne está en el fuego (decisión 46). Se le esconde el
-       botón y se le deja el WhatsApp, que es donde el vendedor sí lo ve aunque
-       el panel esté lleno. Decirle "no" sin darle a dónde ir sería peor que no
-       frenarlo. */
+    /* ⛔ Con el pedido YA EN LA PLANCHA no se ofrece agregar (decisión 46). Se
+       muestra OTRO bloque entero, no el mismo con el botón escondido: un aviso
+       explicando qué pasó y qué puede hacer. Antes se escondía solo el botón y
+       quedaba la lista de lo que quería agregar sin nada que hacer con ella —
+       y el botón, por un fallo del CSS, ni siquiera se escondía. Ver
+       decisión 49. */
     var enPlancha = activo.estado === 'preparando';
-    $('#btnAgregarAlPedido').hidden = enPlancha;
-    $('#encursoPregunta').textContent = enPlancha
-      ? 'Ya está en la cocina, así que esto no se puede sumar solo:'
-      : '¿Quieres sumarle lo que acabas de escoger?';
-    $('#encursoNota').textContent = enPlancha
-      ? 'Escríbenos y lo agregamos si todavía alcanza.'
-      : 'No sale otro turno: se suma a lo que ya pediste y lo recoges todo junto.';
-    $('#encursoSalidaTxt').textContent = enPlancha
-      ? '¿Quieres agregarle algo de todas formas?'
-      : '¿Es un pedido para otra persona?';
-    $('#encursoWhats').classList.toggle('encurso__salida--fuerte', enPlancha);
+    $('#encursoTitulo').textContent = enPlancha ? 'Tu pedido ya se está preparando' : 'Ya tienes un pedido';
+    $('#encursoPuede').hidden = enPlancha;
+    $('#encursoNoPuede').hidden = !enPlancha;
+    $('#encursoCaja').classList.toggle('encurso--cocina', enPlancha);
 
-    $('#btnAgregarAlPedido').disabled = false;
-    $('#btnAgregarAlPedido').textContent = 'Sí, agrégalo a mi turno ' + activo.turno;
-
-    // El mensaje de WhatsApp dice de qué se trata en cada caso.
+    // Lo que quiere agregar, para el mensaje de WhatsApp y para la lista.
     var lista = Object.keys(carrito).map(function (id) {
       return '• ' + carrito[id].cantidad + '× ' + carrito[id].nombre;
     }).join('\n');
-    $('#encursoWhats').href = 'https://wa.me/' + CFG.negocio.whatsapp + '?text=' + encodeURIComponent(
-      enPlancha
-        ? 'Hola, tengo el turno ' + activo.turno + ' y quisiera agregarle:\n' + lista
-        : 'Hola, tengo el turno ' + activo.turno + ' y quiero hacer otro pedido aparte.'
-    );
+
+    if (enPlancha) {
+      // El WhatsApp va con el turno y lo que quería, ya escrito: el vendedor
+      // no tiene que preguntarle nada.
+      $('#encursoWhatsAlto').href = 'https://wa.me/' + CFG.negocio.whatsapp + '?text=' +
+        encodeURIComponent('Hola, tengo el turno ' + activo.turno +
+          ' y quisiera agregarle:\n' + lista + '\n¿Todavía alcanza?');
+    } else {
+      $('#btnAgregarAlPedido').disabled = false;
+      $('#btnAgregarAlPedido').textContent = 'Sí, agrégalo a mi turno ' + activo.turno;
+    }
+
+    /* Salida "es para otra persona": se le da el ENLACE DE LA PÁGINA, no el
+       WhatsApp del local. Que la otra persona pida desde su propio celular con
+       su propio número es lo correcto: así tiene su turno, su seguimiento y su
+       aviso, en vez de que uno haga de intermediario para dos pedidos que el
+       sistema no puede separar. Ver decisión 50. */
+    var enlace = 'https://' + CFG.negocio.dominio.replace(/^https?:\/\//, '');
+    $('#encursoEnlace').textContent = enlace.replace(/^https:\/\//, '');
+    $('#encursoCompartir').href = 'https://wa.me/?text=' + encodeURIComponent(
+      'Pide tu propia hamburguesa en Pichi Burguer 🍔\n' + enlace);
+  }
+
+  /**
+   * Copia el enlace de la página al portapapeles.
+   * El botón confirma en sí mismo ("¡Copiado!") y vuelve solo a los 2
+   * segundos: un aviso flotante para algo tan pequeño sería más ruido que
+   * información, y aquí el cliente está mirando justo ese botón.
+   */
+  function copiarEnlace() {
+    var btn = $('#btnCopiarEnlace');
+    var texto = 'https://' + CFG.negocio.dominio.replace(/^https?:\/\//, '');
+    var listo = function () {
+      btn.textContent = '¡Copiado!';
+      btn.classList.add('copiado');
+      setTimeout(function () { btn.textContent = 'Copiar'; btn.classList.remove('copiado'); }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(listo).catch(function () { seleccionar(); });
+    } else { seleccionar(); }
+
+    /* Sin permiso de portapapeles (o en http), se selecciona el texto para que
+       lo copie a mano. Es lo único honesto: un botón "Copiar" que no copia y
+       no avisa es peor que no tenerlo. */
+    function seleccionar() {
+      var r = document.createRange();
+      r.selectNodeContents($('#encursoEnlace'));
+      var sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(r);
+      btn.textContent = 'Cópialo';
+    }
   }
 
   /** Suma lo del carrito al pedido que ya tiene, sin sacar turno nuevo. */
@@ -1493,6 +1530,7 @@
     $('#btnCerrarTurno').addEventListener('click', cerrarModal);
     $('#colaAvisar').addEventListener('click', activarAvisoCola);
     $('#btnAgregarAlPedido').addEventListener('click', agregarAlPedido);
+    $('#btnCopiarEnlace').addEventListener('click', copiarEnlace);
     $('#btnCerrarEnCurso').addEventListener('click', cerrarModal);
 
     /* Seguimiento del pedido en curso: se enciende al cargar la página, no al
