@@ -9,7 +9,7 @@
      2. Carga y refresco de los pedidos
      3. Dibujo de cada tarjeta de pedido
      3bis. Avisos: campana, notificación y pantalla encendida
-     4. Acciones: entregado, borrar historial, borrar pruebas, probar, salir
+     4. Acciones: entregado, borrar historial, salir
      5. Arranque
 
    DEPENDE DE: js/config.js y js/almacen.js, que deben cargarse ANTES.
@@ -216,17 +216,7 @@
   /** Construye la tarjeta de un pedido. */
   function tarjeta(p, esHistorial) {
     var art = document.createElement('article');
-    art.className = 'pedido' + (p.entregado ? ' entregado' : '') + (esHistorial ? ' viejo' : '') +
-                    (p.prueba ? ' es-prueba' : '');
-
-    // Franja naranja arriba del todo: lo primero que se ve de la tarjeta, para
-    // que nadie se ponga a preparar un pedido que nadie pidió.
-    if (p.prueba) {
-      var aviso = document.createElement('span');
-      aviso.className = 'pedido__prueba';
-      aviso.textContent = '⚠ Pedido de prueba · no preparar';
-      art.appendChild(aviso);
-    }
+    art.className = 'pedido' + (p.entregado ? ' entregado' : '') + (esHistorial ? ' viejo' : '');
 
     /* --- Encabezado: turno, nombre, celular, hora --- */
     var cab = document.createElement('div');
@@ -535,33 +525,6 @@
     });
   }
 
-  /**
-   * Borra los pedidos de prueba, dejando intactos los de verdad.
-   * Se pide confirmación igual que con el historial: no tiene vuelta atrás.
-   */
-  function borrarPruebas() {
-    if (!confirm('¿Borrar los pedidos marcados como PRUEBA?\n\nLos pedidos reales NO se tocan. Esta acción no se puede deshacer.')) {
-      return;
-    }
-    window.Almacen.borrarPruebas(clave).then(function (r) {
-      var n = r && typeof r.borrados === 'number' ? r.borrados : 0;
-      avisar(n === 1 ? 'Se borró 1 pedido de prueba' : 'Se borraron ' + n + ' pedidos de prueba');
-      idsConocidos = {};
-      cargarPedidos(true);
-    }).catch(function (err) {
-      avisar('No se pudo borrar: ' + err.message);
-    });
-  }
-
-  /**
-   * Abre la página del cliente en modo prueba, en una pestaña aparte.
-   * Para qué: el local abre 5 horas al día; sin esto, comprobar que el sistema
-   * funciona obligaría a esperar hasta las 6 de la tarde.
-   */
-  function probarLaPagina() {
-    window.open('index.html?prueba=1', '_blank', 'noopener');
-  }
-
   /** Cierra la sesión y vuelve a la pantalla de la clave. */
   function cerrarSesion() {
     clave = '';
@@ -608,8 +571,6 @@
     $('#tabHistorial').addEventListener('click', function () { cambiarPestana('historial'); });
     $('#btnRefrescar').addEventListener('click', function () { cargarPedidos(false); });
     $('#btnBorrarHistorial').addEventListener('click', borrarHistorial);
-    $('#btnBorrarPruebas').addEventListener('click', borrarPruebas);
-    $('#btnProbarPagina').addEventListener('click', probarLaPagina);
     $('#btnSalir').addEventListener('click', cerrarSesion);
     $('#btnAvisos').addEventListener('click', alternarAvisos);
     pintarBotonAvisos();

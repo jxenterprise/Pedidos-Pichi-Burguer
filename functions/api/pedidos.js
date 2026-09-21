@@ -233,10 +233,6 @@ export async function onRequest({ request, env }) {
       direccion: String(datos.direccion || '').trim().slice(0, 160),
       pago: String(datos.pago || '').slice(0, 30),
       notas: String(datos.notas || '').trim().slice(0, 200),
-      // Marca de pedido de prueba (index.html?prueba=1). Se guarda como
-      // booleano de verdad y no como lo que mande el navegador, para que no se
-      // pueda colar un texto raro en la tarjeta del panel.
-      prueba: datos.prueba === true,
       items: items.map(i => ({
         nombre: String(i.nombre || '').slice(0, 80),
         cantidad: Math.max(1, Math.min(20, parseInt(i.cantidad, 10) || 1)),
@@ -339,44 +335,6 @@ export async function onRequest({ request, env }) {
 
     await kv.put('indice:dias', JSON.stringify(quedan));
     return json({ ok: true });
-  }
-
-  /* ACCIÓN: borrar-pruebas — limpia los pedidos marcados como prueba
-     Para qué: después de que JX comprueba que el circuito funciona, el panel
-     queda con pedidos falsos. Esto los quita SIN tocar los de verdad, que es
-     justo lo que no hace "borrar-historial".
-     Ojo con el turno: los pedidos de prueba sí consumieron su número de turno
-     y el contador del día NO se devuelve a propósito. Reciclar un turno sería
-     peor: dos clientes distintos podrían terminar con el mismo número. */
-  if (accion === 'borrar-pruebas') {
-    const indice = await leerJson(kv, 'indice:dias', []);
-    const quedan = [];
-    let borrados = 0;
-
-    for (const d of indice) {
-      const doc = await leerJson(kv, 'dia:' + d, null);
-      if (!doc) continue;
-
-      const vivos = doc.pedidos.filter(p => !p.prueba);
-      borrados += doc.pedidos.length - vivos.length;
-
-      if (vivos.length === doc.pedidos.length) {
-        quedan.push(d);                 // ese día no tenía pruebas: ni se escribe
-      } else if (vivos.length) {
-        doc.pedidos = vivos;
-        await kv.put('dia:' + d, JSON.stringify(doc));
-        quedan.push(d);
-      } else {
-        await kv.delete('dia:' + d);    // el día era solo pruebas
-      }
-    }
-
-    // El índice solo se reescribe si de verdad cambió: cada escritura gasta
-    // cupo del plan gratuito.
-    if (quedan.length !== indice.length) {
-      await kv.put('indice:dias', JSON.stringify(quedan));
-    }
-    return json({ ok: true, borrados });
   }
 
   return json({ error: 'Acción no reconocida.' }, 400);

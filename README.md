@@ -92,7 +92,7 @@ El archivo de verificación que Google te dé **nunca se borra del proyecto**.
 
 ---
 
-## La pantalla de "CERRADO" y el modo prueba
+## La pantalla de "CERRADO"
 
 ### Qué ve el cliente fuera del horario
 
@@ -106,24 +106,6 @@ hasta la hora de abrir. Eso es a propósito: el que busca a las 2 de la tarde pa
 pedir en la noche tiene que poder ver qué venden, y Google también.
 
 A la hora de abrir la pantalla se quita sola. Nadie tiene que hacer nada.
-
-### Cómo probar la página sin esperar a las 6
-
-1. Entra al panel del vendedor (`/panel.html`) con tu clave.
-2. Abajo, toca **"Probar la página como cliente"**.
-3. Se abre la página en otra pestaña con una **franja naranja** arriba. Ahí puedes
-   armar el pedido y enviarlo como lo haría un cliente, a cualquier hora.
-
-El pedido de prueba **llega de verdad al panel** — así compruebas que todo el
-circuito funciona — pero llega marcado en naranja y diciendo "no preparar", y el
-mensaje de WhatsApp también lo avisa en la primera línea.
-
-Cuando termines, en el panel toca **"Borrar pedidos de prueba"**. Borra solo los
-de prueba; los pedidos reales no se tocan.
-
-> ⚠ Los pedidos de prueba **gastan número de turno**. Si pruebas a mitad de
-> jornada, el siguiente cliente real recibe el turno que sigue, no el que
-> gastaste. Por eso conviene probar antes de abrir.
 
 ---
 

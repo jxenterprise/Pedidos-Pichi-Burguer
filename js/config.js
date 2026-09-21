@@ -85,8 +85,8 @@ window.PICHI_CONFIG = {
        nunca aparece y se pueden hacer pedidos a cualquier hora.
 
        POR QUÉ ESTÁ ASÍ: mientras JX termina de montar la operación, el sitio
-       tiene que poder usarse a cualquier hora sin tener que entrar en modo
-       prueba ni montar una web aparte. NO es que el local abra 24 horas.
+       tiene que poder usarse y probarse a cualquier hora sin montar una web
+       aparte. NO es que el local abra 24 horas.
 
        👉 CÓMO VOLVER A LOS HORARIOS REALES: se pone en false. Con eso solo,
           vuelven a mandar los horarios de "dias" de aquí abajo, que siguen

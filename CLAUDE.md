@@ -320,7 +320,24 @@ dejando al cliente encerrado.
 En estado "Cerrando" (los 15 minutos finales) **no** se tapa: el local está
 abierto y hay gente adentro.
 
-**20. Modo prueba: `index.html?prueba=1`.**
+**20. Modo prueba — ⛔ ELIMINADO el 21 de septiembre de 2026.**
+
+_Lo que sigue es el registro de lo que fue, para que nadie lo reinvente sin
+saber que ya existió y por qué se quitó. **El código ya no está en el
+proyecto.** Decisión de JX: el sitio tenía que quedar totalmente real, sin
+nada que pudiera confundirse con una prueba. Con el interruptor de 24 horas
+(decisión 23) el modo prueba dejó de hacer falta para poder pedir fuera de
+horario, que era su motivo principal._
+
+_Se quitó de los 7 archivos a la vez: la franja de `index.html`, el bloque 0 y
+las 6 conexiones de `js/script.js`, el campo `prueba` y la acción
+`borrar-pruebas` de `functions/api/pedidos.js`, `borrarPruebas` de
+`js/almacen.js`, la marca de la tarjeta y los dos botones de `js/panel.js` y
+`panel.html`, y el bloque 7ter de `css/styles.css`. Comprobado después: el
+servidor responde "Acción no reconocida" a `borrar-pruebas`, ignora un
+`prueba:true` que le manden, y el pedido guardado ya no trae el campo._
+
+_Cómo era:_
 Para qué: JX no puede comprobar el sistema si tiene que esperar a las 6 de la
 tarde. En modo prueba `calcularEstado()` devuelve "abierto" y el pedido recorre
 el circuito COMPLETO — Cloudflare, turno real, panel.
@@ -387,8 +404,8 @@ verde siempre, la cortina de CERRADO no aparece nunca y el corte de 15 minutos
 antes del cierre no se aplica.
 
 **POR QUÉ:** decisión de JX. Mientras termina de montar la operación, la web
-tiene que poder usarse a cualquier hora sin entrar en modo prueba ni levantar un
-sitio aparte. **NO es que el local abra 24 horas.** El horario real
+tiene que poder usarse y probarse a cualquier hora sin levantar un sitio aparte.
+(Antes existía un "modo prueba" para eso; se eliminó — ver decisión 20.) **NO es que el local abra 24 horas.** El horario real
 (18:00–23:00 todos los días) sigue guardado intacto en `horarios.dias`.
 
 **👉 CÓMO VOLVER A LOS HORARIOS REALES — hay que tocar 5 SITIOS.**
@@ -655,12 +672,8 @@ los seis se puede pedir, la cortina no aparece y la tabla dice "Abierto 24
 horas". Un pedido hecho a las 3 de la madrugada **sin** modo prueba sale como
 pedido real, sin marca de prueba ni en el panel ni en el WhatsApp.
 
-**Nota sobre el modo prueba:** NO se eliminó. Con el sitio abierto 24 horas ya
-no hace falta para poder pedir, pero sigue sirviendo para lo otro que hace:
-marcar un pedido como PRUEBA para que el vendedor no lo cocine, y borrarlos
-todos de un golpe. Si algún día estorba, se quita el bloque 0 de `js/script.js`,
-la franja de `index.html`, el campo `prueba` del servidor y los dos botones del
-panel.
+**Nota sobre el modo prueba:** ese mismo día, más tarde, JX pidió eliminarlo
+por completo. Ver decisión 20.
 
 ### 21 de septiembre de 2026 (tarde) · Avisos al vendedor
 
@@ -681,6 +694,30 @@ esas pruebas fallan a propósito, porque la cortina ya no aparece nunca. Se
 comprobó aparte que al poner el interruptor en `false` la cortina vuelve, la
 cuenta regresiva calcula y la tabla recupera el horario real. El código de la
 cortina sigue intacto esperando el día que JX vuelva a los horarios reales.
+
+### 21 de septiembre de 2026 (noche) · Fuera el modo prueba
+
+JX: *"en el panel quitemos también todo eso de prueba, que sea totalmente real"*.
+
+Se eliminó el modo prueba **completo**, de los 7 archivos donde vivía. Ver
+decisión 20, que queda como registro de lo que fue y por qué se quitó.
+
+**Lo que desaparece de la pantalla:** la franja naranja de la página del
+cliente, los botones "Probar la página como cliente" y "Borrar pedidos de
+prueba" del panel, la marca naranja de las tarjetas y el aviso de prueba en el
+mensaje de WhatsApp. `index.html?prueba=1` ya no hace absolutamente nada.
+
+**Comprobado después de quitarlo:** el pedido guardado ya no trae el campo
+`prueba` (14 campos, ninguno de prueba); el servidor responde "Acción no
+reconocida" a `borrar-pruebas`; si alguien manda `prueba: true` a mano, se
+ignora; el panel sigue con sus 6 botones útiles; el flujo de pedido completo y
+los avisos al vendedor siguen pasando sus pruebas.
+
+⚠ **Pendiente para JX (lo hace él):** vaciar el KV para que el contador de
+turnos vuelva a 1. Los pedidos de prueba del día gastaron los turnos 1, 2 y 3,
+así que el primer cliente real recibiría el turno 4. Se borran las claves
+`dia:AAAA-MM-DD` e `indice:dias` desde Cloudflare → Workers KV →
+`pichi-burguer-pedidos` → Pares de KV.
 
 ---
 

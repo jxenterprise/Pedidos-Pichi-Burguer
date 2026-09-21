@@ -747,7 +747,7 @@ body.cookies-visibles .wa-float { display: none; }
 
 
 /* ============================================================================
-   7bis) PANTALLA DE CERRADO Y MODO PRUEBA
+   7bis) PANTALLA DE CERRADO
    Qué es: la cortina que tapa la página cuando el local no está atendiendo, con
    el letrero de CERRADO colgado que se mece, la cuenta regresiva hasta la hora
    de abrir y una salida para ver el menú.
@@ -871,47 +871,6 @@ body.cerrado-visible { overflow: hidden; }
 /* A quien pidió menos movimiento se le deja el letrero quieto y derecho. */
 @media (prefers-reduced-motion: reduce) {
   .letrero__pendulo { animation: none; transform: rotate(0deg); }
-}
-
-
-/* ============================================================================
-   7ter) MODO PRUEBA
-   Qué es: la franja naranja que avisa que lo que se está haciendo NO es un
-   pedido real. Se enciende con index.html?prueba=1 o desde el panel.
-   Función: que JX pueda probar el circuito completo a cualquier hora sin
-   esperar a las 6 de la tarde, y que ni él ni el vendedor confundan un pedido
-   de prueba con uno de verdad.
-   POR QUÉ NARANJA: es el color que el sistema ya usa para "ojo con esto"
-   (.pendiente y el borde de .aviso-caja). No se inventa un color nuevo.
-   ========================================================================== */
-.franja-prueba {
-  position: fixed; inset: 0 0 auto 0; z-index: 160;
-  display: none;
-  background: var(--naranja); color: var(--negro);
-  padding: 7px clamp(12px, 4vw, 24px);
-  padding-top: calc(7px + env(safe-area-inset-top));
-  font-size: .78rem; font-weight: 700; line-height: 1.35; text-align: center;
-}
-body.modo-prueba .franja-prueba { display: block; }
-/* La franja empuja todo lo fijo hacia abajo para no taparle nada al que prueba.
-   ⚠ --alto-franja NO se escribe a mano: lo mide js/script.js con el alto real
-   de la franja y lo vuelve a medir si se gira el teléfono. Se probó con un
-   valor fijo de 30px y en pantalla angosta el texto pasa a dos líneas: la
-   franja crecía a 48px y la barra del logo quedaba tapada. El valor de aquí es
-   solo el respaldo por si el JS no alcanzara a medir. */
-body.modo-prueba { --alto-franja: 48px; }
-body.modo-prueba .barra { top: var(--alto-franja); }
-body.modo-prueba .categorias { top: calc(var(--alto-barra) + var(--alto-franja) + env(safe-area-inset-top)); }
-body.modo-prueba .portada { padding-top: calc(var(--alto-barra) + 58px + var(--alto-franja) + env(safe-area-inset-top) + 26px); }
-body.modo-prueba section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px + var(--alto-franja)); }
-
-/* Marca del pedido de prueba dentro del panel del vendedor. */
-.pedido.es-prueba { border-left-color: var(--naranja); }
-.pedido__prueba {
-  display: block; margin: -16px -17px 12px; padding: 6px 17px;
-  background: var(--naranja); color: var(--negro);
-  border-radius: var(--radio) var(--radio) 0 0;
-  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
 }
 
 
