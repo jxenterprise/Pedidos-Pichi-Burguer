@@ -14,13 +14,24 @@ Cartagena de Indias, Bolívar, Colombia.
 con el menú completo y recibe **un número de turno en pantalla**. Al mismo tiempo
 se le abre WhatsApp con el pedido ya escrito, listo para enviar.
 
+**Todos los pedidos son para recoger en el local.** El local dejó de hacer
+domicilios en septiembre de 2026, así que el formulario no pregunta la dirección.
+
 **El vendedor** abre `/panel.html` con su clave y ve los pedidos entrando, en
 orden de turno, uno debajo del otro: nombre, celular, número de pedido, hora
-exacta, qué pidió, si es domicilio o para recoger, la dirección, la forma de pago,
-las notas y el total. Puede marcar cada uno como "Entregado".
+exacta, cuánto lleva esperando, qué pidió, la forma de pago, las notas y el
+total. Puede marcarlo "En plancha", "Entregado", deshacerlo, imprimir la comanda
+o borrarlo.
 
 **Los pedidos se archivan solos.** A las 5 horas salen del panel activo y pasan al
 historial. El historial completo se borra cada **sábado a las 7:00 a. m.**
+
+> ⚠ **Ahora mismo el sitio está en modo 24 horas** (`js/config.js` →
+> `horarios.siempreAbierto: true`), por decisión de JX mientras termina de montar
+> la operación. Se puede pedir a cualquier hora y la pantalla de CERRADO no
+> aparece nunca. **No es que el local abra 24 horas**: el horario real
+> (6:00 p. m. – 11:00 p. m. todos los días) sigue guardado. Ver
+> *Volver a los horarios reales* más abajo.
 
 ---
 
@@ -94,6 +105,10 @@ El archivo de verificación que Google te dé **nunca se borra del proyecto**.
 
 ## La pantalla de "CERRADO"
 
+> ⚠ **Hoy esta pantalla NO aparece**, porque el sitio está en modo 24 horas.
+> Todo lo que sigue vuelve a funcionar solo el día que se apague ese interruptor
+> (*Volver a los horarios reales*, más abajo). El código está intacto esperando.
+
 ### Qué ve el cliente fuera del horario
 
 Como el local abre solo de 6 a 11 de la noche, el resto del día la página se
@@ -106,6 +121,58 @@ hasta la hora de abrir. Eso es a propósito: el que busca a las 2 de la tarde pa
 pedir en la noche tiene que poder ver qué venden, y Google también.
 
 A la hora de abrir la pantalla se quita sola. Nadie tiene que hacer nada.
+
+---
+
+## Qué sabe hacer el panel del vendedor
+
+Todo esto está en `/panel.html`, después de escribir la clave.
+
+| Botón | Qué hace | Por qué está ahí |
+|---|---|---|
+| **🔕 / 🔔 Activar avisos** | Campana (5 toques), notificación del sistema y pantalla que no se apaga | Lo primero que hay que tocar al abrir el panel. **Arranca en naranja porque apagado es el estado peligroso**: sin esto, un pedido entra y nadie se entera |
+| **Buscar** | Filtra por nombre o por número de turno | Con 20 tarjetas parecidas, encontrar "el de Andrés" a ojo es lento y el cliente está esperando |
+| **🍳 Modo cocina** | Un pedido a la vez, en letra grande. Se cambia con las flechas ← → y se sale con Escape | Para leerlo a un metro de distancia, con las manos ocupadas |
+| **Empezar / 🔥 En plancha** | Marca que ese pedido ya se está preparando | Separa "ya lo estoy haciendo" de "ya lo entregué". Además, es lo que ve el cliente en la cola de turnos |
+| **Entregado** | Lo marca como entregado | Durante **10 segundos** sale un "Deshacer" por si fue sin querer |
+| **🖨** | Imprime **solo esa comanda** | Sin ventana aparte: sale con el diseño que ya está probado |
+| **🗑 Borrar** | Quita el pedido para siempre | Para un pedido repetido o uno que el cliente canceló por teléfono. Pide confirmación diciendo el turno **y** el nombre |
+| **Llamar / Avisar listo** | Abre el teléfono o WhatsApp con el mensaje ya escrito | El mensaje lleva el nombre, el turno y la dirección del local |
+| **Actualizar** | Vuelve a consultar ahora mismo | El panel se refresca solo cada 15 segundos; esto es por si no quieres esperar |
+
+**El reloj de cada tarjeta** dice cuánto lleva esperando ese pedido, y el color
+es el aviso: gris normal, **naranja a los 15 minutos**, **rojo a los 25**.
+
+> ⚠ **El número de turno nunca se recicla.** Si borras el turno 3, el siguiente
+> cliente recibe el 5, no otra vez el 3. Es mejor que falte un número a que dos
+> personas esperen el mismo en el mostrador.
+
+---
+
+## Qué sabe hacer la página del cliente
+
+- **Semáforo** en la barra de arriba: abierto, cerrando o cerrado.
+- **Menú por categorías** con una barra deslizable arriba.
+- **Carrito** con contador −/+ en cada plato.
+- **Repetir el último pedido**: si ya pidió antes desde ese celular, le sale un
+  botón para rearmarlo de un toque. ⚠ **No guarda los precios viejos**, solo qué
+  pidió: los precios se releen del menú de hoy. Cobrar un precio distinto al
+  publicado iría contra el Estatuto del Consumidor.
+- **Cola de turnos en vivo**: mientras mira su turno en pantalla, le dice
+  *"Faltan 2 antes que tú · están preparando el turno 8"*.
+- **Instalar la app**: un aviso para dejar el sitio como icono en el celular.
+- **Respaldo por WhatsApp**: además del turno en pantalla, se le abre WhatsApp
+  con el pedido ya escrito.
+
+### ¿La "app" es una app de verdad?
+
+**No es una app de tienda**: no está en Play Store ni en App Store y no hay nada
+que descargar. Es la misma página web, que el celular guarda como un icono en el
+escritorio y abre a pantalla completa, sin la barra del navegador.
+
+**Lo importante:** como sigue siendo la web, **cualquier cambio que se publique
+le llega solo a todo el que la tenga instalada**, la próxima vez que la abra. No
+hay que actualizar nada ni pedirle a nadie que reinstale.
 
 ---
 
@@ -149,10 +216,30 @@ Sencilla de $16.000 a $17.000:
 2. `index.html` → zona **HORARIOS** → la tabla que se ve.
 3. `index.html` → el JSON-LD → `openingHoursSpecification`.
 
-**Horario actual confirmado: todos los días de 6:00 p. m. a 11:00 p. m.**, sin día
+**Horario real del local: todos los días de 6:00 p. m. a 11:00 p. m.**, sin día
 de descanso. Los pedidos se dejan de recibir 15 minutos antes del cierre, porque
 un pedido a las 10:59 no da tiempo de prepararlo (se cambia en `js/config.js` →
 `minutosAntesDelCierre`).
+
+### ⚠ Volver a los horarios reales — hay que tocar 5 sitios
+
+Hoy el sitio está en **modo 24 horas**. Con cambiar solo el interruptor la página
+se contradice: el semáforo diría "Cerrado" mientras la tabla y Google siguen
+anunciando 24 horas. Hay que cambiar los cinco:
+
+| # | Archivo | Qué cambiar |
+|---|---|---|
+| 1 | `js/config.js` | `siempreAbierto: true` → `false` |
+| 2 | `index.html` tabla visible | las 7 filas `Abierto 24 horas` → `6:00 p. m. – 11:00 p. m.` |
+| 3 | `index.html` JSON-LD | `"opens": "00:00", "closes": "23:59"` → `"opens": "18:00", "closes": "23:00"` |
+| 4 | `index.html` FAQ **y** JSON-LD | la pregunta sobre el horario, **con el mismo texto en los dos sitios** |
+| 5 | `llms.txt` | la sección "## Horarios" |
+
+Para comprobar que no quedó ninguno:
+
+```bash
+grep -n "Abierto 24 horas\|siempreAbierto\|00:00" index.html js/config.js llms.txt
+```
 
 En `js/config.js` cada día tiene además un campo `confirmado`. Si algún día el
 local cambia el horario y todavía no está seguro, se pone en `false`: la página
@@ -224,7 +311,7 @@ pichi-burguer-pedidos/
 ├── privacidad.html         Política de privacidad (Ley 1581 de 2012)
 ├── cookies.html            Política de cookies (Resolución 32.126 de 2022)
 ├── terminos.html           Términos, condiciones y propiedad intelectual
-├── compras.html            Compras, envíos, devoluciones, garantía y retracto
+├── compras.html            Compras, entregas, devoluciones, garantía y retracto
 ├── _headers                Cache, seguridad y noindex del panel
 ├── robots.txt              Permite los bots de IA y apunta al sitemap
 ├── sitemap.xml
@@ -261,6 +348,24 @@ pichi-burguer-pedidos/
   tablet en el mostrador. Es **una sola línea**.
 - **Respaldo por WhatsApp siempre activo.** Si Cloudflare o el internet fallan, el
   pedido igual le llega al vendedor por WhatsApp y no se pierde la venta.
+- **El menú está escrito en el HTML**, no lo pinta el JavaScript. Así Google y los
+  bots de IA leen los 15 platos con sus precios aunque el JS no cargue.
+- **La cola de turnos que ve el cliente no lleva clave**, así que devuelve
+  **solo números**: qué turno se está preparando, cuántos faltan y cuál fue el
+  último entregado. Nunca nombres ni teléfonos.
+- **Nada de Google carga antes de que el visitante acepte las cookies** — ni
+  Analytics ni el mapa.
+
+### Reglas del proyecto que conviene no romper
+
+- **Ninguna pregunta usa el cuadro gris de Chrome.** Ni `confirm()`, ni `alert()`,
+  ni `prompt()`. Todas pasan por la ventana propia del sitio (`confirmar()`, en el
+  bloque 0 de `js/panel.js`). Es una regla de JX, sin excepciones.
+- **La clave del panel no existe en ningún archivo**, ni siquiera como hash.
+- **El total lo recalcula el servidor**, nunca se acepta el del navegador.
+- **Todas las imágenes van en WebP**, salvo los favicons (ningún navegador los
+  soporta en WebP).
+- **El número de turno nunca se recicla.**
 
 ---
 
@@ -271,6 +376,12 @@ pichi-burguer-pedidos/
 - **De los pedidos:** en el panel, la pestaña *Historial* muestra los pedidos
   archivados de la semana. Si se quieren guardar, se copian antes del sábado, que
   es cuando se borran.
+
+### Vaciar los pedidos y reiniciar los turnos en 1
+
+En Cloudflare → *Workers & Pages* → **KV** → `pichi-burguer-pedidos` → *Pares de
+KV*, y se borran las claves `dia:AAAA-MM-DD` e `indice:dias`. El siguiente
+pedido vuelve a recibir el turno 1.
 
 ---
 
@@ -286,6 +397,44 @@ queda alojado en la **cuenta de Cloudflare de JX Company**. Cuando el cliente lo
 pida, se transfiere a su propia cuenta: se crea la cuenta de Cloudflare a su
 nombre, se le da acceso al repositorio, se mueve el dominio y se le entregan las
 credenciales de GA4 y Search Console. Sin costo y sin tiempo de caída.
+
+---
+
+## Estado del sistema — ¿está listo para usarse?
+
+**Sí. El sistema funciona de punta a punta** y un cliente puede pedir ahora
+mismo: arma el pedido, recibe su turno, le llega al vendedor al panel, suena la
+campana, y el vendedor lo marca y lo entrega.
+
+Lo que falta **no es código**: son datos que solo el negocio puede dar.
+
+| Qué falta | Quién lo hace | Qué pasa si no se hace |
+|---|---|---|
+| **Razón social o nombre del responsable, NIT o cédula y un correo de contacto** | El negocio | **Es lo más importante.** Las 4 páginas legales tienen 7 marcadores `{POR CONFIRMAR}` (4 en `privacidad.html`, 1 en cada una de las otras tres). Sin un correo real, un cliente no puede ejercer sus derechos sobre sus datos, y la Ley 1581 de 2012 lo exige porque el sistema guarda nombres y teléfonos |
+| **Vaciar el KV** | JX, en Cloudflare | Los pedidos de prueba del día gastaron turnos, así que el primer cliente real no empezaría en el 1 |
+| **Precios de bebidas y adiciones** | El negocio | Hoy la página dice que sí las venden y que se piden por el campo de notas. Publicar un precio inventado iría contra el Estatuto del Consumidor |
+| **Coordenadas exactas del local** | JX, desde el enlace de Google Maps | Ahora están a nivel de barrio. Afecta qué tan preciso sale en el mapa |
+| **Identificador de GA4** (`G-XXXXXXXXXX`) | JX | No se sabría cuánta gente entra. El código ya está listo, solo falta pegar el ID |
+| **Enviar el `sitemap.xml`** en Search Console | JX | Google tarda más en encontrar la página |
+
+Y una decisión pendiente del negocio: **volver a los horarios reales** cuando la
+operación esté montada (hoy está en modo 24 horas). Son los 5 sitios de la tabla
+de más arriba.
+
+### Lo que ya se probó
+
+- Las **7 páginas en 15 celulares y tabletas reales** (iPhone SE hasta 15, Galaxy
+  S5 a S9+, Pixel 5 y 7, iPad Mini y Pro): cero scroll horizontal, cero desbordes,
+  consola limpia.
+- **El flujo completo con toques reales**, no clics simulados.
+- **Sin JavaScript**: los 15 platos y sus precios se leen igual y el botón de
+  WhatsApp sigue funcionando.
+- **Velocidad en 4G flojo**: primer dibujo a 1,36 s.
+- **Seguridad**: el panel no abre con clave mala, la clave no aparece en nada de
+  lo que sirve el sitio, el servidor ignora un total falso, el freno anti-spam
+  corta a los 200 pedidos del día, y la cola pública no filtra ni un nombre.
+- **La lógica del servidor** con un almacén KV falso: turnos, recálculo del
+  total, corte de 5 horas, borrado de los sábados y conteo de operaciones.
 
 ---
 

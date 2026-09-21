@@ -711,7 +711,7 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 | Qué falta | Dónde está marcado | Por qué importa |
 |---|---|---|
 | **Precios de bebidas y adiciones** (gaseosas, jugos, agua, queso, papa, carne extra) | `index.html` línea ~622 (aviso visible), `llms.txt` | Publicar un precio inventado va contra el Estatuto del Consumidor. Hoy el sitio dice que sí las venden y que se piden por el campo de notas |
-| **Razón social o nombre del responsable, NIT o cédula, correo de contacto** | `privacidad.html` (4), `terminos.html` (1), `compras.html` (2), `cookies.html` (1) | Lo exige la Ley 1581 de 2012, porque el sistema guarda nombre y teléfono de la gente. **Es el pendiente más importante de los tres**: sin un correo real, el cliente no puede ejercer sus derechos sobre sus datos |
+| **Razón social o nombre del responsable, NIT o cédula, correo de contacto** | `privacidad.html` (4), `terminos.html` (1), `compras.html` (1), `cookies.html` (1) — **7 en total**, verificado con grep el 21 de sept. | Lo exige la Ley 1581 de 2012, porque el sistema guarda nombre y teléfono de la gente. **Es el pendiente más importante de los tres**: sin un correo real, el cliente no puede ejercer sus derechos sobre sus datos |
 | **Measurement ID de GA4** (`G-XXXXXXXXXX`) | `js/config.js` → `analytics.measurementId` | JX decidió instalarlo después. El snippet ya está listo y condicionado al consentimiento; solo falta pegar el ID |
 | **Coordenadas exactas del local** | `index.html` línea ~59 (geo tags) y JSON-LD `geo` | Ahora están a nivel de barrio (10.398, −75.489). JX va a pasar el enlace de Google Maps del local; de ahí se sacan las coordenadas exactas |
 
@@ -1079,6 +1079,14 @@ decisión 29.
   sigue sin reciclarse al borrar.
 - Las baterías anteriores (solo-recoger, mejoras del cliente, flujo en celular,
   borrar pedidos) vuelven a pasar.
+
+**README.md puesto al día** (estaba de antes del cambio a solo-recoger): decía
+que el panel muestra "si es domicilio o para recoger, la dirección"; que la
+pantalla de CERRADO aparece fuera del horario, cuando con el modo 24 horas no
+sale nunca; y no mencionaba ninguna de las funciones nuevas. Ahora lleva además
+dos tablas que antes no existían: **qué sabe hacer el panel** (los 9 botones, uno
+por uno) y **qué sabe hacer la página del cliente**, más una sección
+**"¿está listo para usarse?"** con lo que falta y quién lo hace.
 
 **Dos arneses de prueba actualizados, no el código:** el de borrar esperaba el
 `confirm()` nativo, y `api2.mjs` comprobaba entero el modo prueba que JX eliminó
