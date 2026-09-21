@@ -481,6 +481,23 @@ prueba cuando existían.
   entero y el día sale de `indice:dias`, para no dejar una clave vacía gastando
   cupo del plan gratuito.
 
+**26. Los objetivos táctiles miden 44px, sin robar espacio de pantalla.**
+
+Auditoría del 21 de sept. sobre 15 celulares reales: los chips de la barra de
+categorías medían **38px de alto** y el enlace del logo entre 32 y 38. El mínimo
+cómodo para un pulgar es 44. En un celular angosto, 38px hace fácil darle al
+chip de al lado.
+
+**El truco para que no cueste pantalla:** los chips subieron a 44px Y el relleno
+de `.categorias__int` bajó de 9px a 6px. Cuentas: 6+44+6+1 = **57px, exactamente
+lo que medía antes**. Los dedos ganan, la pantalla no pierde nada — y en un
+celular de 320px eso es justo lo que importa.
+
+⚠ **Si alguien sube ese relleno o el alto del chip, tiene que subir también los
+`58px` del `scroll-margin-top` de `section[id]` y del `padding-top` de
+`.portada`**, o los títulos de categoría vuelven a quedar pegados a la barra
+(el bug que se arregló el 19 de sept.).
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -752,6 +769,38 @@ recicla el 2 borrado**, y si era el último del día el documento se borra enter
 y el día sale del índice. En el panel: el botón mide 44×44 en los tres tamaños
 probados, la confirmación nombra al cliente, cancelar no borra, y al vaciarse
 sale "No hay pedidos ahora mismo".
+
+### 21 de septiembre de 2026 (auditoría final) · Listo para entregar
+
+JX pidió la revisión final antes de entregar, con foco en celulares.
+
+**Probado contra el sitio EN VIVO, no contra una copia**, con los perfiles
+reales de Playwright (ancho, alto, densidad de pantalla y user-agent de cada
+aparato):
+
+- **15 celulares y tabletas**: Galaxy S5, S8, S9+, Tab S4; iPhone SE, 8, 11, 12,
+  13, 14 Pro Max, 15; Pixel 5 y 7; iPad Mini y Pro 11.
+  **Cero scroll horizontal, cero desbordes, consola limpia en los 15.**
+- **Flujo completo con toques reales** (no clics simulados) en iPhone SE, iPhone
+  14 Pro Max y Galaxy S8: carrito, contador +/−, ventana del pedido, validación
+  y foco al campo que falla. Los campos miden 16px, así que **iOS no hace zoom**
+  al escribir.
+- **Pedido extremo en el panel** (nombre de 48 caracteres, dirección de 110,
+  notas de 150 y 3 platos) en tres anchos: nada se desborda.
+- **Celular acostado** en tres tamaños: la ventana del pedido cabe y se desplaza
+  por dentro.
+- **Sin JavaScript**: los 15 platos y los precios se leen igual, el botón de
+  WhatsApp sigue funcionando (es un enlace real) y la cortina no se queda puesta.
+- **Velocidad en 4G flojo** (1,6 Mbps, 150 ms): primer dibujo a **1,36 s**,
+  página completa a 2,27 s, **148 KB** y 6 archivos. Ninguna petición falló.
+
+**Lo único que salió**: los objetivos táctiles de la barra de categorías.
+Corregido. Ver decisión 26.
+
+**Anotado para JX, no corregido** (toca la regla de imágenes, decide él): el
+logo pesa 111 KB de los 148 KB de la página, porque se sirve el original de
+1254×1254 para un hueco de 220px. Una versión de 440px bajaría la página a unos
+60 KB. Son **3 de cada 4 KB** que descarga el cliente.
 
 ---
 
