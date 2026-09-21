@@ -788,6 +788,138 @@
   var COLA_MAX_MINUTOS = 90;
   var yaAvisado = false;       // para no repetir el aviso en cada consulta
   var avisoActivado = false;   // el cliente tocó el botón y dio permiso
+  var yaCelebrado = false;     // el gracias se da UNA vez, no en cada consulta
+  var graciasPendiente = 0;    // turno a celebrar cuando el cliente vuelva a mirar
+  var relojGracias = null;     // el temporizador de los 10 segundos
+
+  /* Cuánto dura el cartel de gracias en pantalla. Lo pidió JX en 10 segundos:
+     alcanza para leerlo sin que estorbe a quien ya quiere seguir navegando —
+     y además tiene su ✕ para quitarlo antes. */
+  var GRACIAS_SEGUNDOS = 10;
+
+  /**
+   * ¿Ya entregaron el pedido de ESTE cliente?
+   * @param {Object} c     lo que devolvió la acción pública 'turnos'
+   * @param {number} turno el turno de este celular
+   *
+   * ⚠ POR QUÉ NO VALE `c.ultimoEntregado >= turno`, que es lo que había:
+   * el vendedor NO entrega en orden. El panel no lo obliga (decisión 32) y
+   * encima tiene un buscador para encontrar "el de Andrés" y darle el suyo
+   * primero. Si entrega el turno 7 antes que el 4, `ultimoEntregado` vale 7 y
+   * la resta `7 >= 4` concluiría que el pedido del turno 4 ya salió — con su
+   * carne todavía en la plancha. Le borraríamos el seguimiento y, peor, le
+   * daríamos las gracias por una compra que no ha recogido.
+   * Es exactamente el fallo de la decisión 41 en otro sitio: un dato que se
+   * deduce, metido donde parece un hecho. Por eso el servidor manda la LISTA y
+   * aquí se pregunta lo único que importa: ¿está MI número ahí dentro?
+   */
+  function miPedidoEntregado(c, turno) {
+    return !!(c && c.entregados && c.entregados.indexOf(turno) !== -1);
+  }
+
+  /**
+   * Avisa al celular que su pedido ya está listo y entregado.
+   * Mismo mecanismo que el aviso de "ya lo están preparando": solo llega si el
+   * cliente activó las notificaciones con el botón.
+   * ⚠ `tag` distinto ('pichi-entregado') a propósito: si compartiera el de la
+   * cola, este aviso REEMPLAZARÍA al de "ya lo están preparando" en la bandeja
+   * en vez de sumarse, y el cliente perdería el que le decía que fuera pasando.
+   */
+  function avisarEntregado(turno) {
+    if (!avisoActivado) { return; }
+    try {
+      var n = new Notification('✅ ¡Pedido entregado!', {
+        body: 'Turno ' + turno + ' · ¡Gracias por tu compra! Buen provecho 😋',
+        icon: '/img/icon-192.png',
+        badge: '/img/icon-192.png',
+        tag: 'pichi-entregado',
+        renotify: true
+      });
+      n.addEventListener('click', function () { window.focus(); n.close(); });
+    } catch (e) { /* si el navegador la rechaza, el cartel igual lo dirá al volver */ }
+    if (navigator.vibrate) { try { navigator.vibrate([120, 70, 120, 70, 240]); } catch (e) {} }
+    medirEvento('aviso_entregado_recibido');
+  }
+
+  /**
+   * El cierre del pedido: el cartel de gracias con confeti.
+   * LO PIDIÓ JX: que el pedido no termine en silencio.
+   *
+   * ⚠ SOLO se llama con el turno YA comprobado contra la lista de entregados.
+   * Dar las gracias por una compra que el cliente no ha recogido es peor que
+   * no decir nada: lo manda al local por algo que no está.
+   *
+   * ⚠ Si el cliente NO está mirando (pestaña en segundo plano), el cartel no
+   * se pinta todavía: se apunta como pendiente y sale cuando vuelva. Un cartel
+   * de 10 segundos lanzado mientras nadie mira es un cartel que no existió —
+   * y ese caso es justo el que cubre la notificación.
+   */
+  function celebrarEntrega(turno) {
+    if (yaCelebrado) { return; }
+    yaCelebrado = true;
+
+    // Fuera de la pantalla: le suena el aviso ahora y el cartel lo espera.
+    avisarEntregado(turno);
+    if (document.hidden) { graciasPendiente = turno; return; }
+    pintarGracias(turno);
+  }
+
+  /** Pinta el cartel y lo quita solo a los 10 segundos. */
+  function pintarGracias(turno) {
+    graciasPendiente = 0;
+    var caja = $('#graciasEntrega');
+    if (!caja) { return; }
+    $('#graciasTurno').textContent = turno;
+    caja.hidden = false;
+    lanzarConfeti();
+    if (relojGracias) { clearTimeout(relojGracias); }
+    relojGracias = setTimeout(cerrarGracias, GRACIAS_SEGUNDOS * 1000);
+    medirEvento('vio_gracias_entrega');
+  }
+
+  function cerrarGracias() {
+    if (relojGracias) { clearTimeout(relojGracias); relojGracias = null; }
+    var caja = $('#graciasEntrega');
+    if (caja) { caja.hidden = true; }
+    var pista = $('#graciasConfeti');
+    if (pista) { pista.innerHTML = ''; }   // no dejar 40 nodos animándose de fondo
+  }
+
+  /**
+   * El confeti. Son divs sueltos, no una librería: este proyecto no carga
+   * dependencias y un confeti no vale la pena que se cargue la primera.
+   * ⚠ Los colores salen de la paleta del logo — rojo, amarillo, naranja,
+   * verde y blanco. Nada de colores nuevos ni neones (regla del proyecto).
+   * ⚠ Con `prefers-reduced-motion` no se pinta NADA: el mensaje es el texto,
+   * no el movimiento.
+   */
+  function lanzarConfeti() {
+    var pista = $('#graciasConfeti');
+    if (!pista) { return; }
+    pista.innerHTML = '';
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+    } catch (e) {}
+
+    var COLORES = ['#E01220', '#FFD100', '#FE9B05', '#29B24A', '#FFFFFF'];
+    var trozos = document.createDocumentFragment();
+    for (var i = 0; i < 42; i++) {
+      var c = document.createElement('span');
+      c.className = 'confeti';
+      c.style.left = (Math.random() * 100) + '%';
+      c.style.background = COLORES[i % COLORES.length];
+      /* Cada trozo cae con su propia duración, retraso y desvío, o los 42
+         bajarían en formación como una cortina y se vería a máquina. */
+      c.style.animationDuration = (2.6 + Math.random() * 2.2) + 's';
+      c.style.animationDelay = (Math.random() * 1.6) + 's';
+      c.style.setProperty('--desvio', (Math.random() * 160 - 80) + 'px');
+      c.style.setProperty('--giro', (360 + Math.random() * 720) + 'deg');
+      // Un tercio en redondo, para que no parezcan todos el mismo papelito.
+      if (i % 3 === 0) { c.style.borderRadius = '50%'; c.style.height = '9px'; }
+      trozos.appendChild(c);
+    }
+    pista.appendChild(trozos);
+  }
 
   /**
    * Enciende el aviso al celular. Lo dispara un TOQUE del cliente, nunca solo.
@@ -894,6 +1026,23 @@
          toque "Empezar". Antes esto se disparaba con el turno más bajo
          pendiente, así que al primer cliente del día le sonaba el aviso
          "ya están preparando tu pedido" APENAS pedía. */
+      /* ⚠ PRIMERO la entrega, antes que el resto: si ya se lo entregaron, todo
+         lo demás que diría esta caja ("faltan 2 antes que tú") es información
+         vieja. Y va con la lista exacta, no con `ultimoEntregado`, porque el
+         vendedor entrega fuera de orden — ver miPedidoEntregado(). */
+      if (miPedidoEntregado(c, turnoDelCliente)) {
+        celebrarEntrega(turnoDelCliente);
+        olvidarPedidoEnCurso();   // ya no hay nada que seguir
+        pararCola();              // ni nada que consultar: se deja de gastar lecturas
+        var cajaFin = $('#colaTurnos');
+        if (cajaFin) {
+          cajaFin.classList.remove('es-tuyo');
+          $('#colaEstado').textContent = '✅ Pedido entregado';
+          $('#colaDetalle').textContent = '¡Gracias por tu compra! Buen provecho.';
+        }
+        return;
+      }
+
       if (c.preparando !== null && turnoDelCliente <= c.preparando) { avisarQueYaVa(); }
       if (enSegundoPlano) { return; }   // consultar sí; repintar no hace falta
 
@@ -1055,20 +1204,43 @@
   function pintarSeguimiento() {
     var g = leerPedidoEnCurso();
     if (!g) { return; }
-    if (document.hidden) { return; }   // aquí sí se puede esperar: no hay aviso que dar
+    /* ⚠ AQUÍ HABÍA UN `if (document.hidden) return`, y el comentario decía
+       "aquí sí se puede esperar: no hay aviso que dar". Eso dejó de ser cierto
+       el día que se agregó el aviso de ENTREGADO: ahora sí hay uno, y el
+       segundo plano es justo el único momento en que hace falta. Con el corte
+       puesto, al cliente que dejó la pestaña detrás no le llegaba nunca.
+       Es el mismo arreglo que ya se le hizo a la cola (decisión 39): se sigue
+       consultando, y lo que se salta es el repintado, que no se ve. */
+    var enSegundoPlano = document.hidden;
 
     window.Almacen.verTurnos().then(function (c) {
       var estado = $('#cursoEstado');
       var detalle = $('#cursoDetalle');
       var sec = $('#pedidoEnCurso');
 
-      /* Ya se lo entregaron: el último entregado alcanzó su turno. Se quita el
-         seguimiento en vez de dejarlo diciendo algo viejo — y así el cliente que
-         vuelve mañana no se encuentra el cartel de un pedido que ya recogió. */
-      if (c.ultimoEntregado !== null && c.ultimoEntregado >= g.turno) {
+      /* Ya se lo entregaron: SU turno está en la lista de entregados. Se le da
+         las gracias y se quita el seguimiento, en vez de dejarlo diciendo algo
+         viejo — y así el cliente que vuelve mañana no se encuentra el cartel de
+         un pedido que ya recogió.
+         ⚠ Antes esto comparaba `c.ultimoEntregado >= g.turno`, que NO es lo
+         mismo: con el vendedor entregando fuera de orden, a un cliente que
+         seguía esperando se le borraba el seguimiento. Ver miPedidoEntregado(). */
+      if (miPedidoEntregado(c, g.turno)) {
+        celebrarEntrega(g.turno);
         olvidarPedidoEnCurso();
         return;
       }
+
+      /* Servidor viejo o JS en caché que todavía no manda `entregados`: no se
+         celebra nada (dar las gracias por una suposición sería peor que
+         callarse), pero sí se limpia el cartel como se hacía antes, para no
+         dejarlo diciendo algo de ayer. */
+      if (!c.entregados && c.ultimoEntregado !== null && c.ultimoEntregado >= g.turno) {
+        olvidarPedidoEnCurso();
+        return;
+      }
+
+      if (enSegundoPlano) { return; }   // consultar sí; repintar no hace falta
 
       /* ⚠ El contador del día reinicia en 1 cada mañana. Si el turno guardado
          es MAYOR que el más alto que ha dado el local hoy, el pedido es de
@@ -1533,6 +1705,14 @@
     $('#btnCopiarEnlace').addEventListener('click', copiarEnlace);
     $('#btnCerrarEnCurso').addEventListener('click', cerrarModal);
 
+    /* El cartel de gracias: la ✕ y el clic en el fondo lo quitan sin esperar
+       los 10 segundos. El clic en la caja NO cierra, o se iría solo con el
+       primer toque que el cliente diera encima para leerlo mejor. */
+    $('#btnCerrarGracias').addEventListener('click', cerrarGracias);
+    $('#graciasEntrega').addEventListener('click', function (e) {
+      if (e.target === this) { cerrarGracias(); }
+    });
+
     /* Seguimiento del pedido en curso: se enciende al cargar la página, no al
        pedir. Es justo el caso del cliente que ya cerró la pestaña y vuelve. */
     arrancarSeguimiento();
@@ -1562,7 +1742,13 @@
     // Si el cliente se va a otra aplicación y vuelve, la cola se pone al día de
     // una en vez de esperar los 30 segundos del siguiente ciclo.
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden && relojCola) { pintarCola(); }
+      if (document.hidden) { return; }
+      if (relojCola) { pintarCola(); }
+      /* Le entregaron el pedido mientras miraba otra cosa: el cartel lo
+         estaba esperando. Se le da ahora, que es cuando lo va a ver — soltarlo
+         en segundo plano habría sido gastar los 10 segundos contra una
+         pantalla que nadie estaba mirando. */
+      if (graciasPendiente) { pintarGracias(graciasPendiente); }
     });
 
     activarCategorias();

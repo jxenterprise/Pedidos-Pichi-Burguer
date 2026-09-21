@@ -1155,8 +1155,8 @@ no sirve para lo que se creó.
 **👉 CÓMO SUBIR LA VERSIÓN** (v1.0 → v1.1 → v1.2, de uno en uno):
 
 ```bash
-sed -i 's|\(class="sitio-version"[^>]*\)>v1\.1<|\1>v1.2<|' *.html
-grep -h 'class="sitio-version"' *.html | grep -o 'v1\.[0-9]*' | sort | uniq -c   # tiene que decir "7 v1.2"
+sed -i 's|\(class="sitio-version"[^>]*\)>v1\.2<|\1>v1.3<|' *.html
+grep -h 'class="sitio-version"' *.html | grep -o 'v1\.[0-9]*' | sort | uniq -c   # tiene que decir "7 v1.3"
 ```
 
 ⚠ **El comando que estaba escrito aquí NO servía**, y se descubrió al usarlo el
@@ -1348,6 +1348,95 @@ los dos.
 el usuario tiene que preguntar qué significa está mal escrita.* Se nombra **lo
 que pasó**, no cómo se llama el campo por dentro. Misma familia que la decisión
 38: si quien usa el sistema pregunta, el texto es el que falla, no la persona.
+
+**52. 🎉 EL PEDIDO TERMINA CON UN GRACIAS — y el servidor deja de adivinar otra vez.**
+
+**Lo pidió JX:** *"cuando el vendedor le dé al botón de 'entregado' le llegue esa
+misma notificación al cliente con el sonido... o también si está dentro de la
+página un mismo banner que diga muchas gracias por tu compra, espero tengas buen
+provecho, siempre a la orden... con emojis y confetis saliendo, y ya, dure más o
+menos 10 segundos"*.
+
+**Las dos caras, como pidió:**
+
+| Dónde está el cliente | Qué recibe |
+|---|---|
+| **Con la página delante** | El cartel: 🍔 **"¡Gracias por tu compra!"**, su turno, *"Buen provecho 😋 Siempre a la orden"* y **confeti**. Se va solo a los **10 segundos** |
+| **Fuera de la página** (otra app, otra pestaña) | La **notificación** del celular con vibración, igual que la de "ya lo están preparando". Y el cartel lo espera: sale cuando vuelve a mirar |
+
+**⚠ EL BUG QUE HABÍA QUE EVITAR PARA QUE ESTO NO NACIERA ROTO.**
+La forma obvia de saber si te entregaron era `ultimoEntregado >= miTurno`, y de
+hecho **el seguimiento ya lo usaba así** para quitar el cartel. Es falso, y se
+vio al ir a construir esto:
+
+> **El vendedor NO entrega en orden.** El panel no lo obliga (decisión 32) y
+> encima tiene un buscador para encontrar *"el de Andrés"* y darle el suyo
+> primero. Si entrega el **turno 7** antes que el **4**, `ultimoEntregado` vale
+> 7, y `7 >= 4` concluye que el pedido del turno 4 **ya salió** — con su carne
+> todavía en la plancha.
+
+Consecuencia si se hubiera hecho así: al cliente del turno 4 **se le borraba el
+seguimiento** y, peor, **se le daba las gracias por una compra que no ha
+recogido** y le sonaba el aviso. Saldría para el local por algo que no está.
+Es la **decisión 41 repitiéndose en otro sitio**: un dato deducido, metido donde
+parece un hecho.
+
+**Cómo quedó:** la acción `turnos` devuelve **`entregados`**, la lista exacta de
+turnos ya entregados hoy — el array ya estaba calculado en el servidor, solo no
+se enviaba. El navegador pregunta lo único que importa: **¿está MI número ahí
+dentro?** (`miPedidoEntregado()` en `js/script.js`).
+⚠ Sigue sin filtrar nada: son números de turno, los mismos que se gritan en el
+mostrador. Ni un nombre, ni un teléfono, ni un plato — la misma regla de la
+decisión 28 para esta acción pública, comprobada.
+⚠ `ultimoEntregado` **se queda** por compatibilidad: un celular con el JS viejo
+en caché sigue recibiendo el campo que espera. Lo nuevo no lo usa, y cuando
+`entregados` no viene **no se celebra nada** — dar las gracias por una
+suposición es peor que callarse.
+
+**⚠ Y HUBO QUE QUITAR UN `if (document.hidden) return`**, el del seguimiento
+(bloque 4quater). Su comentario decía *"aquí sí se puede esperar: no hay aviso
+que dar"*, y era verdad… hasta hoy. Ahora sí hay uno, y **el segundo plano es
+justo el único momento en que hace falta**: con el corte puesto, al cliente que
+dejó la pestaña detrás no le llegaba nunca. Es el mismo arreglo que ya se le
+hizo a la cola (decisión 39): **se sigue consultando y lo que se salta es el
+repintado**, que no se ve.
+
+⚠ **REGLA QUE SALE DE AQUÍ:** un `return` por `document.hidden` es una decisión
+con fecha de caducidad. El día que a esa función se le agregue algo que avise,
+ese `return` lo apaga **en silencio**. Cuando se agregue un aviso, hay que
+revisar todos los cortes por segundo plano del camino.
+
+**Detalles del cartel que no son casualidad:**
+- **`z-index: 130`** — por encima de la ventana del turno (100) y del botón de
+  WhatsApp (110), que es donde está mirando el cliente que sigue su cola; por
+  debajo de la cortina de cerrado (150), que manda sobre todo.
+- **El fondo es una veladura con desenfoque, no un negro opaco**: detrás está su
+  pantalla de turno, y taparla del todo haría pensar que la página se fue a otra
+  parte.
+- **Lleva ✕ de 44px además del temporizador.** Un cartel que ocupa la pantalla y
+  no se puede quitar a mano es una trampa, aunque se vaya solo.
+- **Borde superior verde**, el mismo del semáforo "abierto" y de los pedidos
+  entregados en el panel: en este sitio el verde ya significa *salió bien*.
+- **El confeti son `<span>` sueltos que pinta el JS**, no una librería ni un
+  archivo: el proyecto no carga dependencias y un confeti no vale la pena que se
+  cargue la primera. Colores **solo de la paleta del logo** (rojo, amarillo,
+  naranja, verde y blanco): ni un color nuevo, ni un neón.
+- Cada trozo lleva **su propia duración, retraso, desvío y giro**. Con los mismos
+  valores, los 42 bajarían en formación como una cortina y se vería a máquina.
+- **Con `prefers-reduced-motion` el confeti no se pinta siquiera**, y la caja
+  entra sin rebote. **El mensaje es el texto, no el movimiento** — misma regla
+  que el parpadeo del panel (decisión 43).
+- **`tag: 'pichi-entregado'`**, distinto al de la cola. Si compartieran el tag,
+  este aviso **reemplazaría** al de "ya lo están preparando" en la bandeja en vez
+  de sumarse, y el cliente perdería el que le decía que fuera pasando.
+- Se celebra **una sola vez** (`yaCelebrado`), y al celebrar se borra el pedido
+  guardado, así que al recargar tampoco vuelve.
+
+⚠ **LO QUE ESTO NO HACE, y hay que decirlo:** si el cliente **cerró la pestaña
+del todo**, la notificación **no llega**. Es la misma limitación de la decisión
+39 y por el mismo motivo: sin *service worker* no hay push, y meterlo rompe que
+las actualizaciones lleguen al instante. Para ese caso sigue estando la capa 1:
+entra a la página y lo ve.
 
 ### Verificación hecha antes de entregar
 
@@ -2087,6 +2176,66 @@ versión existe para detectar. Corregido en los tres sitios donde estaba escrito
 (`index.html`, la decisión 47 y el README) y comprobado sobre las 7.
 
 **Estado final: 586 comprobaciones en 45 baterías, cero fallos.**
+
+### lunes 21 de septiembre de 2026, 3:37 p. m. · El pedido termina con un gracias (v1.2)
+
+JX: *"cuando el vendedor le dé al botón de 'entregado' le llegue esa misma
+notificación al cliente... o también si está dentro de la página un mismo banner
+que diga muchas gracias por tu compra... con emojis y confetis saliendo, y ya,
+dure más o menos 10 segundos"*.
+
+Hecho tal cual, con las dos caras: **dentro de la página → el cartel con
+confeti; fuera → la notificación al celular**, y el cartel lo espera para cuando
+vuelva. Ver decisión 52.
+
+**⚠ PERO AL IR A CONSTRUIRLO SALIÓ UN BUG QUE YA ESTABA VIVO.** La forma obvia
+de saber si te entregaron era `ultimoEntregado >= miTurno`, y **el seguimiento
+ya lo usaba así** para quitar el cartel del pedido en curso. Es falso:
+
+> **El vendedor no entrega en orden** — el panel no lo obliga (decisión 32) y
+> tiene un buscador para darle primero el suyo a "el de Andrés". Si entrega el
+> turno **7** antes que el **4**, `ultimoEntregado` vale 7 y `7 >= 4` da por
+> entregado el pedido del 4, **con su carne todavía en la plancha**.
+
+Antes de este cambio eso ya **le borraba el seguimiento** a ese cliente. Si
+encima se hubiera colgado el gracias de la misma condición, le habríamos
+agradecido una compra que no ha recogido y le habría sonado el aviso: saldría
+para el local por algo que no está. **Es la decisión 41 repitiéndose en otro
+sitio.** Corregido en las dos caras con la lista exacta `entregados`.
+
+**Y un segundo hallazgo del mismo tipo:** el seguimiento tenía
+`if (document.hidden) return;` con el comentario *"aquí sí se puede esperar: no
+hay aviso que dar"*. Era verdad cuando se escribió. Al agregar el aviso de
+entregado **ese return lo apagaba en silencio justo en el único momento en que
+hace falta**. De ahí sale la regla nueva de la decisión 52: *un `return` por
+`document.hidden` tiene fecha de caducidad; cuando se agrega un aviso hay que
+revisar todos los cortes por segundo plano del camino.*
+
+**Un falso positivo, descartado y anotado:** la batería nueva cantó que la ✕ del
+cartel medía **41px** en vez de 44. No era cierto: la caja entra desde
+`scale(.94)` y el arnés medía **a mitad del rebote** — 44 × 0,94 = 41,36. En
+reposo, que es cuando el dedo la busca, mide los 44 completos. Corregido el
+arnés, no el CSS.
+
+**Probado en 17 celulares y tabletas reales, de pie y acostados** (`graciasmovil.js`,
+perfiles de Playwright con ancho, alto, densidad y user-agent de cada modelo):
+Galaxy S III, S5, S8, S9+, Pixel 5 y 7, iPhone SE, 8, 12 Mini, 13 Mini, 12, 14,
+15, 8 Plus y 14 Pro Max, iPad Mini y Galaxy Tab S4. **34 pantallas ✅ / 0 ❌.**
+En cada una: que la caja quepa entera sin scroll lateral, que los controles
+midan 44px, que no haya letra por debajo de 11px y la consola limpia. El caso
+duro es el **celular acostado** (640×360 y 568×320), donde el bloque
+`@media (max-height: 480px)` aprieta la caja para que no se salga por abajo.
+
+**Probado además:** 24 comprobaciones nuevas en navegador real (`gracias.js`) — que no
+salga antes de tiempo, **que NO se dispare cuando entregan el turno de otro**,
+que salga con el suyo, el confeti, los 10 segundos, que no se repita, la ✕, el
+responsive en 5 tamaños (incluido acostado) y `prefers-reduced-motion` — más 10
+del servidor (`entregados.mjs`), incluida la entrega fuera de orden, el deshacer
+y que la acción pública **siga sin filtrar ni un nombre ni un teléfono**.
+Las baterías que tocaban el mismo código vuelven a pasar: `segui.js` 27,
+`api2.mjs` 22, `auditoria.mjs` 34, `cocina.js` 27, `verde.js` 8, `notif.js` 12.
+
+**🏷️ VERSIÓN PUBLICADA: `v1.2`** en las 7 páginas.
 
 ---
 

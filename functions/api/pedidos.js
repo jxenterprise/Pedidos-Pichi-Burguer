@@ -529,6 +529,20 @@ export async function onRequest({ request, env }) {
          teléfono — la misma regla de siempre para esta acción pública. */
       pendientes: pendientes.sort((a, b) => a - b),
       enCola: pendientes.length,
+      /* ⚠ LA LISTA EXACTA DE TURNOS YA ENTREGADOS, y existe por la misma razón
+         que `pendientes`: porque el máximo NO alcanza para saber si el TUYO
+         salió. El vendedor NO está obligado a entregar en orden (decisión 32)
+         y además tiene un buscador para encontrar "el de Andrés" y darle el
+         suyo primero. Si entrega el turno 7 antes que el 4, `ultimoEntregado`
+         vale 7, y `7 >= 4` diría que el pedido del 4 ya salió cuando su carne
+         sigue en la plancha. Eso es adivinar, que es justo lo que prohíbe la
+         decisión 41. Con la lista, el navegador comprueba el dato exacto:
+         ¿está MI número aquí dentro? Siguen siendo números de turno sueltos,
+         los mismos que se gritan en el mostrador: ni un nombre, ni un
+         teléfono, ni un plato. */
+      entregados: entregados.sort((a, b) => a - b),
+      /* Se queda por compatibilidad: si un celular tiene el JS viejo en caché,
+         sigue recibiendo el campo que espera. Lo nuevo usa `entregados`. */
       ultimoEntregado: entregados.length ? Math.max(...entregados) : null,
       turnoDelDia: doc.turno
     });

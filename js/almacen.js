@@ -322,7 +322,7 @@
      * Pregunta por dónde va la cola de turnos. NO lleva clave: la usa el
      * cliente desde su pantalla de turno, y por eso el servidor solo devuelve
      * números — ni un nombre ni un teléfono.
-     * @returns {Promise<{preparando:number|null, enCola:number, ultimoEntregado:number|null}>}
+     * @returns {Promise<{preparando:number|null, siguiente:number|null, pendientes:number[], enCola:number, entregados:number[], ultimoEntregado:number|null, turnoDelDia:number}>}
      */
     verTurnos: function () {
       if (CFG.sistema.modo === 'local') {
@@ -344,6 +344,10 @@
           siguiente: turnos.length ? turnos[0] : null,
           pendientes: turnos,
           enCola: turnos.length,
+          /* La lista exacta, igual que en la nube: el máximo no sirve para
+             saber si salió EL TUYO, porque el vendedor puede entregar fuera de
+             orden. Las dos caras tienen que contar igual (decisión 41). */
+          entregados: entregados.sort(function (a, b) { return a - b; }),
           ultimoEntregado: entregados.length ? Math.max.apply(null, entregados) : null,
           turnoDelDia: doc.turnos[fechaHoyColombia()] || 0
         });

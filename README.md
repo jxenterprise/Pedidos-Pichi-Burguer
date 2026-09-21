@@ -267,6 +267,23 @@ REVISA LA LISTA`, es un pedido ampliado de antes de este cambio: revísalo igual
 Si tocas "Actualizar" justo en ese momento, **el aviso de REVISA no se borra**:
 manda sobre el mensaje normal de "Lista al día".
 
+### Cuando tocas "Entregado": el cliente recibe el gracias
+
+Desde la v1.2, tocar **Entregado** no solo archiva el pedido: **se lo dice al
+cliente**. Dos caminos, según dónde esté:
+
+| Dónde está | Qué le llega |
+|---|---|
+| **Con la página abierta** | Un cartel: 🍔 **"¡Gracias por tu compra!"**, su turno, *"Buen provecho 😋 Siempre a la orden"* y **confeti cayendo**. Se quita solo a los **10 segundos** (o antes, con su ✕) |
+| **Fuera de la página** (en otra app) | La **notificación** al celular con vibración, si la activó. Y el cartel lo espera: le sale en cuanto vuelva a mirar |
+
+> ⚠ **Solo se dispara cuando tocas "Entregado" en el panel.** No antes, y no por
+> el hecho de que hayas entregado el pedido de otra persona.
+
+> ⚠ **Si el cliente cerró la pestaña del todo, la notificación no le llega.** Es
+> la misma limitación que la del aviso de "ya lo están preparando" y por el
+> mismo motivo. Para ese caso está lo de siempre: entra a la página y lo ve.
+
 ### ¿Cómo sabe el cliente que ya están preparando su pedido?
 
 Por **tres caminos a la vez**, porque ninguno solo alcanza:
@@ -639,7 +656,7 @@ de más arriba.
 
 ### La versión del sitio
 
-Al lado de **PICHI BURGUER**, arriba, verás una etiqueta gris: **v1.1**.
+Al lado de **PICHI BURGUER**, arriba, verás una etiqueta gris: **v1.2**.
 
 Sirve para una cosa concreta: **saber si una actualización llegó de verdad.**
 Si publicas un cambio y en tu celular sigue diciendo el número viejo, es que el
@@ -649,8 +666,8 @@ navegador te está mostrando una copia guardada, no la página nueva.
 uno), desde la carpeta del proyecto:
 
 ```bash
-sed -i 's|\(class="sitio-version"[^>]*\)>v1\.1<|\1>v1.2<|' *.html
-grep -h 'class="sitio-version"' *.html | grep -o 'v1\.[0-9]*' | sort | uniq -c   # tiene que decir "7 v1.2"
+sed -i 's|\(class="sitio-version"[^>]*\)>v1\.2<|\1>v1.3<|' *.html
+grep -h 'class="sitio-version"' *.html | grep -o 'v1\.[0-9]*' | sort | uniq -c   # tiene que decir "7 v1.3"
 ```
 
 Y anota en `CLAUDE.md` qué trae esa versión.

@@ -292,10 +292,10 @@
            verdad al celular de alguien. Si dice la vieja, el navegador está
            sirviendo una copia guardada.
            ⚠ VIVE EN LAS 7 PÁGINAS. Para subirla se cambian todas de una:
-           sed -i 's|\(class="sitio-version"[^>]*\)>v1\.1<|\1>v1.2<|' *.html
+           sed -i 's|\(class="sitio-version"[^>]*\)>v1\.2<|\1>v1.3<|' *.html
            y se anota en la bitácora de CLAUDE.md. -->
       <span class="barra__nombre">Pichi Burguer</span>
-      <span class="sitio-version" title="Versión publicada del sitio">v1.1</span>
+      <span class="sitio-version" title="Versión publicada del sitio">v1.2</span>
     </a>
     <p class="estado" id="estadoBarra" role="status">
       <span class="estado__luz" aria-hidden="true"></span>
@@ -1264,6 +1264,42 @@
      detecta un iPhone, donde la instalación es manual y hay que
      explicarla. Nunca sale si ya está instalada.
      =========================================================== -->
+<!-- ===========================================================
+     GRACIAS POR TU COMPRA — sale cuando el vendedor toca
+     "Entregado" en el panel y el cliente tiene la página
+     abierta. Lo pidió JX: que el pedido no termine en
+     silencio, sino con un gracias.
+     ⚠ SOLO se dispara con el turno de ESTE cliente dentro de
+     la lista `entregados` que devuelve el servidor. NO con
+     "el último entregado es mayor que el mío": el vendedor
+     puede entregar fuera de orden y entonces le estaríamos
+     dando las gracias a alguien cuya carne sigue en la
+     plancha. Ver decisión 52.
+     ⚠ Arranca con `hidden` y lo enciende el JS: si el
+     JavaScript fallara, no aparece — falla del lado seguro,
+     nunca tapando la página con un cartel que no se quita.
+     ⚠ Lleva botón de cerrar además del temporizador de 10 s:
+     un cartel que ocupa la pantalla y no se puede quitar a
+     mano es una trampa, aunque se vaya solo.
+     =========================================================== -->
+<div class="gracias" id="graciasEntrega" role="dialog" aria-modal="false"
+     aria-label="Pedido entregado" hidden>
+  <!-- El confeti lo pinta el JS aquí dentro. Va en su propia capa y con
+       aria-hidden: es decoración, y un lector de pantalla no tiene por qué
+       leer cuarenta elementos vacíos. -->
+  <div class="gracias__confeti" id="graciasConfeti" aria-hidden="true"></div>
+
+  <div class="gracias__caja">
+    <button type="button" class="gracias__cerrar" id="btnCerrarGracias" aria-label="Cerrar">✕</button>
+    <span class="gracias__emoji" aria-hidden="true">🍔</span>
+    <p class="gracias__tit">¡Gracias por tu compra!</p>
+    <p class="gracias__turno">Turno <b id="graciasTurno">–</b> · entregado</p>
+    <p class="gracias__txt">
+      Buen provecho 😋 Siempre a la orden en <b>Pichi Burguer</b>.
+    </p>
+  </div>
+</div>
+
 <div class="instalar" id="avisoInstalar" role="dialog" aria-label="Instalar la app de Pichi Burguer" hidden>
   <img src="img/logo-pichi-burguer-cartagena-440.webp" alt="" width="44" height="44" aria-hidden="true">
   <div class="instalar__txt">
