@@ -1,13 +1,17 @@
 {
+  "id": "/",
   "name": "Pichi Burguer · Pedidos",
   "short_name": "Pichi Burguer",
-  "description": "Menú y pedidos en línea de Pichi Burguer, Cartagena.",
+  "description": "Menú y pedidos en línea de Pichi Burguer, Cartagena de Indias. Pide y recibe tu número de turno.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "lang": "es-CO",
+  "dir": "ltr",
+  "orientation": "portrait",
+  "categories": ["food", "shopping"],
   "icons": [
     { "src": "/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }

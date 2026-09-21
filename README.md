@@ -272,9 +272,75 @@ El sitio trae GA4 listo, pero **falta el identificador**. Para activarlo:
 - **Informes → Tiempo real**: cuánta gente está en la página ahorita mismo.
 - **Informes → Adquisición**: de dónde llega la gente (Google, Instagram,
   WhatsApp, o escribiendo el enlace directo).
-- **Informes → Interacción → Eventos**: cuántos hicieron clic en WhatsApp,
-  cuántos abrieron el mapa y cuántos enviaron un pedido. Eso es lo que de verdad
-  importa: no las visitas, sino cuántas se volvieron pedidos.
+- **Informes → Interacción → Eventos**: aquí está lo que de verdad importa. No
+  las visitas, sino cuántas se volvieron pedidos.
+
+### Los 9 eventos que el sitio ya mide
+
+No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
+
+| Evento | Cuándo se dispara | Para qué te sirve |
+|---|---|---|
+| `pedido_enviado` | El cliente envía el pedido | **El más importante.** Lleva además el valor del pedido, así que GA4 te suma cuánto vendiste por la web |
+| `clic_whatsapp` | Toca el botón verde de WhatsApp | Cuántos prefieren escribir antes que pedir por la página |
+| `clic_whatsapp_cerrado` | Escribe por WhatsApp desde la pantalla de CERRADO | Cuántos insisten fuera del horario (hoy no se dispara: el sitio está en modo 24 horas) |
+| `clic_telefono` | Toca el número para llamar | |
+| `clic_mapa` | Abre la ubicación | Cuánta gente busca cómo llegar |
+| `repitio_pedido` | Usa "Repetir mi último pedido" | Te dice cuántos clientes son repetidos |
+| `instalo_app` | El celular confirma que quedó instalada | Cuántos clientes vuelven por el icono y no por Google |
+| `instalar_si` / `instalar_no` | Acepta o rechaza el aviso de instalar | Si `instalar_no` es muy alto, el aviso está molestando |
+| `clic_ver_menu_cerrado` | Con el local cerrado, toca "Ver el menú de todas formas" | Cuánta gente busca fuera del horario. **Si este número es alto, vale la pena abrir más temprano** |
+
+> ⚠ Ninguno de estos eventos manda el nombre ni el teléfono del cliente a
+> Google. Solo el hecho de que pasó, y en el pedido el monto. Es a propósito.
+
+---
+
+## Que la página aparezca en Google
+
+El sitio ya trae todo el trabajo técnico hecho. Lo que falta son **tres cosas que
+solo puedes hacer tú**, y sin ellas Google tarda mucho más en encontrarlo.
+
+### 1. Google Search Console (15 minutos, una sola vez)
+
+1. Entra a **search.google.com/search-console** con tu cuenta de Google.
+2. *Agregar propiedad* → **Prefijo de la URL** → pega
+   `https://pedidos-pichi-burguer-ctg.pages.dev`
+3. Google te pide verificar que el sitio es tuyo. La forma más fácil aquí es la
+   **etiqueta HTML**: te da una línea `<meta name="google-site-verification" ...>`
+   que se pega en el `<head>` de `index.html`, justo debajo del `<title>`.
+   ⚠ **Esa etiqueta nunca se borra**, o Google pierde la verificación.
+4. Ya verificado: *Sitemaps* → escribe `sitemap.xml` → *Enviar*.
+5. *Inspección de URL* → pega la dirección del sitio → **Solicitar indexación**.
+   Eso lo mete en la fila de Google en vez de esperar a que pase solo.
+
+**Qué mirar después**, cada par de semanas:
+- **Rendimiento**: qué buscó la gente para llegar. Si ves "hamburguesas bernardo
+  jaramillo" o "comida rápida cerca", vas bien.
+- **Cobertura / Páginas**: que la página principal salga como *Indexada*.
+
+### 2. La ficha de Google Maps — rinde más que todo lo demás
+
+Para un local de barrio, **salir bien en Maps vale más que el SEO tradicional**.
+La gente busca "hamburguesas cerca de mí" y pide en el primero que sale con
+buenas fotos. Está explicado abajo, en *Ficha de Google Business Profile*.
+
+### 3. Lo que ya está hecho y no hay que tocar
+
+| Qué | Dónde | Para qué |
+|---|---|---|
+| **Datos estructurados** (JSON-LD) | `index.html` `<head>` | Le dice a Google que esto es un **restaurante**, con su dirección, teléfono, horario, **los 15 platos con precio** y que **solo hace recoger**. Es lo que hace que salga "Abierto ahora · cierra a las 11 p. m." en el buscador |
+| **El menú escrito en el HTML** | `index.html` | Google lee los 15 platos aunque el JavaScript no cargue |
+| **FAQ visible** | sección `#preguntas` | Google exige que lo que declaras como preguntas frecuentes **se vea en la página**. Declararlo sin mostrarlo puede costar una penalización |
+| **`sitemap.xml`** y **`robots.txt`** | raíz | El mapa del sitio y el permiso de rastreo |
+| **`llms.txt`** | raíz | Lo mismo pero para **ChatGPT, Claude, Perplexity y Gemini**, que quedan permitidos a propósito: si alguien le pregunta a una IA por hamburguesas en Cartagena, que pueda recomendar el local |
+| **Open Graph** | `<head>` | Que al compartir el enlace por WhatsApp salga la foto y el título, no el enlace pelado |
+| **`canonical`** | `<head>` | Que Google sepa cuál es la dirección "de verdad" del sitio |
+
+> ⚠ **El día que se conecte el dominio propio** hay que cambiarlo en **7 sitios**
+> y **volver a enviar el sitemap** en Search Console. La lista completa está en
+> `CLAUDE.md`, decisión 22. Si se cambia a medias, Google deja de indexar el que
+> sí funciona.
 
 > El script de Google **no carga hasta que el visitante acepta las cookies**. No
 > es un capricho: en Colombia la Resolución 32.126 de 2022 de la SIC es más

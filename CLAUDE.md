@@ -684,6 +684,51 @@ botón no debe quedar bloqueado.
 ⚠ El texto del botón dice **"🔥 En plancha"** y no "En la plancha" porque el
 largo se partía en dos líneas a 390px y deformaba toda la fila.
 
+**33. Los archivos de SEO se revisan CON los de código, nunca aparte.**
+
+Auditoría del 21 de septiembre: el código estaba al día pero los archivos que
+lee Google se habían quedado atrás. Ninguno daba error; simplemente **decían
+cosas que ya no eran ciertas**, que es peor, porque nadie se entera.
+
+**Lo que estaba mal y se corrigió:**
+
+| Archivo | Qué decía | Por qué importaba |
+|---|---|---|
+| `llms.txt` | Una sección decía "se reciben pedidos las 24 horas" y **otra decía "los pedidos solo se reciben dentro del horario de atención"** | **Se contradecía a sí mismo.** Una IA que lo leyera le diría a la gente que no puede pedir de día, cuando sí puede. Este archivo existe justo para que ChatGPT, Claude o Perplexity recomienden el local |
+| `sitemap.xml` | `lastmod` en 2026-09-19 | Es la señal que usa Google para decidir si vale la pena volver a rastrear. Con la fecha vieja tarda más en ver los precios nuevos |
+| `index.html` JSON-LD | No declaraba nada sobre la entrega | Se quitó el domicilio (decisión 27) pero **Google seguía sin saberlo**. Ahora lleva `potentialAction` con `ServicePickup` y `acceptsReservations: false` |
+| `index.html` `<meta description>` | 172 caracteres | Google corta en ~160: en los resultados salía **cortada a media frase**. Ahora 153 |
+| `site.webmanifest` | Sin `id` | Sin ese campo, el día que cambie `start_url` el celular trata la app instalada como si fuera otra distinta y **duplica el icono** |
+| `README.md` | De antes del cambio a solo-recoger | Ver la bitácora del 21 |
+
+⚠ **REGLA QUE SALE DE AQUÍ:** cuando se cambia algo que el cliente ve —un
+precio, el menú, el horario, la forma de entrega— hay que preguntarse en cuáles
+de estos **siete** archivos se repite el dato: `index.html` (texto visible),
+`index.html` (JSON-LD del `<head>`), `js/config.js`, `llms.txt`, `sitemap.xml`
+(la fecha), `README.md` y este archivo. Un dato que solo se cambia en la página
+visible deja a Google y a las IA repitiendo el viejo durante semanas.
+
+**Lo que ya estaba bien y no se tocó:** `robots.txt` (panel bloqueado, bots de
+IA permitidos a propósito), las cabeceras de seguridad de `_headers`, el
+`canonical` y el Open Graph absolutos, y los 15 platos escritos en el HTML.
+
+**34. Los 9 eventos de Analytics ya están puestos; solo falta el ID.**
+
+`pedido_enviado` (con el valor del pedido), `clic_whatsapp`,
+`clic_whatsapp_cerrado`, `clic_telefono`, `clic_mapa`, `repitio_pedido`,
+`instalo_app`, `instalar_si` / `instalar_no` y `clic_ver_menu_cerrado`.
+
+No hay que configurar nada en GA4: apenas se pegue el `G-XXXXXXXXXX` en
+`js/config.js` empiezan a llegar solos.
+
+⚠ **Ningún evento manda el nombre ni el teléfono del cliente a Google.** Solo el
+hecho de que pasó, y en el pedido el monto. Mandar datos personales a Analytics
+sin consentimiento específico es una infracción, y además GA4 los rechaza.
+
+⚠ `clic_ver_menu_cerrado` es el más interesante para el negocio: dice cuánta
+gente busca con el local cerrado. **Si ese número es alto, vale la pena abrir más
+temprano.** Hoy no se dispara porque el sitio está en modo 24 horas.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -1093,6 +1138,34 @@ por uno) y **qué sabe hacer la página del cliente**, más una sección
 el 21 (decisión 20). Este último se reescribió al revés —ahora verifica que del
 modo prueba no quede rastro— y de paso **se le quitó la clave real que tenía
 escrita**; usa una ficticia.
+
+### 21 de septiembre de 2026 · Los archivos de SEO, al día
+
+JX: *"ojo pero ya sabes que no solo el README y el CLAUDE... también otros
+documentos que estén desactualizados, el SEO y todo, y para agregarlo en web
+analytics para que aparezca en Google"*. Tenía razón: el código estaba al día y
+los archivos que lee Google se habían quedado atrás.
+
+**Cinco cosas corregidas.** Ver decisión 33 para el detalle y el porqué de cada
+una. La peor era `llms.txt`, que **se contradecía a sí mismo** sobre el horario.
+
+**Lo que se le agregó al README** (es el archivo que lee JX, así que ahí va lo
+práctico):
+- **"Que la página aparezca en Google"**: los pasos de Search Console uno por
+  uno, incluida la etiqueta de verificación que **nunca se borra**, cómo enviar
+  el sitemap y cómo pedir la indexación en vez de esperar.
+- **Los 9 eventos de Analytics** en una tabla, diciendo qué mide cada uno y para
+  qué sirve leerlo. Ver decisión 34.
+- **Qué está ya hecho y no hay que tocar**: JSON-LD, menú en el HTML, FAQ
+  visible, sitemap, robots, llms.txt, Open Graph y canonical.
+
+**Probado:** 26 comprobaciones de SEO — que los 4 archivos se sirvan, que el
+JSON-LD siga siendo válido y declare lo de recoger, que **los precios digan lo
+mismo en los 4 sitios** (tarjeta visible, `data-precio`, JSON-LD y `llms.txt`),
+que **config, tabla, JSON-LD y llms.txt coincidan en el horario**, que el NAP
+(nombre, dirección, teléfono) sea idéntico en todo, y que las descripciones de
+las 7 páginas quepan en Google. Más las 23 de la revisión general, otra vez en
+verde.
 
 ---
 

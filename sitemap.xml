@@ -5,11 +5,19 @@
   QUÉ HACE: le dice a Google qué páginas existen y cuándo cambiaron.
   QUÉ NO VA AQUÍ: la 404, el panel del vendedor y las páginas legales, porque
   llevan noindex y no deben competir en los resultados con la página del menú.
+
+  ⚠ <lastmod> HAY QUE ACTUALIZARLO cada vez que cambie el contenido de la
+  página (precios, menú, horarios). Es la señal que usa Google para decidir si
+  vale la pena volver a rastrearla; si se queda vieja, tarda más en ver los
+  precios nuevos.
+  ⚠ Si algún día se conecta el dominio propio, hay que cambiar el <loc> Y
+  volver a enviar el sitemap en Google Search Console: el anterior apuntaría a
+  direcciones que dejarán de existir.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://pedidos-pichi-burguer-ctg.pages.dev/</loc>
-    <lastmod>2026-09-19</lastmod>
+    <lastmod>2026-09-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>

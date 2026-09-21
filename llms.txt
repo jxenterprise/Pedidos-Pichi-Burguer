@@ -13,7 +13,7 @@
 - [Picadas](https://pedidos-pichi-burguer-ctg.pages.dev/#picadas): sencilla $25.000, súper $30.000, Picada Pichi $40.000.
 - [Salchipapas](https://pedidos-pichi-burguer-ctg.pages.dev/#salchipapas): sencilla $12.000, choripapa $16.000, mixta $18.000.
 - [Patacón](https://pedidos-pichi-burguer-ctg.pages.dev/#patacon): súper $16.000, mixto $18.000.
-- [Bebidas y adiciones](https://pedidos-pichi-burguer-ctg.pages.dev/#bebidas): hay gaseosas, jugos, agua y adiciones; precios {POR CONFIRMAR}.
+- [Bebidas y adiciones](https://pedidos-pichi-burguer-ctg.pages.dev/#bebidas): hay gaseosas, jugos, agua y adiciones de queso, papa y carne extra. Los precios todavía no están publicados; se piden escribiéndolos en el campo de notas del pedido y se cobran en el local.
 - [Cómo pedir](https://pedidos-pichi-burguer-ctg.pages.dev/#como-pedir): escoger del menú, dejar nombre y celular, recibir el turno.
 - [Horarios y ubicación](https://pedidos-pichi-burguer-ctg.pages.dev/#horarios): dirección, horario y mapa.
 
@@ -31,7 +31,10 @@
   el sistema termina de montarse la página acepta pedidos a cualquier hora.
 
 ## Notas
+- Última actualización de este archivo: 21 de septiembre de 2026.
 - Los precios están en pesos colombianos y son los del menú del local.
-- Los pedidos solo se reciben dentro del horario de atención.
 - El sitio no procesa pagos: el pago se hace en el local o por el medio acordado por WhatsApp.
+- Al enviar el pedido se entrega un número de turno; los pedidos se preparan por orden de llegada.
+- El cliente puede ver en vivo qué turno se está preparando y cuántos faltan antes del suyo.
+- La página se puede guardar como aplicación en el celular (es la misma web, no hay nada que descargar).
 - Sitio desarrollado por JX Company.

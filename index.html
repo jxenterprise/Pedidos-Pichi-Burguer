@@ -31,7 +31,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Pichi Burguer · Pide tu hamburguesa en línea en Cartagena</title>
-<meta name="description" content="Pide en línea en Pichi Burguer, Cartagena: hamburguesas, perros, picadas, salchipapas y patacones. Pide desde el celular y pasa a recogerlo en el barrio Bernardo Jaramillo.">
+<meta name="description" content="Hamburguesas, perros, picadas y salchipapas en Pichi Burguer, Cartagena. Pide desde el celular, recibe tu turno y pasa a recogerlo en Bernardo Jaramillo.">
 <link rel="canonical" href="https://pedidos-pichi-burguer-ctg.pages.dev/">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 <meta name="theme-color" content="#000000">
@@ -112,6 +112,8 @@
       "servesCuisine": ["Comida rápida", "Hamburguesas", "Perros calientes", "Comida colombiana"],
       "currenciesAccepted": "COP",
       "paymentAccepted": "Efectivo, Nequi, Transferencia",
+      "acceptsReservations": false,
+      "areaServed": { "@type": "City", "name": "Cartagena de Indias" },
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "Cra 58A #6, Bernardo Jaramillo",
@@ -121,6 +123,21 @@
       },
       "geo": { "@type": "GeoCoordinates", "latitude": 10.398, "longitude": -75.489 },
       "hasMap": "https://www.google.com/maps/search/?api=1&query=Cra+58A+%236%2C+Bernardo+Jaramillo%2C+Cartagena+de+Indias",
+      "potentialAction": {
+        "@type": "OrderAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://pedidos-pichi-burguer-ctg.pages.dev/",
+          "actionPlatform": [
+            "http://schema.org/DesktopWebPlatform",
+            "http://schema.org/MobileWebPlatform",
+            "http://schema.org/AndroidPlatform",
+            "http://schema.org/IOSPlatform"
+          ],
+          "inLanguage": "es-CO"
+        },
+        "deliveryMethod": "http://purl.org/goodrelations/v1#ServicePickup"
+      },
       "openingHoursSpecification": [
         { "@type": "OpeningHoursSpecification",
           "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
