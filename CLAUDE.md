@@ -147,8 +147,8 @@ Registro de todo el código. **Se suma, nunca se borra lo anterior.**
 
 | Archivo | Qué contiene |
 |---|---|
-| `index.html` | Página del cliente. **Cortina de cerrado (`#pantallaCerrado`)**, **franja de modo prueba (`#franjaPrueba`)**, barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, bebidas, cómo pedir, preguntas frecuentes (`#preguntas`), horarios, contacto, mapa condicionado, footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
-| `panel.html` | Panel del vendedor. Pantalla de clave → pestañas Activos / Historial |
+| `index.html` | Página del cliente. **Cortina de cerrado (`#pantallaCerrado`)**, barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, bebidas, cómo pedir, preguntas frecuentes (`#preguntas`), horarios, contacto, mapa condicionado, footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
+| `panel.html` | Panel del vendedor. Pantalla de clave → pestañas Activos / Historial, buscador, **modo cocina (`#cocina`)** y **ventana de confirmar (`#modalConfirmar`)** |
 | `404.html` | Error con el diseño del sitio |
 | `privacidad.html` | Ley 1581 de 2012 (datos personales) |
 | `cookies.html` | Resolución 32.126 de 2022 de la SIC |
@@ -158,8 +158,8 @@ Registro de todo el código. **Se suma, nunca se borra lo anterior.**
 | `js/config.js` | **El archivo que JX toca para cambiar cosas.** Negocio, horarios, entrega, pagos, modo del sistema y analytics |
 | `js/almacen.js` | Capa de datos intercambiable: habla con la nube o con el propio aparato |
 | `js/script.js` | Página del cliente: semáforo, horarios, carrito, pedido, WhatsApp, categorías, cookies |
-| `js/panel.js` | Panel del vendedor |
-| `functions/api/pedidos.js` | Cloudflare Pages Function: crear, listar, marcar entregado, borrar historial y limpieza semanal |
+| `js/panel.js` | Panel del vendedor. El **bloque 0** es la ventana de confirmar que reemplaza al `confirm()` del navegador — ver decisión 31 |
+| `functions/api/pedidos.js` | Cloudflare Pages Function: crear, listar, marcar entregado, cambiar estado, deshacer entregado, cola pública de turnos, borrar un pedido, borrar historial y limpieza semanal |
 | `_headers` | `no-cache` en CSS/JS, `no-store` en `/api/`, cabeceras de seguridad, `noindex` en el panel |
 | `robots.txt` · `sitemap.xml` · `llms.txt` · `site.webmanifest` | SEO y metadatos |
 
@@ -576,8 +576,10 @@ las tres eran el sistema funcionando sin que la persona se diera cuenta:
   respuesta sea "nada"**. Un botón que no da señal de vida es un botón en el que
   nadie confía.
 - **La campana sonaba una sola vez** y se perdía entre el ruido de la freidora.
-  Ahora suena **3 veces** con 0,9 s entre una y otra. Menos pausa suena a alarma
-  de carro; más pausa parece que entraron tres pedidos distintos.
+  Ahora suena **5 veces** con 0,9 s entre una y otra, y más fuerte
+  (`CAMPANA_VECES = 5`, `CAMPANA_VOLUMEN = 0.6`). Empezó en 3; JX pidió 5 el
+  mismo día, después de oírla en el local. Menos pausa suena a alarma de carro;
+  más pausa parece que entraron cinco pedidos distintos.
   ⚠ Las repeticiones se programan todas de una con el reloj del audio, **no con
   `setTimeout`**: el reloj de audio no se desordena aunque el celular esté
   ocupado, y un `setTimeout` puede llegar tarde o no llegar.
@@ -597,6 +599,90 @@ ficha. Ese archivo no lo descarga el cliente, solo lo lee el buscador.
 ("conservando resolución original"), aprobada por JX. La regla sigue valiendo
 para los originales; lo que se permite es **generar derivados más pequeños para
 servirlos**, siempre en WebP y sin tocar el original.
+
+**31. ⛔ NUNCA MÁS `confirm()`, `alert()` NI `prompt()` DEL NAVEGADOR.**
+
+**Regla dura del proyecto, pedida por JX el 21 de septiembre de 2026:**
+*"no me gustan estas confirmaciones así... quiero como un modal con el mismo
+diseño de la web bien bacano y atractivo, y que diga seguro que quieres
+eliminar"*. Aplica a **todo el sitio, para siempre**: si mañana hace falta una
+pregunta nueva, se llama a `confirmar()`, **no** se pone un `confirm()`.
+
+**Por qué tenía razón, más allá del gusto:**
+- El cuadro de Chrome se ve como una alerta del sistema operativo, no como esta
+  página. El vendedor pasa de una web negra y roja a un cuadro blanco de Windows
+  con el nombre del dominio arriba. Parece un error, no una pregunta del sistema.
+- **No se puede dar formato.** El turno y el nombre del cliente —que son justo lo
+  único que evita borrar la tarjeta equivocada— salían en texto plano, del mismo
+  tamaño y color que el resto.
+- Algunos navegadores lo bloquean según desde dónde se llame, y entonces la
+  acción se ejecuta sola o no se ejecuta nunca.
+
+**Dónde vive:** bloque 0 de `js/panel.js` (`confirmar()` + `responderConfirmar()`
++ `confTeclado()`), markup `#modalConfirmar` al final de `panel.html`, y las
+clases `.modal--conf` / `.conf__*` en `css/styles.css`. Reusa `.modal` y
+`.modal__caja`, que ya existían para la ventana del pedido del cliente: mismos
+`--negro-sup-2`, `--radio-lg`, `--sombra-alta` y los mismos `.btn--rojo` /
+`.btn--linea`. **No se inventó ningún color ni componente nuevo.**
+
+**Cómo se usa** (devuelve una promesa que nunca se rechaza: cancelar no es un
+error, es una respuesta):
+```js
+confirmar({
+  titulo:    '¿Seguro que quieres eliminar?',
+  resaltado: 'Turno 4 — Andrés Pérez',
+  texto:     'Se borra para siempre y no se puede deshacer.',
+  detalle:   'El número de turno NO se vuelve a usar.',
+  ok:        'Sí, borrar'
+}).then(function (siOno) { if (siOno) { /* … */ } });
+```
+
+⚠ **TODOS los campos se pintan con `textContent`, NUNCA con `innerHTML`.** Por
+ahí pasa el nombre que escribió el cliente, que es texto de fuera. Con
+`innerHTML`, un nombre como `<img src=x onerror=…>` se ejecutaría **en el
+navegador del vendedor, que es justo quien tiene la sesión del panel abierta**.
+Al ser `textContent` no hay nada que escapar ni que acordarse de escapar: es
+seguro por construcción. Por eso el turno y el nombre van en su propio campo
+`resaltado` en vez de armar HTML a mano. Probado con un nombre malicioso real.
+
+**Detalles que no son casualidad:**
+- **El foco arranca en CANCELAR, no en el botón rojo.** Si arrancara en el rojo,
+  un Enter de más —el mismo que el vendedor acaba de pulsar para otra cosa—
+  borraría el pedido sin que alcance a leer de quién era.
+- El **turno y el nombre** van en amarillo, más grandes y en su propia caja: si
+  el vendedor solo lee una línea de toda la ventana, tiene que ser esa.
+- **Escape y el clic en el fondo cancelan.** Encierra el foco igual que la
+  ventana del pedido (decisión 17) y con el mismo cuidado del selector: la lista
+  de enfocables se arma pegándole el prefijo a cada selector por separado.
+- Se escucha el teclado **en fase de captura** para llegar antes que el atajo de
+  Escape del modo cocina, que si no cerraría los dos a la vez.
+- `z-index: 140`, por encima del modo cocina (120) y del aviso flotante (110):
+  una pregunta sin responder bloquea todo lo demás por definición.
+- En pantalla ≤380px los botones se apilan y **Cancelar queda abajo**, que es
+  donde cae el pulgar. Se invierte solo el orden visual (`column-reverse`), no
+  el del HTML, donde Cancelar va primero porque es el que recibe el foco.
+
+**32. Las 6 mejoras del panel que escogió JX (21 de septiembre de 2026).**
+
+| # | Mejora | Qué resuelve |
+|---|---|---|
+| 1 | **Reloj de espera** en cada tarjeta | El vendedor no sabía si el turno 4 entró hace 2 minutos o hace media hora: la hora exacta hay que restarla mentalmente y con el local lleno nadie lo hace. Gris → naranja a los 15 min → rojo a los 25. **El color es el aviso, no decoración.** |
+| 2 | **Modo cocina** | Un pedido a la vez, en letra grande, para leerlo a un metro con las manos ocupadas. Flechas ←/→ y Escape para salir. |
+| 3 | **Estado "En plancha"** (`estado`) | Separa "ya lo estoy haciendo" de "ya lo entregué". Se guarda en el servidor, así que **alimenta la cola pública** que ve el cliente (decisión 28). |
+| 7 | **Imprimir la comanda** (🖨) | Imprime **solo esa tarjeta** escondiendo el resto con CSS. Sin ventana aparte ni documento nuevo: el papel sale con el diseño que ya está probado. |
+| 8 | **Deshacer 10 segundos** | "Entregado" está al lado de otros botones y se toca por error. El servidor acepta deshacer **siempre**; el panel solo lo ofrece 10 s, pero si el vendedor se da cuenta 5 minutos después tiene que poder arreglarlo igual. |
+| 9 | **Buscador** por nombre o turno | Con 20 tarjetas parecidas, encontrar "el de Andrés" a ojo es lento y el cliente está esperando en el mostrador. |
+
+⚠ El estado nuevo se guarda **además** de `entregado`, no en su lugar: los
+pedidos que ya estaban en KV no tienen el campo y el panel tiene que seguir
+pintándolos bien. **Sin campo = `'nuevo'`.** Misma regla que la decisión 10.
+
+⚠ El sistema **no obliga a seguir un orden**: un pedido puede ir de 'nuevo' a
+entregado directo sin pasar por "En plancha". El vendedor que no quiera usar ese
+botón no debe quedar bloqueado.
+
+⚠ El texto del botón dice **"🔥 En plancha"** y no "En la plancha" porque el
+largo se partía en dos líneas a 390px y deformaba toda la fila.
 
 ### Verificación hecha antes de entregar
 
@@ -660,6 +746,12 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
    en el "Mapa del código" de este archivo.
 6. Ante cualquier duda o cosa rara, **preguntarle a JX** — nunca improvisar.
 7. Las páginas legales deberían ser revisadas por un abogado antes de publicarse.
+8. **Ninguna pregunta al usuario usa `confirm()`, `alert()` ni `prompt()`** del
+   navegador. Se llama a `confirmar()` del bloque 0 de `js/panel.js`. Regla de
+   JX, sin excepciones — ver decisión 31.
+9. **Todo lo que escriba el cliente** (nombre, notas) se pinta con `textContent`,
+   nunca con `innerHTML`, y lleva `overflow-wrap: anywhere` si va en una caja
+   angosta. Las dos reglas nacieron de bugs reales, no de teoría.
 
 ---
 
@@ -929,6 +1021,70 @@ por si existe el evento del navegador.
 **Probado**: 7 comprobaciones del flujo solo-recoger, 13 de las mejoras del
 cliente (incluida la que confirma que repetir un pedido usa los precios de HOY
 y no los guardados), 12 del panel, 22 del servidor y 6 de borrar pedidos.
+
+### 21 de septiembre de 2026, 9:04 a. m. · Fuera los cuadros grises de Chrome + 6 mejoras del panel
+
+JX, interrumpiendo el trabajo anterior: *"no me gustan estas confirmaciones
+así... quiero como un modal con el mismo diseño de la web bien bacano y
+atractivo... esos del mismo Chrome no me gusta. Si la página tiene eso en más
+partes aparte de solo esa, cambiémoslas todas, para que vayas sabiendo desde
+ahora"*.
+
+**1. Ventana de confirmar propia.** Ver decisión 31, que queda como **regla
+permanente del proyecto**. Se buscó en todo el repositorio: había exactamente
+dos `confirm()`, los dos en `js/panel.js` (borrar un pedido y borrar el
+historial). Los dos pasaron a la ventana nueva. **No queda ni un `confirm()`,
+`alert()` ni `prompt()` en el sitio** — comprobado con grep y, en navegador
+real, saboteando `window.confirm` para que la prueba cantara si alguien lo
+llamara.
+
+**2. Las 6 mejoras del panel** (#1, #2, #3, #7, #8, #9 de la lista que JX
+escogió). Ver decisión 32. Quedaron terminadas: el JS ya estaba escrito y en
+esta tanda se le agregó el markup de `panel.html` y todo el CSS.
+
+**3. La campana pasó de 3 a 5 toques y más fuerte**, como pidió JX
+(`CAMPANA_VECES = 5`, `CAMPANA_VOLUMEN = 0.6`). Actualiza lo que decía la
+decisión 29.
+
+**Tres bugs reales encontrados por las pruebas y corregidos:**
+1. **Un nombre largo sin espacios rompía el panel entero.** Con un cliente
+   llamado `MariaJoseRodriguezHernandezDeLaTorre`, a 320px el ancho del
+   documento se iba a **555px** y el vendedor tenía que arrastrar de lado para
+   ver el botón "Entregado". La auditoría del 21 había probado un nombre de 48
+   caracteres, pero **con espacios**, y esos sí parten solos. Arreglado con
+   `overflow-wrap: anywhere` en el nombre, en las notas y en los platos — todo
+   lo que escribe el cliente. Comprobado: 555px → 320px.
+2. **"🔥 En la plancha" se partía en dos líneas** a 390px y dejaba la fila de
+   botones con alturas distintas, que se lee como si algo estuviera roto. Texto
+   acortado y `white-space: nowrap` en todos los botones del pie.
+3. **El botón "Borrar" medía 40px de ancho** en celulares de ≤380px: al esconder
+   la palabra quedaba solo el emoji con 12px de relleno. Por debajo del mínimo
+   de 44 de la decisión 26, justo el tamaño donde el pulgar empieza a fallar.
+   Arreglado con `min-width: 44px`.
+
+**Probado en navegador real (Chromium):**
+- **51 comprobaciones** de la ventana de confirmar y las 6 mejoras: que no se
+  llame ningún diálogo nativo, qué dice la ventana, que el foco arranque en
+  Cancelar, que cancelar/Escape/clic en el fondo no borren, que el tabulador no
+  se escape en 10 saltos, que aceptar sí borre, **que un nombre con
+  `<img onerror>` no ejecute nada**, y las 6 mejoras una por una.
+- **6 anchos** (320 a 1280): la ventana cabe entera, sin scroll lateral, con los
+  botones a 48px.
+- **5 anchos**: los 13 objetivos táctiles del panel miden 44px o más.
+- **22 comprobaciones del servidor** con un KV falso: el campo `prueba` ya no
+  existe y se ignora si lo mandan, `borrar-pruebas` responde "Acción no
+  reconocida", el estado se guarda y un estado inventado cae a `'nuevo'`,
+  deshacer entregado funciona y da 401/404 cuando toca, **la cola pública
+  devuelve solo números y no filtra ni un nombre ni un teléfono**, y el turno
+  sigue sin reciclarse al borrar.
+- Las baterías anteriores (solo-recoger, mejoras del cliente, flujo en celular,
+  borrar pedidos) vuelven a pasar.
+
+**Dos arneses de prueba actualizados, no el código:** el de borrar esperaba el
+`confirm()` nativo, y `api2.mjs` comprobaba entero el modo prueba que JX eliminó
+el 21 (decisión 20). Este último se reescribió al revés —ahora verifica que del
+modo prueba no quede rastro— y de paso **se le quitó la clave real que tenía
+escrita**; usa una ficticia.
 
 ---
 

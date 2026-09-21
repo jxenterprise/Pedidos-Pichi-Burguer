@@ -1027,6 +1027,13 @@ body.cerrado-visible { overflow: hidden; }
   /* Excepción a los h3 del proyecto: el nombre del cliente se respeta tal cual
      lo escribió, sin pasarlo a mayúsculas. */
   text-transform: none;
+  /* ⚠ El nombre lo escribe el cliente y puede llegar sin un solo espacio
+     ("MariaJoseRodriguezHernandezDeLaTorre"). Sin esto, a 320px de ancho el
+     nombre estiraba la tarjeta y el PANEL ENTERO quedaba con scroll lateral:
+     el vendedor tenía que arrastrar de lado para ver el botón "Entregado".
+     "anywhere" y no "break-word" porque break-word solo parte si la palabra
+     está sola en su línea, y aquí va dentro de un flex. */
+  overflow-wrap: anywhere;
 }
 .pedido__meta { font-size: .8rem; color: var(--texto-tenue); }
 
@@ -1043,6 +1050,11 @@ body.cerrado-visible { overflow: hidden; }
 }
 .pedido__extra div { display: flex; gap: 10px; padding: 3px 0; }
 .pedido__extra div span:first-child { color: var(--texto-tenue); min-width: 84px; flex-shrink: 0; }
+/* Las notas para la cocina también las escribe el cliente: mismo riesgo de
+   desborde que el nombre, misma solución. */
+.pedido__extra div span:last-child { min-width: 0; overflow-wrap: anywhere; }
+/* Y el nombre del plato, por si algún día se agrega uno de nombre muy largo. */
+.pedido__items li span:first-of-type { min-width: 0; overflow-wrap: anywhere; }
 
 .pedido__pie { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .pedido__total {
@@ -1050,6 +1062,11 @@ body.cerrado-visible { overflow: hidden; }
   font-size: 1.2rem; color: var(--blanco); margin-right: auto;
 }
 .pedido__pie .btn { min-height: 44px; padding: 0 15px; font-size: .88rem; }
+/* Ningún botón del pie se parte en dos líneas: si el texto no cabe, se aprieta
+   el relleno antes que crecer de alto. Una fila de botones de alturas distintas
+   se lee como si algo estuviera roto. */
+.pedido__pie .btn, .pedido__borrar { white-space: nowrap; }
+@media (max-width: 400px) { .pedido__pie .btn { padding: 0 11px; } }
 
 /* Botón de borrar un pedido.
    Primero se hizo gris y discreto para que no compitiera con "Entregado". JX
@@ -1080,7 +1097,11 @@ body.cerrado-visible { overflow: hidden; }
 /* En celular angosto se queda solo el icono para no partir la fila de botones,
    pero el color fuerte se mantiene: eso es lo que lo hace visible. */
 @media (max-width: 380px) {
-  .pedido__borrar { padding: 0 12px; }
+  /* Al esconder la palabra queda solo el emoji, y con 12px de relleno el botón
+     bajaba a 40px de ancho: por debajo del mínimo de 44 de la decisión 26, que
+     es justo el tamaño en el que el pulgar empieza a fallar. El min-width lo
+     sostiene aunque el contenido se encoja. */
+  .pedido__borrar { padding: 0 12px; min-width: 44px; }
   .pedido__borrar .pedido__borrar-txt { display: none; }
 }
 
@@ -1099,6 +1120,211 @@ body.cerrado-visible { overflow: hidden; }
   max-width: calc(100vw - 32px); text-align: center;
 }
 .aviso-flot.visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* --- Buscador de pedidos -----------------------------------------------------
+   Cuando hay 20 tarjetas parecidas, encontrar "el de Andrés" a ojo es lento y
+   el cliente está esperando en el mostrador. Mismos colores y radios que los
+   campos del formulario del cliente: aquí no se inventa un campo distinto. */
+.buscador {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--negro-sup); border: 1px solid var(--linea);
+  border-radius: var(--radio-sm); padding: 0 12px;
+  margin-bottom: 14px;
+}
+.buscador:focus-within { border-color: var(--linea-fuerte); }
+.buscador__lupa { font-size: 1rem; line-height: 1; flex-shrink: 0; opacity: .75; }
+.buscador input {
+  flex: 1; min-width: 0;
+  background: transparent; border: 0; outline: none;
+  color: var(--texto); font-family: var(--fuente-texto);
+  /* 16px exactos: por debajo de eso iOS hace zoom solo al tocar el campo y
+     deja el panel descuadrado. Es la misma razón que en el formulario. */
+  font-size: 16px; font-weight: 500;
+  min-height: 46px; padding: 0;
+}
+.buscador input::placeholder { color: var(--texto-tenue); }
+/* Fuera la X nativa de WebKit: ya hay un botón propio de 44px, y dos equis
+   seguidas confunden. */
+.buscador input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.buscador__x {
+  width: 44px; height: 44px; flex-shrink: 0; margin-right: -12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; color: var(--texto-suave);
+  font-size: 1rem; line-height: 1; cursor: pointer;
+}
+.buscador__nada {
+  color: var(--texto-tenue); font-size: .88rem;
+  text-align: center; padding: 26px 16px 6px;
+}
+
+/* --- Cuánto lleva esperando el pedido ----------------------------------------
+   El vendedor no tiene forma de saber si el turno 4 entró hace 2 minutos o
+   hace media hora: la hora exacta hay que restarla mentalmente, y con el local
+   lleno nadie lo hace. El reloj lo dice ya sumado.
+   Los colores NO son decorativos, son el aviso: gris = normal, naranja = ya se
+   está demorando, rojo = el cliente lleva demasiado esperando. */
+.espera {
+  margin-left: auto; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: var(--radio-full);
+  background: rgba(255,255,255,.06); border: 1px solid var(--linea);
+  color: var(--texto-tenue);
+  font-size: .76rem; font-weight: 700; white-space: nowrap;
+}
+.espera--aviso {
+  background: rgba(254,155,5,.14); border-color: rgba(254,155,5,.45); color: var(--naranja);
+}
+.espera--tarde {
+  background: rgba(224,18,32,.16); border-color: rgba(224,18,32,.55); color: #FF8B93;
+}
+
+/* Pedido que ya está en la plancha. El borde naranja a la izquierda sigue el
+   mismo idioma que ya usa la tarjeta: verde = entregado, gris = viejo. */
+.pedido.en-plancha { border-left-color: var(--naranja); }
+.pedido__estado {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: var(--radio-full);
+  background: rgba(254,155,5,.14); border: 1px solid rgba(254,155,5,.45);
+  color: var(--naranja); font-size: .7rem; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+
+/* Botón de imprimir la comanda: icono solo, 44px, discreto. A diferencia de
+   "Borrar" este sí puede ser discreto — equivocarse imprimiendo no cuesta nada
+   y se usa mucho menos que "Entregado". */
+.pedido__imprimir {
+  width: 44px; height: 44px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--linea);
+  border-radius: var(--radio-sm); color: var(--texto-suave);
+  font-size: 1rem; line-height: 1; cursor: pointer;
+}
+@media (hover: hover) {
+  .pedido__imprimir:hover { border-color: var(--linea-fuerte); color: var(--texto); }
+}
+/* Confirmación verde de un segundo dentro del propio botón: el vendedor ve que
+   su toque hizo algo sin tener que buscar el aviso flotante. */
+.pedido__ok { background: var(--verde) !important; border-color: var(--verde) !important; color: #fff !important; }
+
+/* Botón "Deshacer" dentro del aviso flotante. Va junto al texto y no debajo
+   para que quepa de una línea en un celular angosto. */
+.aviso-flot { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.aviso-flot.visible { pointer-events: auto; }   /* si no, el Deshacer no se puede tocar */
+.aviso-flot__deshacer {
+  flex-shrink: 0; min-height: 34px; padding: 0 13px;
+  background: var(--amarillo); border: 0; border-radius: var(--radio-sm);
+  color: #1a1a1a; font-family: var(--fuente-texto);
+  font-size: .82rem; font-weight: 700; line-height: 1; cursor: pointer;
+}
+
+/* --- Modo cocina -------------------------------------------------------------
+   Un pedido a la vez, en letra grande, para leerlo a un metro de distancia con
+   las manos ocupadas. z-index 120: por encima del aviso flotante (110) pero
+   por debajo de la ventana de confirmar (140), para que un "¿seguro?" lanzado
+   desde aquí se vea encima y no debajo. */
+.cocina {
+  position: fixed; inset: 0; z-index: 120;
+  background: var(--negro);
+  display: flex; flex-direction: column;
+  padding: calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));
+}
+.cocina[hidden] { display: none; }
+/* Con el modo cocina abierto el panel de atrás no debe moverse. Sin esto, en
+   iOS el dedo arrastra la lista de abajo mientras se lee la tarjeta grande. */
+body.modo-cocina { overflow: hidden; }
+.cocina__barra { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.cocina__pos {
+  font-family: var(--fuente-titulo); font-style: italic; font-weight: 800;
+  font-size: 1rem; color: var(--texto-suave);
+}
+.cocina__cerrar {
+  margin-left: auto; min-height: 44px; padding: 0 16px;
+  background: transparent; border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio-sm); color: var(--texto);
+  font-family: var(--fuente-texto); font-size: .9rem; font-weight: 700; cursor: pointer;
+}
+.cocina__cuerpo { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.cocina__pies { display: flex; gap: 10px; margin-top: 14px; }
+.cocina__pies .btn { flex: 1; }
+
+/* La tarjeta dentro del modo cocina: la misma, pero todo más grande. No se
+   redefine el componente, solo se escala — así un cambio futuro en .pedido
+   sigue valiendo aquí. */
+.cocina .pedido { margin: 0; border-left-width: 6px; }
+.cocina .pedido__turno b { font-size: 2.6rem; }
+.cocina .pedido__quien h3 { font-size: 1.5rem; }
+.cocina .pedido__items { font-size: 1.25rem; }
+.cocina .pedido__items li { padding: 9px 0; }
+.cocina .pedido__items li b { font-size: 1.35rem; min-width: 40px; }
+.cocina .pedido__total { font-size: 1.3rem; }
+.cocina .pedido__extra { font-size: 1rem; }
+.cocina .pedido__extra div span:first-child { min-width: 96px; }
+
+/* --- Ventana de confirmar ----------------------------------------------------
+   Reemplaza el confirm() gris del navegador (regla de JX, 21 sept. 2026).
+   z-index 140: por encima del modo cocina (120) y del aviso flotante (110),
+   porque una pregunta sin respuesta bloquea todo lo demás por definición.
+   Usa .modal y .modal__caja, que ya existen; aquí solo se ajusta lo propio de
+   una pregunta corta. */
+.modal--conf { z-index: 140; align-items: center; padding: 16px; }
+.conf__caja {
+  max-width: 420px; text-align: center;
+  border-radius: var(--radio-lg);     /* centrada: redondea las 4 esquinas, no 2 */
+  padding: 26px clamp(18px, 6vw, 30px) 22px;
+  box-shadow: var(--sombra-alta);
+  /* Entrada corta y sin rebote. El skill prohíbe animaciones exageradas y
+     además esto aparece encima de una acción que no tiene vuelta atrás: no es
+     el momento de que algo salte. */
+  animation: conf-entra .16s ease-out;
+}
+@keyframes conf-entra {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+.conf__icono {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 62px; height: 62px; margin-bottom: 14px;
+  border-radius: var(--radio-full);
+  background: rgba(224,18,32,.13); border: 1px solid rgba(224,18,32,.4);
+  font-size: 1.7rem; line-height: 1;
+}
+.conf__titulo { margin: 0 0 12px; font-size: 1.22rem; line-height: 1.25; }
+/* El turno y el nombre del cliente. Es lo único que evita borrar la tarjeta
+   equivocada, así que va en amarillo y más grande que el resto del texto: si
+   el vendedor solo lee una línea de toda la ventana, tiene que ser esta. */
+.conf__resaltado {
+  margin: 0 0 12px; padding: 11px 14px;
+  background: rgba(255,209,0,.09); border: 1px solid rgba(255,209,0,.32);
+  border-radius: var(--radio-sm);
+  color: var(--amarillo); font-size: 1.02rem; font-weight: 700;
+  overflow-wrap: anywhere;    /* un nombre larguísimo no puede desbordar la caja */
+}
+.conf__texto   { margin: 0 0 8px; color: var(--texto-suave); font-size: .93rem; line-height: 1.5; }
+.conf__detalle { margin: 0; color: var(--texto-tenue); font-size: .84rem; line-height: 1.45; }
+.conf__botones { display: flex; gap: 10px; margin-top: 20px; }
+.conf__botones .btn { flex: 1; }
+/* En pantalla angosta los dos botones se apilan, y CANCELAR queda ABAJO: es el
+   que cae bajo el pulgar, que es donde tiene que estar el botón que no rompe
+   nada. Por eso se invierte el orden visual, no el del HTML (ahí Cancelar va
+   primero porque es el que recibe el foco al abrir). */
+@media (max-width: 380px) {
+  .conf__botones { flex-direction: column-reverse; }
+}
+
+/* Imprimir UNA sola comanda: se esconde todo menos la tarjeta marcada.
+   Así no hace falta abrir otra ventana ni armar un documento aparte, y el
+   papel sale con el mismo diseño que ya está probado. */
+@media print {
+  body.imprimiendo-una .pedido { display: none !important; }
+  body.imprimiendo-una .pedido.imprimiendo { display: block !important; }
+  body.imprimiendo-una .seccion-cab,
+  body.imprimiendo-una .buscador,
+  body.imprimiendo-una .buscador__nada,
+  body.imprimiendo-una .pie,
+  body.imprimiendo-una .aviso-flot,
+  body.imprimiendo-una .cocina { display: none !important; }
+  .espera, .pedido__estado { border-color: #999 !important; color: #000 !important; background: none !important; }
+}
 
 
 /* ============================================================================

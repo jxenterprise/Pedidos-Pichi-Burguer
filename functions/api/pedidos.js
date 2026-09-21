@@ -241,7 +241,13 @@ export async function onRequest({ request, env }) {
         cantidad: Math.max(1, Math.min(20, parseInt(i.cantidad, 10) || 1)),
         precio: Math.max(0, parseInt(i.precio, 10) || 0)
       })),
-      entregado: false
+      entregado: false,
+      // Estado del pedido en la cocina: 'nuevo' → 'preparando' → entregado.
+      // Se guarda además de "entregado" y no en su lugar: los pedidos que ya
+      // existen en KV no tienen este campo, y el panel tiene que seguir
+      // pintándolos bien. Sin campo = 'nuevo'.
+      estado: 'nuevo',
+      empezadoEn: null
     };
 
     // El total se recalcula AQUÍ, no se acepta el que manda el navegador.
@@ -283,10 +289,22 @@ export async function onRequest({ request, env }) {
     const hoy = fechaDia();
     const doc = await leerJson(kv, 'dia:' + hoy, { turno: 0, pedidos: [] });
 
-    // "Preparando" es el turno más bajo que todavía no se ha entregado. Es lo
-    // que de verdad le importa al cliente: por dónde van.
+    // "Preparando" es, si el vendedor lo marcó, el pedido que está en la
+    // plancha. Si no marcó ninguno, se cae al turno más bajo sin entregar, que
+    // es la mejor suposición. Así el dato le sirve al cliente aunque el
+    // vendedor no use el botón "Empezar".
+    const enPlancha = doc.pedidos.filter(p => !p.entregado && p.estado === 'preparando').map(p => p.turno);
     const pendientes = doc.pedidos.filter(p => !p.entregado).map(p => p.turno);
     const entregados = doc.pedidos.filter(p => p.entregado).map(p => p.turno);
+    if (enPlancha.length) {
+      return json({
+        ok: true,
+        preparando: Math.min(...enPlancha),
+        enCola: pendientes.length,
+        ultimoEntregado: entregados.length ? Math.max(...entregados) : null,
+        turnoDelDia: doc.turno
+      });
+    }
 
     return json({
       ok: true,
@@ -372,6 +390,53 @@ export async function onRequest({ request, env }) {
 
     await kv.put('indice:dias', JSON.stringify(quedan));
     return json({ ok: true });
+  }
+
+  /* ACCIÓN: estado — mueve un pedido entre 'nuevo' y 'preparando'
+     Para qué: que el vendedor marque con un toque lo que ya está en la plancha.
+     Le sirve a él para saber qué sigue, y de paso alimenta la cola que ve el
+     cliente en su pantalla de turno, que pasa de ser una suposición a ser el
+     dato real.
+     ⚠ NO toca "entregado": ese es otro botón y otra acción. Un pedido puede
+     pasar de 'preparando' a entregado, o de 'nuevo' a entregado directamente
+     si el vendedor no usa este botón. El sistema no obliga a seguir un orden. */
+  if (accion === 'estado') {
+    const nuevoEstado = datos.estado === 'preparando' ? 'preparando' : 'nuevo';
+    const indice = await leerJson(kv, 'indice:dias', []);
+    for (const d of indice) {
+      const doc = await leerJson(kv, 'dia:' + d, null);
+      if (!doc) continue;
+      const p = doc.pedidos.find(x => x.id === datos.id);
+      if (p) {
+        p.estado = nuevoEstado;
+        p.empezadoEn = nuevoEstado === 'preparando' ? Date.now() : null;
+        await kv.put('dia:' + d, JSON.stringify(doc));
+        return json({ ok: true, estado: nuevoEstado });
+      }
+    }
+    return json({ error: 'Pedido no encontrado.' }, 404);
+  }
+
+  /* ACCIÓN: deshacer-entregado — devuelve un pedido a la lista de pendientes
+     Para qué: el botón "Entregado" está al lado de otros y se toca por error.
+     Sin esto, el único arreglo era borrar el pedido y perder el registro.
+     El panel solo lo ofrece durante unos segundos después de marcarlo, pero el
+     servidor lo acepta siempre: si el vendedor se da cuenta cinco minutos
+     después, tiene que poder arreglarlo igual. */
+  if (accion === 'deshacer-entregado') {
+    const indice = await leerJson(kv, 'indice:dias', []);
+    for (const d of indice) {
+      const doc = await leerJson(kv, 'dia:' + d, null);
+      if (!doc) continue;
+      const p = doc.pedidos.find(x => x.id === datos.id);
+      if (p) {
+        p.entregado = false;
+        p.entregadoEn = null;
+        await kv.put('dia:' + d, JSON.stringify(doc));
+        return json({ ok: true });
+      }
+    }
+    return json({ error: 'Pedido no encontrado.' }, 404);
   }
 
   /* ACCIÓN: borrar-pedido — quita UN pedido concreto, el que escoja el vendedor

@@ -129,7 +129,21 @@
         <button type="button" class="pestana pestana--avisos" id="btnAvisos"
                 aria-pressed="false" style="margin-left:auto">🔕 Activar avisos</button>
         <button type="button" class="pestana" id="btnRefrescar">Actualizar</button>
+        <button type="button" class="pestana" id="btnCocina">🍳 Modo cocina</button>
       </div>
+
+      <!-- Buscador. Va DEBAJO de las pestañas y no arriba porque en un celular
+           lo primero tiene que ser la lista de pedidos, no un campo vacío.
+           El type es "search" y no "text": en iOS el teclado trae la tecla
+           "Buscar" y aparece la X nativa para vaciarlo. -->
+      <div class="buscador">
+        <label class="buscador__lupa" for="campoBuscar" aria-hidden="true">🔎</label>
+        <input type="search" id="campoBuscar" placeholder="Buscar por nombre o turno…"
+               autocomplete="off" aria-label="Buscar un pedido por nombre o por número de turno">
+        <button type="button" class="buscador__x" id="btnLimpiarBuscar" hidden
+                aria-label="Borrar lo que busqué">✕</button>
+      </div>
+      <p class="buscador__nada" id="buscarNada" hidden role="status">Ningún pedido coincide con esa búsqueda.</p>
 
       <div id="listaActivos" role="tabpanel" aria-labelledby="tabActivos"></div>
       <div id="listaHistorial" role="tabpanel" aria-labelledby="tabHistorial" hidden></div>
@@ -144,6 +158,48 @@
   </section>
 
 </main>
+
+<!-- =========================================================================
+     MODO COCINA
+     Un pedido a la vez, en letra grande, para leerlo de lejos con las manos
+     ocupadas. Arranca con hidden: si el JS fallara, no se queda una capa negra
+     tapando el panel — falla del lado seguro, igual que la cortina de cerrado.
+     ========================================================================= -->
+<div class="cocina" id="cocina" hidden role="dialog" aria-modal="true" aria-label="Modo cocina">
+  <div class="cocina__barra">
+    <span class="cocina__pos" id="cocinaPos">1 de 1</span>
+    <button type="button" class="cocina__cerrar" id="cocinaCerrar" aria-label="Salir del modo cocina">✕ Salir</button>
+  </div>
+  <div class="cocina__cuerpo" id="cocinaTarjeta"></div>
+  <div class="cocina__pies">
+    <button type="button" class="btn btn--linea" id="cocinaAnterior">← Anterior</button>
+    <button type="button" class="btn btn--linea" id="cocinaSiguiente">Siguiente →</button>
+  </div>
+</div>
+
+<!-- =========================================================================
+     VENTANA DE CONFIRMAR
+     Reemplaza el confirm() gris del navegador. Ver el bloque 0 de js/panel.js
+     para el porqué. Va al final del <body> y no dentro del panel para que
+     ningún contenedor con overflow o transform la recorte.
+     ========================================================================= -->
+<div class="modal modal--conf" id="modalConfirmar" role="alertdialog" aria-modal="true"
+     aria-labelledby="confTitulo" aria-describedby="confTexto">
+  <div class="modal__caja conf__caja">
+    <span class="conf__icono" id="confIcono" aria-hidden="true">🗑</span>
+    <h2 class="conf__titulo" id="confTitulo">¿Seguro que quieres eliminar?</h2>
+    <p class="conf__resaltado" id="confResaltado" hidden></p>
+    <p class="conf__texto" id="confTexto" hidden></p>
+    <p class="conf__detalle" id="confDetalle" hidden></p>
+    <div class="conf__botones">
+      <!-- Cancelar va PRIMERO en el HTML: es el que recibe el foco al abrir y
+           el que debe quedar bajo el pulgar. El rojo va de segundo para que
+           borrar cueste un movimiento más que arrepentirse. -->
+      <button type="button" class="btn btn--linea" id="confCancelar">Cancelar</button>
+      <button type="button" class="btn btn--rojo" id="confOk">Sí, borrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Aviso flotante para confirmar acciones y avisar de pedidos nuevos. -->
 <p class="aviso-flot" id="avisoFlotante" role="status" aria-live="polite"></p>

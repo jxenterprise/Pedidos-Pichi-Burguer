@@ -5,10 +5,13 @@
    QUÉ CONTIENE: el comportamiento del panel del vendedor (panel.html).
 
    BLOQUES DE ESTE ARCHIVO:
+     0. Ventana de confirmar (reemplaza el confirm() del navegador)
      1. Acceso con clave
      2. Carga y refresco de los pedidos
      3. Dibujo de cada tarjeta de pedido
      3bis. Avisos: campana, notificación y pantalla encendida
+     3ter. Cuánto lleva esperando cada pedido
+     3quater. Buscador y modo cocina
      4. Acciones: entregado, borrar un pedido, borrar historial, salir
      5. Arranque
 
@@ -48,6 +51,141 @@
   /* Sin espacio entre el signo y el número, igual que el menú y el carrito
      de la página del cliente. Intl mete un espacio fino que se quita. */
   function pesos(n) { return formatoPeso.format(n).replace(/\s/g, ''); }
+
+  /* ==========================================================================
+     0) VENTANA DE CONFIRMAR — reemplaza el confirm() del navegador
+     --------------------------------------------------------------------------
+     POR QUÉ EXISTE: las preguntas de "¿seguro?" las hacía confirm(), que es el
+     cuadro gris del propio Chrome. Tiene tres problemas de verdad, no de gusto:
+       · Se ve como una alerta de sistema, no como esta página. El vendedor
+         pasa de una web negra y roja a un cuadro blanco de Windows.
+       · No se puede dar formato: el turno y el nombre del cliente, que son
+         justo lo que hay que leer antes de borrar, salen en texto plano.
+       · Algunos navegadores lo bloquean si se llama desde ciertos contextos,
+         y entonces la acción se ejecuta sola o no se ejecuta nunca.
+     ⚠ REGLA DEL PROYECTO (JX, 21 de sept. de 2026): en este sitio NO se vuelve
+     a usar confirm(), alert() ni prompt() del navegador. Toda pregunta pasa por
+     esta ventana. Si hace falta una nueva, se llama a confirmar(), no se
+     inventa otra.
+
+     CÓMO SE USA:
+       confirmar({
+         titulo:    '¿Seguro que quieres eliminar?',
+         resaltado: 'Turno 4 — Andrés',        // lo que hay que leer antes de dar clic
+         texto:     'Se borra para siempre.',
+         detalle:   'El número de turno NO se vuelve a usar.',
+         ok:        'Sí, borrar',
+         peligro:   true
+       }).then(function (siOno) { if (siOno) { ... } });
+
+     ⚠ TODOS los campos se pintan con textContent, NUNCA con innerHTML, y eso es
+     a propósito. Por aquí pasa el nombre que escribió el cliente, que es texto
+     de fuera: con innerHTML, un nombre como <img onerror=...> se ejecutaría en
+     el navegador del vendedor, que es justo quien tiene la sesión del panel
+     abierta. Al ser textContent no hay nada que escapar ni que recordar
+     escapar — es seguro por construcción. Por eso el turno y el nombre van en
+     su propio campo "resaltado" en vez de armar HTML a mano.
+     ========================================================================== */
+
+  /* Lo que puede recibir el foco dentro de la ventana. Va como LISTA y no como
+     un solo texto con comas: en CSS "#modalConfirmar button, [href]" significa
+     "los botones DE la ventana y TODOS los enlaces de la página", así que el
+     prefijo hay que pegárselo a cada selector por separado. Mismo tropiezo que
+     ya se documentó en la ventana del pedido (decisión 17). */
+  var CONF_ENFOCABLES = ['button:not([disabled])', '[href]', '[tabindex]:not([tabindex="-1"])'];
+  var CONF_SELECTOR = CONF_ENFOCABLES.map(function (x) {
+    return '#modalConfirmar ' + x;
+  }).join(', ');
+
+  var confResolver = null;      // la función que desbloquea la promesa
+  var confQuienAbrio = null;    // a quién se le devuelve el foco al cerrar
+
+  /**
+   * Abre la ventana y devuelve una promesa con true (aceptó) o false (canceló).
+   * Nunca se rechaza: cancelar no es un error, es una respuesta.
+   */
+  function confirmar(opciones) {
+    var o = opciones || {};
+    var caja = $('#modalConfirmar');
+
+    // Si ya había una pregunta abierta se responde que no antes de abrir otra,
+    // para no dejar una promesa colgada para siempre esperando un clic que
+    // nunca va a llegar.
+    if (confResolver) { responderConfirmar(false); }
+
+    $('#confIcono').textContent     = o.icono || '🗑';
+    $('#confTitulo').textContent    = o.titulo || '¿Seguro que quieres eliminar?';
+    $('#confResaltado').textContent = o.resaltado || '';
+    $('#confResaltado').hidden      = !o.resaltado;
+    $('#confTexto').textContent     = o.texto || '';
+    $('#confTexto').hidden          = !o.texto;
+    $('#confDetalle').textContent   = o.detalle || '';
+    $('#confDetalle').hidden        = !o.detalle;
+
+    var botonOk = $('#confOk');
+    botonOk.textContent = o.ok || 'Sí, borrar';
+    // El botón que hace el daño va en rojo; el de una acción normal, en
+    // amarillo. Son las dos variantes que ya existen en el sitio: aquí no se
+    // inventa un color nuevo.
+    botonOk.className = 'btn ' + (o.peligro === false ? 'btn--ama' : 'btn--rojo');
+    $('#confCancelar').textContent = o.cancelar || 'Cancelar';
+
+    confQuienAbrio = document.activeElement;
+    caja.classList.add('abierto');
+    document.body.style.overflow = 'hidden';   // sin scroll de fondo en iOS
+    document.addEventListener('keydown', confTeclado, true);
+
+    /* ⚠ El foco arranca en CANCELAR, no en el botón rojo. Si arrancara en el
+       rojo, un Enter de más —el mismo que acaba de pulsar el vendedor para
+       otra cosa— borraría el pedido sin que alcance a leer de quién era. */
+    $('#confCancelar').focus();
+
+    return new Promise(function (resolver) { confResolver = resolver; });
+  }
+
+  /** Cierra la ventana y entrega la respuesta a quien esté esperando. */
+  function responderConfirmar(respuesta) {
+    var pendiente = confResolver;
+    confResolver = null;
+    $('#modalConfirmar').classList.remove('abierto');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', confTeclado, true);
+    if (confQuienAbrio && document.body.contains(confQuienAbrio)) {
+      confQuienAbrio.focus();
+    }
+    confQuienAbrio = null;
+    if (pendiente) { pendiente(respuesta); }
+  }
+
+  /**
+   * Escape cancela y el tabulador no se sale de la ventana.
+   * POR QUÉ el encierro: la ventana se anuncia como aria-modal="true", o sea
+   * "detrás de mí no hay nada". Sin encerrar el foco eso es mentira y quien
+   * usa teclado se va a la lista de pedidos de atrás sin saber que la pregunta
+   * sigue abierta — y ahí ya no hay forma de responderla.
+   * Se escucha en fase de captura (true) para llegar antes que el atajo de
+   * Escape del modo cocina, que si no cerraría los dos a la vez.
+   */
+  function confTeclado(e) {
+    if (e.key === 'Escape') {
+      e.preventDefault(); e.stopPropagation();
+      responderConfirmar(false);
+      return;
+    }
+    if (e.key !== 'Tab') { return; }
+    var lista = Array.prototype.slice.call(document.querySelectorAll(CONF_SELECTOR))
+      .filter(function (el) { return el.getClientRects().length > 0; });
+    if (!lista.length) { return; }
+    var primero = lista[0], ultimo = lista[lista.length - 1];
+    if (e.shiftKey && document.activeElement === primero) {
+      e.preventDefault(); ultimo.focus();
+    } else if (!e.shiftKey && document.activeElement === ultimo) {
+      e.preventDefault(); primero.focus();
+    } else if (!$('#modalConfirmar').contains(document.activeElement)) {
+      e.preventDefault(); primero.focus();
+    }
+  }
+
 
 
   /* ==========================================================================
@@ -142,6 +280,12 @@
       pintarLista($('#listaHistorial'), datos.historial, true);
       $('#nActivos').textContent = datos.activos.length;
       $('#nHistorial').textContent = datos.historial.length;
+
+      // Al repintar las listas se pierde el filtro y la copia del modo cocina:
+      // hay que rehacerlos o el vendedor vería aparecer pedidos que había
+      // filtrado, o una tarjeta vieja en la pantalla grande.
+      filtrarPedidos();
+      if (document.body.classList.contains('modo-cocina')) { pintarCocina(); }
 
       var pendientes = datos.activos.filter(function (p) { return !p.entregado; }).length;
       $('#tituloPanel').textContent = pendientes === 0
@@ -251,10 +395,65 @@
     pedidos.forEach(function (p) { caja.appendChild(tarjeta(p, esHistorial)); });
   }
 
+  /* ==========================================================================
+     3ter) CUÁNTO LLEVA ESPERANDO
+     Qué hace: cada tarjeta dice "hace 3 min" y se va poniendo naranja y luego
+     roja según pasa el tiempo.
+     Por qué: la hora de entrada ya estaba, pero nadie está restando en la
+     cabeza mientras atiende. Con el color, el vendedor ve cuál se está
+     demorando ANTES de que el cliente venga a reclamar.
+     Los cortes salen de la experiencia del local, no de un número bonito: a los
+     15 minutos un cliente empieza a mirar el reloj, a los 25 ya está molesto.
+     ========================================================================== */
+
+  var MIN_AVISO = 15;    // naranja
+  var MIN_TARDE = 25;    // rojo
+
+  /** Minutos enteros desde que entró el pedido. */
+  function minutosDesde(ms) {
+    return Math.max(0, Math.floor((Date.now() - ms) / 60000));
+  }
+
+  /** "recién", "hace 3 min", "hace 1 h 5 min". */
+  function haceCuanto(min) {
+    if (min < 1) { return 'recién'; }
+    if (min < 60) { return 'hace ' + min + ' min'; }
+    var h = Math.floor(min / 60), m = min % 60;
+    return 'hace ' + h + ' h' + (m ? ' ' + m + ' min' : '');
+  }
+
+  /** Qué color le toca según lo que lleva esperando. */
+  function claseEspera(min) {
+    if (min >= MIN_TARDE) { return 'espera--tarde'; }
+    if (min >= MIN_AVISO) { return 'espera--aviso'; }
+    return '';
+  }
+
+  /**
+   * Repinta los relojes de todas las tarjetas, sin volver a pedir nada al
+   * servidor. Corre cada 20 segundos: el minuto tiene que cambiar solo, o el
+   * vendedor vería "hace 3 min" durante un cuarto de hora.
+   */
+  function refrescarEsperas() {
+    var ahora = Date.now();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-creado]'), function (el) {
+      var min = Math.max(0, Math.floor((ahora - parseInt(el.getAttribute('data-creado'), 10)) / 60000));
+      el.textContent = haceCuanto(min);
+      el.className = 'espera ' + claseEspera(min);
+    });
+  }
+
+
   /** Construye la tarjeta de un pedido. */
   function tarjeta(p, esHistorial) {
     var art = document.createElement('article');
-    art.className = 'pedido' + (p.entregado ? ' entregado' : '') + (esHistorial ? ' viejo' : '');
+    var enPlancha = !p.entregado && p.estado === 'preparando';
+    art.className = 'pedido' + (p.entregado ? ' entregado' : '') + (esHistorial ? ' viejo' : '') +
+                    (enPlancha ? ' en-plancha' : '');
+    art.setAttribute('data-id', p.id);
+    // Se guarda en el elemento lo que necesita el buscador, para no recorrer el
+    // pedido entero en cada tecla.
+    art.setAttribute('data-busca', ((p.nombre || '') + ' ' + p.turno + ' ' + (p.numero || '') + ' ' + (p.telefono || '')).toLowerCase());
 
     /* --- Encabezado: turno, nombre, celular, hora --- */
     var cab = document.createElement('div');
@@ -273,7 +472,18 @@
     meta.className = 'pedido__meta';
     meta.textContent = p.telefono + ' · ' + fechaHora(p.creado) +
                        (p.numero ? ' · N° ' + p.numero : '');
+
+    // Cuánto lleva esperando. Solo en los activos: en el historial ya no
+    // significa nada y solo confundiría con un "hace 6 horas" en rojo.
     quien.append(h3, meta);
+    if (!esHistorial && !p.entregado) {
+      var min = minutosDesde(p.creado);
+      var esp = document.createElement('span');
+      esp.className = 'espera ' + claseEspera(min);
+      esp.setAttribute('data-creado', p.creado);   // lo usa refrescarEsperas()
+      esp.textContent = haceCuanto(min);
+      quien.appendChild(esp);
+    }
 
     // Aquí iba la etiqueta "Domicilio / Recoge". El local dejó de hacer
     // domicilios (sept. 2026): todos los pedidos son para recoger, así que la
@@ -350,18 +560,55 @@
     pie.appendChild(wa);
 
     if (!p.entregado) {
+      // "Empezar" va ANTES de "Entregado": es el orden real de la cocina, y así
+      // el dedo encuentra primero el botón que se usa primero.
+      var emp = document.createElement('button');
+      emp.type = 'button';
+      emp.className = 'btn ' + (enPlancha ? 'btn--ama' : 'btn--linea');
+      // Texto corto a propósito: "En la plancha" se partía en dos líneas a 390px
+      // y deformaba toda la fila de botones. "En plancha" dice lo mismo y cabe
+      // de una línea hasta en un celular de 320px.
+      emp.textContent = enPlancha ? '🔥 En plancha' : 'Empezar';
+      emp.title = enPlancha ? 'Quitarlo de la plancha' : 'Marcar que ya se está preparando';
+      emp.addEventListener('click', function () {
+        cambiarEstadoPedido(p, enPlancha ? 'nuevo' : 'preparando', emp);
+      });
+      pie.appendChild(emp);
+
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn btn--rojo';
       btn.textContent = 'Entregado';
-      btn.addEventListener('click', function () { marcarEntregado(p.id, btn); });
+      btn.addEventListener('click', function () { marcarEntregado(p, btn); });
       pie.appendChild(btn);
     } else {
       var ok = document.createElement('span');
-      ok.style.cssText = 'color:var(--verde);font-weight:700;font-size:.88rem';
+      ok.className = 'pedido__ok';
       ok.textContent = '✓ Entregado';
       pie.appendChild(ok);
+
+      // Deshacer. El panel lo ofrece siempre en el historial y en los activos:
+      // "Entregado" está pegado a otros botones y se toca por error. Sin esto,
+      // el único arreglo era borrar el pedido y perder el registro.
+      var des = document.createElement('button');
+      des.type = 'button';
+      des.className = 'btn btn--linea';
+      des.textContent = 'Deshacer';
+      des.title = 'Volver a marcarlo como pendiente';
+      des.addEventListener('click', function () { deshacerEntregado(p, des); });
+      pie.appendChild(des);
     }
+
+    // Imprimir la comanda para la cocina. El CSS de impresión ya existía desde
+    // la entrega inicial; solo faltaba de dónde dispararlo.
+    var imp = document.createElement('button');
+    imp.type = 'button';
+    imp.className = 'pedido__imprimir';
+    imp.title = 'Imprimir esta comanda';
+    imp.setAttribute('aria-label', 'Imprimir la comanda del turno ' + p.turno);
+    imp.textContent = '🖨';
+    imp.addEventListener('click', function () { imprimirComanda(art); });
+    pie.appendChild(imp);
 
     // Borrar este pedido. Va de último y con aspecto de icono, no de botón
     // grande: el dedo tiene que caer antes en "Entregado", que es la acción de
@@ -448,16 +695,20 @@
   }
 
   /* Cuántas veces se repite la campana y cada cuánto.
-     ⚠ TRES REPETICIONES, pedido por JX después de usar el panel en el local:
-     una sola vez se pierde entre el ruido de la freidora y la gente. Tres
-     veces sí se oye y el vendedor voltea a mirar.
+     ⚠ CINCO REPETICIONES Y MÁS VOLUMEN, pedido por JX después de usar el panel
+     en el local: una sola vez se perdía entre el ruido de la freidora y la
+     gente, y tres seguían quedándose cortas. Cinco veces a 0.6 sí se oye y el
+     vendedor voltea a mirar.
+     ⚠ El volumen NO se sube a 1.0: el sonido se satura y suena roto en el
+     parlante de un celular, que es donde va a sonar. 0.6 es fuerte y limpio.
      0,9 s entre una y otra: menos suena a alarma de carro; más y parece que
      entraron tres pedidos distintos. */
-  var CAMPANA_VECES = 3;
+  var CAMPANA_VECES = 5;
+  var CAMPANA_VOLUMEN = 0.6;   // antes 0.35: se perdía con el ruido del local
   var CAMPANA_PAUSA = 0.9;
 
   /**
-   * Toca la campana: tres notas cortas, repetidas tres veces.
+   * Toca la campana: tres notas cortas, repetidas cinco veces.
    * Se genera con el propio navegador en vez de bajar un archivo de sonido:
    * así no hay que esperar a que cargue, funciona sin internet y no se suma un
    * archivo más al proyecto.
@@ -484,7 +735,7 @@
           osc.frequency.value = hz;
           var t = inicio + i * 0.15;
           vol.gain.setValueAtTime(0.0001, t);
-          vol.gain.linearRampToValueAtTime(0.35, t + 0.02);   // ataque rápido
+          vol.gain.linearRampToValueAtTime(CAMPANA_VOLUMEN, t + 0.02);   // ataque rápido
           vol.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
           osc.connect(vol); vol.connect(audio.destination);
           osc.start(t); osc.stop(t + 0.6);
@@ -572,21 +823,174 @@
 
 
   /* ==========================================================================
+     3quater) BUSCAR Y MODO COCINA
+     ========================================================================== */
+
+  /**
+   * Buscador.
+   * Filtra las tarjetas que ya están en pantalla, sin pedirle nada al servidor:
+   * con 15 tarjetas y un cliente llamando "soy Andrés", esperar una consulta
+   * sería peor que bajar buscando.
+   * Se busca por nombre, turno, número de pedido y celular, todo junto, porque
+   * el vendedor no sabe de antemano cuál de los cuatro le va a decir el cliente.
+   */
+  function filtrarPedidos() {
+    var q = ($('#campoBuscar').value || '').trim().toLowerCase();
+    var listas = [$('#listaActivos'), $('#listaHistorial')];
+    var hallados = 0, hay = 0;
+
+    listas.forEach(function (lista) {
+      Array.prototype.forEach.call(lista.querySelectorAll('.pedido'), function (t) {
+        hay++;
+        var coincide = !q || (t.getAttribute('data-busca') || '').indexOf(q) !== -1;
+        t.hidden = !coincide;
+        if (coincide) { hallados++; }
+      });
+    });
+
+    var aviso = $('#buscarNada');
+    aviso.hidden = !(q && hallados === 0 && hay > 0);
+    $('#btnLimpiarBuscar').hidden = !q;
+  }
+
+  function limpiarBusqueda() {
+    $('#campoBuscar').value = '';
+    filtrarPedidos();
+    $('#campoBuscar').focus();
+  }
+
+  /**
+   * MODO COCINA: un pedido a la vez, en letra grande.
+   * Para quién: el que está en la plancha con las manos ocupadas y el celular a
+   * un metro. Leer letra chiquita entre seis tarjetas desde allá no se puede.
+   * Qué muestra: solo los pedidos SIN entregar, en orden de turno. Los ya
+   * entregados no tienen nada que hacer en la plancha.
+   */
+  var cocinaIndice = 0;
+
+  function pedidosDeCocina() {
+    return Array.prototype.slice.call(
+      $('#listaActivos').querySelectorAll('.pedido:not(.entregado)')
+    );
+  }
+
+  function abrirCocina() {
+    if (!pedidosDeCocina().length) { avisar('No hay pedidos por preparar'); return; }
+    cocinaIndice = 0;
+    document.body.classList.add('modo-cocina');
+    $('#cocina').hidden = false;
+    pintarCocina();
+  }
+
+  function cerrarCocina() {
+    document.body.classList.remove('modo-cocina');
+    $('#cocina').hidden = true;
+  }
+
+  function moverCocina(paso) {
+    var lista = pedidosDeCocina();
+    if (!lista.length) { cerrarCocina(); return; }
+    cocinaIndice = (cocinaIndice + paso + lista.length) % lista.length;
+    pintarCocina();
+  }
+
+  /** Copia la tarjeta que toca dentro de la pantalla grande. */
+  function pintarCocina() {
+    var lista = pedidosDeCocina();
+    if (!lista.length) {
+      avisar('Ya no quedan pedidos por preparar');
+      cerrarCocina();
+      return;
+    }
+    if (cocinaIndice >= lista.length) { cocinaIndice = 0; }
+
+    var caja = $('#cocinaTarjeta');
+    caja.innerHTML = '';
+    // Se clona la tarjeta en vez de volver a construirla: así el modo cocina
+    // nunca se queda atrás cuando se le agregue algo a la tarjeta normal.
+    var copia = lista[cocinaIndice].cloneNode(true);
+    copia.hidden = false;
+    // Los botones de la copia no funcionan (no tienen sus escuchadores), así
+    // que se quitan en vez de dejar botones muertos que el vendedor va a tocar.
+    Array.prototype.forEach.call(copia.querySelectorAll('.pedido__pie'), function (e) { e.remove(); });
+    caja.appendChild(copia);
+    $('#cocinaPos').textContent = (cocinaIndice + 1) + ' de ' + lista.length;
+  }
+
+
+  /* ==========================================================================
      4) ACCIONES DEL VENDEDOR
      ========================================================================== */
 
-  /** Marca un pedido como entregado y refresca la lista. */
-  function marcarEntregado(id, boton) {
+  /** Marca un pedido como entregado y ofrece deshacerlo unos segundos. */
+  function marcarEntregado(p, boton) {
     boton.disabled = true;
     boton.textContent = 'Guardando…';
-    window.Almacen.marcarEntregado(id, clave).then(function () {
-      avisar('Pedido marcado como entregado');
+    window.Almacen.marcarEntregado(p.id, clave).then(function () {
+      // El aviso lleva su propio botón de deshacer: si se tocó por error, el
+      // arreglo está justo ahí y no hay que ir a buscarlo.
+      avisarConDeshacer('Turno ' + p.turno + ' entregado', function () {
+        window.Almacen.deshacerEntregado(p.id, clave).then(function () {
+          avisar('Turno ' + p.turno + ' volvió a pendientes');
+          cargarPedidos(false);
+        }).catch(function (e) { avisar('No se pudo deshacer: ' + e.message); });
+      });
       cargarPedidos(false);
     }).catch(function (err) {
       avisar('No se pudo guardar: ' + err.message);
       boton.disabled = false;
       boton.textContent = 'Entregado';
     });
+  }
+
+  /** Deshace un "entregado" desde la tarjeta (no desde el aviso). */
+  function deshacerEntregado(p, boton) {
+    boton.disabled = true;
+    boton.textContent = 'Volviendo…';
+    window.Almacen.deshacerEntregado(p.id, clave).then(function () {
+      avisar('Turno ' + p.turno + ' volvió a pendientes');
+      cargarPedidos(false);
+    }).catch(function (err) {
+      avisar('No se pudo deshacer: ' + err.message);
+      boton.disabled = false;
+      boton.textContent = 'Deshacer';
+    });
+  }
+
+  /** Pone o quita un pedido de la plancha. */
+  function cambiarEstadoPedido(p, estado, boton) {
+    boton.disabled = true;
+    boton.textContent = '…';
+    window.Almacen.cambiarEstado(p.id, estado, clave).then(function () {
+      avisar(estado === 'preparando'
+        ? 'Turno ' + p.turno + ' en la plancha'
+        : 'Turno ' + p.turno + ' vuelve a la cola');
+      cargarPedidos(false);
+    }).catch(function (err) {
+      avisar('No se pudo guardar: ' + err.message);
+      boton.disabled = false;
+      boton.textContent = estado === 'preparando' ? 'Empezar' : '🔥 En plancha';
+    });
+  }
+
+  /**
+   * Imprime UNA comanda.
+   * Cómo: se le pone una marca a la tarjeta escogida y el CSS de impresión
+   * esconde todo lo demás. Así no hace falta abrir otra ventana ni armar un
+   * documento aparte — y el papel sale con el mismo diseño que ya se probó.
+   */
+  function imprimirComanda(tarjeta) {
+    var antes = document.querySelector('.pedido.imprimiendo');
+    if (antes) { antes.classList.remove('imprimiendo'); }
+    tarjeta.classList.add('imprimiendo');
+    document.body.classList.add('imprimiendo-una');
+    window.print();
+    // Se limpia después de imprimir. El navegador no siempre avisa cuándo
+    // terminó, así que se hace en el siguiente ciclo y no se depende de eso.
+    setTimeout(function () {
+      tarjeta.classList.remove('imprimiendo');
+      document.body.classList.remove('imprimiendo-una');
+    }, 500);
   }
 
   /**
@@ -596,33 +1000,46 @@
    * equivocada. Así el vendedor lee a quién va a borrar antes de aceptar.
    */
   function borrarPedido(p, boton) {
-    if (!confirm('¿Borrar el pedido del turno ' + p.turno + ' — ' + p.nombre + '?\n\n' +
-                 'Se borra para siempre y no se puede deshacer.\n' +
-                 'El número de turno NO se vuelve a usar.')) {
-      return;
-    }
-    boton.disabled = true;
-    window.Almacen.borrarPedido(p.id, clave).then(function () {
-      avisar('Pedido del turno ' + p.turno + ' borrado');
-      cargarPedidos(false);
-    }).catch(function (err) {
-      avisar('No se pudo borrar: ' + err.message);
-      boton.disabled = false;
+    confirmar({
+      icono:     '🗑',
+      titulo:    '¿Seguro que quieres eliminar?',
+      resaltado: 'Turno ' + p.turno + ' — ' + p.nombre,
+      texto:     'Se borra para siempre y no se puede deshacer.',
+      detalle:   'El número de turno NO se vuelve a usar: el siguiente cliente recibirá el que sigue, no este.',
+      ok:        'Sí, borrar'
+    }).then(function (siOno) {
+      if (!siOno) { return; }
+      boton.disabled = true;
+      window.Almacen.borrarPedido(p.id, clave).then(function () {
+        avisar('Pedido del turno ' + p.turno + ' borrado');
+        cargarPedidos(false);
+      }).catch(function (err) {
+        avisar('No se pudo borrar: ' + err.message);
+        boton.disabled = false;
+      });
     });
   }
 
   /** Borra el historial a mano. Pide confirmación: la acción no tiene vuelta. */
   function borrarHistorial() {
-    if (!confirm('¿Borrar todos los pedidos del historial?\n\nLos pedidos de las últimas ' +
-                 CFG.sistema.horasEnPanelActivo + ' horas NO se borran. Esta acción no se puede deshacer.')) {
-      return;
-    }
-    window.Almacen.borrarHistorial(clave).then(function () {
-      avisar('Historial borrado');
-      idsConocidos = {};
-      cargarPedidos(true);
-    }).catch(function (err) {
-      avisar('No se pudo borrar: ' + err.message);
+    var n = $('#nHistorial') ? $('#nHistorial').textContent : '';
+    confirmar({
+      icono:     '🗑',
+      titulo:    '¿Seguro que quieres eliminar?',
+      resaltado: 'Todo el historial' + (n ? ' · ' + n + ' pedidos' : ''),
+      texto:     'Los pedidos de las últimas ' + CFG.sistema.horasEnPanelActivo +
+                 ' horas NO se borran: siguen en la pestaña Activos.',
+      detalle:   'Esta acción no se puede deshacer.',
+      ok:        'Sí, borrar el historial'
+    }).then(function (siOno) {
+      if (!siOno) { return; }
+      window.Almacen.borrarHistorial(clave).then(function () {
+        avisar('Historial borrado');
+        idsConocidos = {};
+        cargarPedidos(true);
+      }).catch(function (err) {
+        avisar('No se pudo borrar: ' + err.message);
+      });
     });
   }
 
@@ -660,6 +1077,29 @@
     tiempoAviso = setTimeout(function () { caja.classList.remove('visible'); }, 3000);
   }
 
+  /**
+   * Aviso con botón de deshacer, que dura más.
+   * 10 segundos y no 3: el vendedor tiene que darse cuenta del error, leer y
+   * alcanzar a tocar. Tres segundos no alcanzan ni para lo primero.
+   */
+  function avisarConDeshacer(texto, alDeshacer) {
+    var caja = $('#avisoFlotante');
+    caja.textContent = texto + ' ';
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'aviso-flot__deshacer';
+    b.textContent = 'Deshacer';
+    b.addEventListener('click', function () {
+      caja.classList.remove('visible');
+      if (tiempoAviso) { clearTimeout(tiempoAviso); }
+      alDeshacer();
+    });
+    caja.appendChild(b);
+    caja.classList.add('visible');
+    if (tiempoAviso) { clearTimeout(tiempoAviso); }
+    tiempoAviso = setTimeout(function () { caja.classList.remove('visible'); }, 10000);
+  }
+
 
   /* ==========================================================================
      5) ARRANQUE
@@ -675,6 +1115,32 @@
     $('#btnSalir').addEventListener('click', cerrarSesion);
     $('#btnAvisos').addEventListener('click', alternarAvisos);
     pintarBotonAvisos();
+
+    /* Ventana de confirmar. El clic en el fondo cancela, igual que la ventana
+       del pedido del cliente: es el gesto que ya espera cualquiera. Se compara
+       con e.target para que un clic DENTRO de la caja no cierre nada. */
+    $('#confOk').addEventListener('click', function () { responderConfirmar(true); });
+    $('#confCancelar').addEventListener('click', function () { responderConfirmar(false); });
+    $('#modalConfirmar').addEventListener('click', function (e) {
+      if (e.target === this) { responderConfirmar(false); }
+    });
+
+    $('#campoBuscar').addEventListener('input', filtrarPedidos);
+    $('#btnLimpiarBuscar').addEventListener('click', limpiarBusqueda);
+    $('#btnCocina').addEventListener('click', abrirCocina);
+    $('#cocinaCerrar').addEventListener('click', cerrarCocina);
+    $('#cocinaAnterior').addEventListener('click', function () { moverCocina(-1); });
+    $('#cocinaSiguiente').addEventListener('click', function () { moverCocina(1); });
+    document.addEventListener('keydown', function (e) {
+      if (!document.body.classList.contains('modo-cocina')) { return; }
+      if (e.key === 'Escape') { cerrarCocina(); }
+      if (e.key === 'ArrowRight') { moverCocina(1); }
+      if (e.key === 'ArrowLeft') { moverCocina(-1); }
+    });
+
+    // Los relojes de espera se repintan solos cada 20 segundos. Sin esto, el
+    // vendedor vería "hace 3 min" durante un cuarto de hora.
+    setInterval(refrescarEsperas, 20000);
 
     // Si el vendedor solo refrescó la página, se entra directo sin pedir clave.
     var guardada = null;

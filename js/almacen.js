@@ -20,6 +20,8 @@
      · verTurnos()               → por dónde va la cola (público, sin clave)
      · listarPedidos(clave)      → trae activos + historial (solo panel)
      · marcarEntregado(id,clave) → marca un pedido como entregado
+     · cambiarEstado(id,est,clave) → lo pone en preparación o lo devuelve
+     · deshacerEntregado(id,clave) → deshace un "entregado" por error
      · borrarPedido(id, clave)   → borra un pedido suelto
      · borrarHistorial(clave)    → limpieza manual del historial
    ========================================================================== */
@@ -145,6 +147,8 @@
     pedido.numero = hoy.replace(/-/g, '').slice(2) + '-' + String(pedido.turno).padStart(3, '0');
     pedido.creado = Date.now();     // sin esto, el panel manda todo al historial
     pedido.entregado = false;
+    pedido.estado = 'nuevo';        // mismos campos que pone el servidor
+    pedido.empezadoEn = null;
 
     doc.pedidos.push(pedido);
     guardarLocal(doc);
@@ -276,6 +280,44 @@
         return Promise.resolve({ ok: true });
       }
       return llamarApi('entregado', { id: id }, clave);
+    },
+
+    /**
+     * Marca un pedido como "en preparación" o lo devuelve a "nuevo".
+     * @param {string} id
+     * @param {string} estado  'preparando' o 'nuevo'
+     * @param {string} clave
+     */
+    cambiarEstado: function (id, estado, clave) {
+      if (CFG.sistema.modo === 'local') {
+        var doc = leerLocal();
+        doc.pedidos.forEach(function (p) {
+          if (p.id === id) {
+            p.estado = estado === 'preparando' ? 'preparando' : 'nuevo';
+            p.empezadoEn = p.estado === 'preparando' ? Date.now() : null;
+          }
+        });
+        guardarLocal(doc);
+        return Promise.resolve({ ok: true, estado: estado });
+      }
+      return llamarApi('estado', { id: id, estado: estado }, clave);
+    },
+
+    /**
+     * Devuelve a pendiente un pedido marcado como entregado por error.
+     * @param {string} id
+     * @param {string} clave
+     */
+    deshacerEntregado: function (id, clave) {
+      if (CFG.sistema.modo === 'local') {
+        var doc = leerLocal();
+        doc.pedidos.forEach(function (p) {
+          if (p.id === id) { p.entregado = false; p.entregadoEn = null; }
+        });
+        guardarLocal(doc);
+        return Promise.resolve({ ok: true });
+      }
+      return llamarApi('deshacer-entregado', { id: id }, clave);
     },
 
     /**
