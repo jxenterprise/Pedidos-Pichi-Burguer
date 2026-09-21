@@ -1128,6 +1128,64 @@ en KV con la marca puesta de antes del cambio, y si algún día volviera a salir
 `true` significaría que hay un camino que se saltó la comprobación — y el rojo
 es justo lo que haría falta para enterarse.
 
+**47. 🏷️ LA VERSIÓN DEL SITIO, al lado del nombre — `v1.0`.**
+
+**Lo pidió JX** *"para saber si la web se actualiza correctamente como debería"*.
+Ese es todo su propósito, y define cómo está hecha.
+
+**Dónde:** en la barra de arriba, pegada a **PICHI BURGUER**, en las **7
+páginas**. Píldora gris, 11px, Inter.
+
+⚠ **ESTÁ ESCRITA EN EL HTML, no la pinta el JS**, y es deliberado: si la pintara
+el JavaScript y el JavaScript fallara, no se vería justo cuando hace falta. Así
+se ve siempre, incluso con el JS apagado. **Si el número es el viejo, el
+navegador está sirviendo una copia guardada** — que es exactamente lo que JX
+quiere poder comprobar de un vistazo.
+
+⚠ **ES DELIBERADAMENTE DISCRETA.** Va en Inter (no en Archivo, la de los
+títulos), en gris y a 11px frente a los 15 del nombre. Lo que la mantiene en
+segundo plano son las tres cosas juntas, no solo el tamaño. El cliente viene a
+pedir una hamburguesa, no a leer un número de versión: quien lo necesita sabe
+dónde mirar.
+
+⚠ **11px FIJOS, no `rem`.** En `rem` caía a **8,96px** en los celulares que
+encogen la raíz — medido en 26 aparatos reales. Un número que no se puede leer
+no sirve para lo que se creó.
+
+**👉 CÓMO SUBIR LA VERSIÓN** (v1.0 → v1.1 → v1.2, de uno en uno):
+
+```bash
+grep -rl 'sitio-version">v' *.html | xargs sed -i 's/>v1\.0</>v1\.1</'
+grep -c 'sitio-version' *.html     # las 7 deben decir 1
+```
+
+Y se anota en la bitácora de este archivo qué trae esa versión. ⚠ Si una página
+se desincroniza, lo canta la batería `version.js`, que comprueba que las 7 digan
+lo mismo.
+
+**48. Los objetivos táctiles del pie y el teléfono.**
+
+Salieron en la revisión responsive de 26 aparatos reales. Ninguno rompía el
+diseño; simplemente **eran difíciles de acertar con el dedo**:
+
+| Qué | Medía | Por qué importaba |
+|---|---|---|
+| Enlaces del pie (menú y legales) | **16–20px de alto** | Van uno debajo de otro; a 16px se toca el de al lado |
+| El teléfono de contacto | **17px** | Es un enlace que **LLAMA**: acertarlo por error abre el marcador |
+| Botón "Configuración de cookies" | 38px | Es un `<button>`, le tocan los 44 completos |
+| Etiqueta "TURNO" (panel y seguimiento) | **9px** | Por debajo de 11 no se lee aunque el número de al lado sea enorme |
+
+⚠ **El truco del pie, para no estirarlo:** el margen de `.pie li` bajó de 9px a
+4px y esa diferencia se la llevó el **padding del enlace**. El pie se ve igual
+de separado, pero ahora **el área que responde al dedo es la del enlace entero**
+y no solo la altura de la letra. Mismo criterio que la decisión 26 con los chips
+de categorías: los dedos ganan, la pantalla no pierde.
+
+⚠ **Un enlace de navegación no necesita 44px, un botón sí.** El mínimo que se
+exige en la batería es 32px para enlaces del pie (van apilados, lo que importa
+es no tocar el de al lado) y **44px para todo lo que sea un control**. Mezclar
+los dos criterios llenaba el informe de ruido y escondía los fallos de verdad.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -1746,6 +1804,51 @@ la carrera, y que una ampliación normal nunca lleve ya la marca roja) y 31 en
 navegador real. Dos arneses viejos actualizados al comportamiento nuevo.
 
 **Estado final: 335 comprobaciones en 19 baterías, cero fallos.**
+
+### lunes 21 de septiembre de 2026, 2:01 p. m. · Versión visible + revisión responsive completa
+
+**1. Se le puso versión al sitio: `v1.0`**, al lado de PICHI BURGUER en las 7
+páginas. Ver decisión 47, con el comando para subirla. JX lo pidió para
+comprobar de un vistazo si una actualización llegó de verdad al celular de
+alguien o si el navegador está sirviendo una copia guardada.
+
+Nota: JX dijo *"v1.0 y después v1.2"*; se usa la numeración habitual
+**v1.0 → v1.1 → v1.2**, de uno en uno, para que no queden números saltados. Se
+le avisó.
+
+**2. Revisión responsive completa**, que es lo que JX pidió expresamente:
+*"los clientes usan más celulares... android e iphones tanto pequeños como
+grandes, gama baja, alta, media y altísima, y tablets"*.
+
+**26 aparatos reales × 7 páginas × 2 orientaciones = 364 pantallas revisadas**,
+con los perfiles de Playwright (ancho, alto, densidad y user-agent de verdad de
+cada modelo, no solo un tamaño de ventana):
+
+| Gama | Aparatos |
+|---|---|
+| **Android bajo/viejo** | Galaxy S III, Note II, S5 |
+| **Android medio** | Galaxy S8, A55, Pixel 5 |
+| **Android alto** | Galaxy S9+, Pixel 7, **Galaxy S24** |
+| **iPhone pequeños** | SE (320px), 6, 12 Mini, 13 Mini |
+| **iPhone normales** | 8, XR, 12, 14, 15 |
+| **iPhone grandes** | 8 Plus, 14 Pro Max, **15 Pro Max** |
+| **Tablets** | iPad Mini, iPad gen 7, iPad Pro 11, Galaxy Tab S4, Tab S9 |
+
+**En cada pantalla se revisó:** scroll lateral, elementos que se salen, texto
+cortado dentro de su caja, objetivos táctiles, letra por debajo de 11px, campos
+por debajo de 16px (que harían zoom en iOS) y errores de consola.
+
+**Cuatro hallazgos reales, todos corregidos.** Ver decisión 48. Ninguno rompía
+el diseño: eran cosas difíciles de acertar con el dedo o de leer.
+
+**Dos falsos positivos descartados por escrito:** el texto `.sr-only` (está
+recortado a 1px a propósito, es para lectores de pantalla) y el crédito de JX
+Company (lleva formato exacto obligatorio que no se modifica).
+
+**Resultado: 26 aparatos ✅ / 0 ❌ de pie y acostados.**
+
+**Estado final: 724 comprobaciones (360 funcionales + 364 pantallas), cero
+fallos.**
 
 ---
 

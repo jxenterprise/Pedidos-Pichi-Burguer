@@ -593,11 +593,29 @@ Y una decisión pendiente del negocio: **volver a los horarios reales** cuando l
 operación esté montada (hoy está en modo 24 horas). Son los 5 sitios de la tabla
 de más arriba.
 
+### La versión del sitio
+
+Al lado de **PICHI BURGUER**, arriba, verás una etiqueta gris: **v1.0**.
+
+Sirve para una cosa concreta: **saber si una actualización llegó de verdad.**
+Si publicas un cambio y en tu celular sigue diciendo el número viejo, es que el
+navegador te está mostrando una copia guardada, no la página nueva.
+
+**Para subirla** cuando publiques algo nuevo (v1.0 → v1.1 → v1.2, de uno en
+uno), desde la carpeta del proyecto:
+
+```bash
+grep -rl 'sitio-version">v' *.html | xargs sed -i 's/>v1\.0</>v1\.1</'
+```
+
+Y anota en `CLAUDE.md` qué trae esa versión.
+
 ### Lo que ya se probó
 
-- Las **7 páginas en 15 celulares y tabletas reales** (iPhone SE hasta 15, Galaxy
-  S5 a S9+, Pixel 5 y 7, iPad Mini y Pro): cero scroll horizontal, cero desbordes,
-  consola limpia.
+- Las **7 páginas en 26 celulares y tabletas reales, de pie y acostados** —
+  **364 pantallas**. Android de gama baja (Galaxy S III, 2012) a altísima
+  (Galaxy S24), iPhone del SE de 320px al 15 Pro Max, y 5 tabletas.
+  **Cero scroll horizontal, cero desbordes, consola limpia en los 26.**
 - **El flujo completo con toques reales**, no clics simulados.
 - **Sin JavaScript**: los 15 platos y sus precios se leen igual y el botón de
   WhatsApp sigue funcionando.

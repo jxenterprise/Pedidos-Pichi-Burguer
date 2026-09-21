@@ -286,7 +286,16 @@
     <a class="barra__marca" href="#inicio">
       <img class="barra__logo" src="img/logo-pichi-burguer-cartagena-440.webp"
            alt="Logo de Pichi Burguer" width="38" height="38">
+      <!-- Versión del sitio. ⚠ Está escrita en el HTML a propósito, no la pinta
+           el JS: así se ve aunque el JavaScript falle, y sirve justo para lo
+           que se creó — comprobar de un vistazo si la actualización llegó de
+           verdad al celular de alguien. Si dice la vieja, el navegador está
+           sirviendo una copia guardada.
+           ⚠ VIVE EN LAS 7 PÁGINAS. Para subirla se cambian todas de una:
+           grep -rl 'sitio-version">v' *.html | xargs sed -i 's/>v1\.0</>v1\.1</'
+           y se anota en la bitácora de CLAUDE.md. -->
       <span class="barra__nombre">Pichi Burguer</span>
+      <span class="sitio-version" title="Versión publicada del sitio">v1.0</span>
     </a>
     <p class="estado" id="estadoBarra" role="status">
       <span class="estado__luz" aria-hidden="true"></span>

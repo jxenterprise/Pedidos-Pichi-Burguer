@@ -247,6 +247,32 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* Versión publicada del sitio, al lado del nombre.
+   PARA QUÉ: comprobar de un vistazo si la actualización llegó de verdad al
+   celular de alguien. Si el número es el viejo, el navegador está sirviendo
+   una copia guardada y no la versión nueva.
+   ⚠ Es DELIBERADAMENTE discreta: va en Inter (no en la tipografía de los
+   títulos), pequeña y en gris, con el mismo aire que el nombre. No puede
+   competir con la marca: el cliente viene a pedir una hamburguesa, no a leer
+   un número de versión. Quien lo necesita sabe dónde mirar.
+   ⚠ flex-shrink: 0 para que no la aplaste el nombre en un celular angosto, y
+   align-self: center para que quede a la altura del texto y no del logo. */
+.sitio-version {
+  flex-shrink: 0; align-self: center; margin-left: -4px;
+  /* 11px fijos y no rem: con rem quedaba en 8,96px en los celulares que
+     reducen la raíz, y un número que no se puede leer no sirve para lo que
+     se creó — comprobar de un vistazo qué versión está publicada. */
+  font-family: var(--fuente-texto); font-size: 11px; font-weight: 700;
+  letter-spacing: .04em; color: var(--texto-tenue);
+  padding: 2px 6px; border: 1px solid var(--linea);
+  border-radius: var(--radio-full); line-height: 1.4;
+}
+/* En pantallas muy angostas el nombre es lo que importa: la versión se queda,
+   pero se aprieta para no robarle sitio. */
+@media (max-width: 380px) {
+  .sitio-version { font-size: 10px; padding: 1px 5px; margin-left: -2px; }
+}
+
 /* Semáforo verde/rojo. Es un punto de color + texto: nunca solo el color, para
    que también lo entienda alguien que no distingue verde de rojo. */
 .estado {
@@ -761,7 +787,10 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
   font-size: 1.5rem; line-height: 1; color: var(--amarillo);
 }
 .curso__turno span {
-  font-size: .56rem; letter-spacing: .09em; text-transform: uppercase;
+  /* 11px fijos: en rem quedaba en 8,96px en los celulares que encogen la raíz,
+     y por debajo de 11 la etiqueta deja de leerse aunque el número de al lado
+     sea enorme. Medido en 26 aparatos reales. */
+  font-size: 11px; letter-spacing: .07em; text-transform: uppercase;
   color: var(--texto-tenue); margin-top: 3px;
 }
 .curso__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -831,13 +860,34 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
 .pie__grid { display: grid; gap: 26px; grid-template-columns: 1fr; margin-bottom: 26px; }
 .pie h3 { font-size: .82rem; letter-spacing: .12em; color: var(--texto-suave); margin-bottom: .9em; }
 .pie ul { list-style: none; margin: 0; padding: 0; }
-.pie li { margin-bottom: 9px; font-size: .9rem; color: var(--texto-suave); }
-.pie a { color: var(--texto-suave); text-decoration: none; }
+/* ⚠ El margen de abajo bajó de 9px a 4px y la diferencia se la lleva el
+   PADDING del enlace. El pie se ve igual de separado, pero ahora el área que
+   responde al dedo es la del enlace entero y no solo la altura de la letra.
+   Medido en 26 celulares reales: los enlaces del pie daban 16px de alto, y a
+   16px con otro enlace pegado debajo se toca el equivocado. */
+.pie li { margin-bottom: 4px; font-size: .9rem; color: var(--texto-suave); }
+.pie a {
+  color: var(--texto-suave); text-decoration: none;
+  display: inline-block; padding: 7px 0; line-height: 1.35;
+}
 @media (hover: hover) { .pie a:hover { color: var(--blanco); text-decoration: underline; } }
-.pie__legales { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .8rem; }
+/* Los enlaces legales van en fila y se parten: el relleno vertical les da
+   altura de toque sin separarlos de más, porque el gap ya baja a 2px. */
+.pie__legales { display: flex; flex-wrap: wrap; gap: 2px 18px; font-size: .8rem; align-items: center; }
+.pie__legales a { padding: 9px 0; display: inline-block; }
+/* El de cookies es un <button>, no un enlace: es un control de verdad y le
+   tocan los 44px completos de la regla del proyecto (decisión 26). */
+.pie__legales .btn-texto { padding: 12px 0; display: inline-block; min-height: 44px; }
 .pie__copy {
   border-top: 1px solid var(--linea); padding-top: 20px;
   text-align: center; font-size: .8rem; color: var(--texto-tenue);
+}
+
+/* El teléfono de la sección de contacto es un enlace que LLAMA, no texto
+   corrido: se le da aire para que el dedo lo acierte sin abrir el marcador por
+   error al querer tocar otra cosa. Medía 17px de alto. */
+main a[href^="tel:"] {
+  display: inline-block; padding: 6px 0; line-height: 1.4;
 }
 
 /* Botón de texto para reabrir el panel de cookies desde el footer. */
@@ -1142,7 +1192,8 @@ body.cerrado-visible { overflow: hidden; }
   display: block; font-family: var(--fuente-titulo); font-style: italic;
   font-size: 1.55rem; color: var(--amarillo); line-height: 1;
 }
-.pedido__turno span { font-size: .58rem; letter-spacing: .1em; color: var(--texto-tenue); text-transform: uppercase; }
+/* 11px fijos por lo mismo que .curso__turno span: en rem caía a 9,28px. */
+.pedido__turno span { font-size: 11px; letter-spacing: .07em; color: var(--texto-tenue); text-transform: uppercase; }
 .pedido__quien { min-width: 0; flex: 1; }
 .pedido__quien h3 {
   margin: 0 0 3px; color: var(--blanco); font-size: 1.06rem;
