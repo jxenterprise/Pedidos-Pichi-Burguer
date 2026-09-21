@@ -221,6 +221,7 @@
              Sin copiarlos aquí se perdían, y la página solo veía "Error 409". */
           if (j.codigo) { err.codigo = j.codigo; }
           if (j.pedidoActivo) { err.pedidoActivo = j.pedidoActivo; }
+          if (j.turno) { err.turno = j.turno; }
           throw err;
         }
         return j;
@@ -294,6 +295,13 @@
           var err = new Error('No encontramos un pedido tuyo al que agregarle esto.');
           err.codigo = 'SIN_PEDIDO';
           throw err;
+        }
+        // Mismo freno que en la nube: con la carne en el fuego ya no se agrega.
+        if (p.estado === 'preparando') {
+          var err2 = new Error('Tu pedido ya se está preparando.');
+          err2.codigo = 'YA_EN_PLANCHA';
+          err2.turno = p.turno;
+          throw err2;
         }
         items.forEach(function (n) {
           var ya = p.items.filter(function (x) { return x.nombre === n.nombre; })[0];

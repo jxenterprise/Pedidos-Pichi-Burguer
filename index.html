@@ -1120,13 +1120,16 @@
         <p class="encurso__txt" id="encursoTexto"></p>
       </div>
 
-      <p class="encurso__pregunta">¿Quieres sumarle lo que acabas de escoger?</p>
+      <!-- El texto de estas tres líneas lo cambia el JS: no es lo mismo un
+           pedido que sigue en la fila (se puede sumar) que uno que ya está en
+           la plancha (ahí solo queda el WhatsApp). Ver decisión 46. -->
+      <p class="encurso__pregunta" id="encursoPregunta">¿Quieres sumarle lo que acabas de escoger?</p>
       <div class="encurso__lista" id="encursoNuevo"></div>
 
       <button type="button" class="btn btn--ama btn--ancho" id="btnAgregarAlPedido">
         Sí, agrégalo a mi turno
       </button>
-      <p class="campo__ayuda" style="margin-top:12px;text-align:center">
+      <p class="campo__ayuda" id="encursoNota" style="margin-top:12px;text-align:center">
         No sale otro turno: se suma a lo que ya pediste y lo recoges todo junto.
       </p>
 
@@ -1137,7 +1140,7 @@
            suelto dentro del párrafo: medido en 9 celulares reales, inline solo
            medía 14px de alto y era casi imposible de acertar con el pulgar
            (la regla del proyecto son 44px — decisión 26). -->
-      <p class="campo__ayuda" style="margin-top:18px;text-align:center;margin-bottom:0">
+      <p class="campo__ayuda" id="encursoSalidaTxt" style="margin-top:18px;text-align:center;margin-bottom:0">
         ¿Es un pedido para otra persona?
       </p>
       <a class="encurso__salida" id="encursoWhats" href="https://wa.me/573004752529"

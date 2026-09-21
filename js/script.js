@@ -579,8 +579,8 @@
       return i.cantidad + '× ' + i.nombre;
     }).join(', ');
     $('#encursoTexto').textContent = activo.estado === 'preparando'
-      ? 'Ya lo están preparando: ' + yaTiene
-      : 'Está en la fila: ' + yaTiene;
+      ? (yaTiene ? 'Ya lo están preparando: ' + yaTiene : 'Ya lo están preparando.')
+      : (yaTiene ? 'Está en la fila: ' + yaTiene : 'Está en la fila.');
 
     // Lo que quiere sumar, para que lo vea antes de decidir.
     var caja = $('#encursoNuevo');
@@ -596,10 +596,36 @@
       caja.appendChild(fila);
     });
 
+    /* ⛔ Con el pedido YA EN LA PLANCHA no se ofrece agregar: el vendedor leyó
+       la comanda y la carne está en el fuego (decisión 46). Se le esconde el
+       botón y se le deja el WhatsApp, que es donde el vendedor sí lo ve aunque
+       el panel esté lleno. Decirle "no" sin darle a dónde ir sería peor que no
+       frenarlo. */
+    var enPlancha = activo.estado === 'preparando';
+    $('#btnAgregarAlPedido').hidden = enPlancha;
+    $('#encursoPregunta').textContent = enPlancha
+      ? 'Ya está en la cocina, así que esto no se puede sumar solo:'
+      : '¿Quieres sumarle lo que acabas de escoger?';
+    $('#encursoNota').textContent = enPlancha
+      ? 'Escríbenos y lo agregamos si todavía alcanza.'
+      : 'No sale otro turno: se suma a lo que ya pediste y lo recoges todo junto.';
+    $('#encursoSalidaTxt').textContent = enPlancha
+      ? '¿Quieres agregarle algo de todas formas?'
+      : '¿Es un pedido para otra persona?';
+    $('#encursoWhats').classList.toggle('encurso__salida--fuerte', enPlancha);
+
     $('#btnAgregarAlPedido').disabled = false;
     $('#btnAgregarAlPedido').textContent = 'Sí, agrégalo a mi turno ' + activo.turno;
-    $('#encursoWhats').href = 'https://wa.me/' + CFG.negocio.whatsapp +
-      '?text=' + encodeURIComponent('Hola, quiero hacer otro pedido aparte del turno ' + activo.turno + '.');
+
+    // El mensaje de WhatsApp dice de qué se trata en cada caso.
+    var lista = Object.keys(carrito).map(function (id) {
+      return '• ' + carrito[id].cantidad + '× ' + carrito[id].nombre;
+    }).join('\n');
+    $('#encursoWhats').href = 'https://wa.me/' + CFG.negocio.whatsapp + '?text=' + encodeURIComponent(
+      enPlancha
+        ? 'Hola, tengo el turno ' + activo.turno + ' y quisiera agregarle:\n' + lista
+        : 'Hola, tengo el turno ' + activo.turno + ' y quiero hacer otro pedido aparte.'
+    );
   }
 
   /** Suma lo del carrito al pedido que ya tiene, sin sacar turno nuevo. */
@@ -630,6 +656,17 @@
       .catch(function (err) {
         boton.disabled = false;
         boton.textContent = 'Sí, agrégalo a mi turno';
+        /* El vendedor tocó "Empezar" entre que salió la pregunta y el cliente
+           respondió. No es un error: se le vuelve a pintar la pantalla, ahora
+           con el aviso de que ya está en la cocina y solo la salida por
+           WhatsApp. El servidor es el que manda sobre el estado. */
+        if (err.codigo === 'YA_EN_PLANCHA') {
+          mostrarEnCurso({ turno: err.turno || ampliacionPendiente.turno,
+                           estado: 'preparando', items: [] },
+                         ampliacionPendiente.telefono);
+          medirEvento('amplio_tarde');
+          return;
+        }
         mostrarError('No se pudo agregar: ' + err.message + '. Escríbenos por WhatsApp.');
         $('#pasoEnCurso').hidden = true;
         $('#pasoFormulario').hidden = false;

@@ -712,6 +712,17 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
   text-decoration: underline; text-underline-offset: 3px;
 }
 @media (hover: hover) { .encurso__salida:hover { color: var(--texto); } }
+/* Cuando el pedido ya está en la plancha, el WhatsApp deja de ser la salida de
+   un caso raro y pasa a ser LA acción: el botón amarillo se esconde y este se
+   queda solo. Por eso se pinta como botón de contorno en vez de enlace fino. */
+.encurso__salida--fuerte {
+  border: 1px solid var(--linea-fuerte); border-radius: var(--radio-sm);
+  color: var(--texto); text-decoration: none; font-size: .9rem; font-weight: 700;
+  margin-top: 8px;
+}
+@media (hover: hover) {
+  .encurso__salida--fuerte:hover { border-color: var(--amarillo); color: var(--amarillo); }
+}
 
 /* --- Seguimiento del pedido en curso ---
    Mismo lenguaje que la tarjeta de "repetir el último pedido" que va justo

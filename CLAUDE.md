@@ -1000,8 +1000,13 @@ habría sido el hueco por donde volvían los precios falsos.
 
 **43. ⚠️ CUANDO AMPLÍAN UN PEDIDO QUE YA ESTÁ EN LA PLANCHA.**
 
-JX eligió **dejar agregar aunque ya esté en la plancha**, y pidió que avisara
-fuerte: *"que tenga un sonido también, el mismo de 5 veces, con el aviso fuerte,
+> ⛔ **SUPERADA POR LA DECISIÓN 46** el mismo día. Ya **no se puede** agregar a
+> un pedido en la plancha. Lo que sigue se conserva porque **los avisos siguen
+> existiendo** (ahora para las ampliaciones normales, y como red de seguridad),
+> y para que nadie vuelva a abrir esa puerta sin saber por qué se cerró.
+
+JX eligió al principio **dejar agregar aunque ya esté en la plancha**, y pidió
+que avisara fuerte: *"que tenga un sonido también, el mismo de 5 veces, con el aviso fuerte,
 y que avise por WhatsApp también para mayor aseguramiento"*.
 
 El riesgo es real: **el vendedor ya leyó la comanda** y cree saber qué lleva. Si
@@ -1076,6 +1081,52 @@ que pide para otra persona desde el mismo celular. Si no la puede tocar, se
 queda sin camino. Ahora va en su propia línea con la clase `.encurso__salida`,
 como bloque de 44px, subrayado y sin fondo para que **no compita** con el botón
 amarillo de "agrégalo a mi turno", que es lo que hará casi todo el mundo.
+
+**46. ⛔ TOCAR "EMPEZAR" CIERRA LA PUERTA — ya no se le puede agregar nada.**
+
+**Corrige la decisión 43, que duró unas horas.** JX lo probó en el local:
+*"aun así pude pedir después de que el vendedor le diera a ese botón"*.
+
+**Antes:** el cliente podía sumarle platos a un pedido aunque ya estuviera en la
+plancha, y el sistema avisaba fuerte (rojo, campana, WhatsApp).
+**Ahora:** con la carne en el fuego, **no se agrega nada**.
+
+**Por qué se cambió:** al preguntar, JX dio dos respuestas que se contradecían
+—"déjalo agregar avisando fuerte" y "mientras no lo hayas empezado"— y se
+resolvió a favor de la primera **sin decírselo**. Ese fue el error: la
+contradicción había que señalarla, no decidirla por él. Al probarlo en el
+mostrador quedó claro cuál manda: **cuando ya leíste la comanda y la carne está
+en el fuego, un plato nuevo que entra sin que lo veas es un reclamo en el
+mostrador**, y el rojo parpadeando no basta en hora pico.
+
+**Qué puede y qué no puede hacer el cliente, según el estado:**
+
+| Estado de su pedido | ¿Otro turno? | ¿Agregarle algo? |
+|---|---|---|
+| En la fila (`nuevo`) | ⛔ No | ✅ **Sí**, se suma a su turno |
+| **En la plancha** (`preparando`) | ⛔ No | ⛔ **No** — solo por WhatsApp |
+| Ya entregado | ✅ Sí, turno nuevo | — |
+| Pasados 20 minutos | ✅ Sí, turno nuevo | — |
+
+⚠ **LA COMPROBACIÓN VIVE EN EL SERVIDOR, no en la página**, y esto no es un
+detalle: entre que al cliente le sale la pregunta y toca "agregar" pueden pasar
+veinte segundos, y en ese rato el vendedor puede haber tocado "Empezar". **Solo
+el servidor sabe el estado en el instante exacto.** Probado: se simula la
+carrera y el servidor lo frena igual, dejando el pedido intacto.
+
+⚠ **No se le deja sin salida.** Con el pedido en la plancha, la pantalla
+esconde el botón amarillo, le explica *"Ya está en la cocina, así que esto no se
+puede sumar solo"* y le deja el WhatsApp **con el turno y lo que quería agregar
+ya escritos**. Decirle "no" sin decirle a dónde ir sería peor que no frenarlo:
+el vendedor sigue pudiendo metérselo si alcanza, pero **decide él**.
+
+⚠ Si el vendedor se arrepiente y lo saca de la plancha, **la puerta se vuelve a
+abrir sola**. No hay estado pegado.
+
+⚠ `ampliadoEnPlancha` y la tarjeta roja **se quedan en el código**: hay pedidos
+en KV con la marca puesta de antes del cambio, y si algún día volviera a salir
+`true` significaría que hay un camino que se saltó la comprobación — y el rojo
+es justo lo que haría falta para enterarse.
 
 ### Verificación hecha antes de entregar
 
@@ -1664,6 +1715,37 @@ de nombre larguísimo, 20 unidades cada uno, notas de 180 caracteres) en 4 ancho
   `G-XXXXXXXXXX` de GA4, que es un pendiente marcado a propósito.
 
 **Estado final: 323 comprobaciones en 18 baterías, cero fallos.**
+
+### 21 de septiembre de 2026 (cierre) · "Empezar" cierra la puerta
+
+JX lo probó en el local: *"aun así pude pedir después de que el vendedor le
+diera a ese botón"*. Tenía razón en esperar lo contrario.
+
+Al revisarlo salió que **sus dos respuestas se habían contradicho** cuando se le
+preguntó —"déjalo agregar avisando fuerte" y "mientras no lo hayas empezado"— y
+que se resolvió a favor de la primera **sin señalárselo**. Ese fue el error de
+método: una contradicción del usuario se le dice, no se decide por él.
+
+Ahora **tocar "Empezar" cierra la puerta**: ese cliente no puede sacar otro
+turno *ni* agregarle nada. Ver decisión 46, con la tabla de qué puede hacer
+según el estado.
+
+**La comprobación se puso en el SERVIDOR**, no en la página, y se probó la
+carrera: el vendedor toca "Empezar" entre que al cliente le sale la pregunta y
+responde. El servidor lo frena igual y el pedido queda intacto. Solo él sabe el
+estado en el instante exacto.
+
+**Y no se le deja sin salida:** con el pedido en la cocina, la pantalla esconde
+el botón, le explica por qué y le deja el WhatsApp **con su turno y lo que
+quería agregar ya escritos**. El vendedor sigue pudiendo metérselo si alcanza,
+pero decide él.
+
+**Probado:** 15 comprobaciones nuevas del servidor (antes y después de
+"Empezar", que no pueda sacar turno, que se reabra si el vendedor se arrepiente,
+la carrera, y que una ampliación normal nunca lleve ya la marca roja) y 31 en
+navegador real. Dos arneses viejos actualizados al comportamiento nuevo.
+
+**Estado final: 335 comprobaciones en 19 baterías, cero fallos.**
 
 ---
 

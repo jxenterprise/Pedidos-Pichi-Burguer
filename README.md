@@ -186,13 +186,20 @@ número, la página no le dice que no: le dice *"Ya tienes el turno 1 · ¿quier
 sumarle lo que acabas de escoger?"*. Si dice que sí, **se suma a su pedido sin
 sacar otro turno**.
 
-| Situación | Qué pasa |
-|---|---|
-| Otro cliente (otro número) | Pide normal, turno nuevo |
-| El mismo, a los 2 minutos | Le ofrece **sumarlo a su turno** |
-| El mismo, **ya se lo entregaste** | Pide normal, turno nuevo — es un cliente que vuelve |
-| El mismo, **pasados 20 minutos** | Pide normal, turno nuevo — ese ya es otro pedido |
-| Cambia el nombre para colarse | No sirve: la llave es **el teléfono** |
+| Situación | ¿Otro turno? | ¿Agregarle algo? |
+|---|---|---|
+| Otro cliente (otro número) | ✅ Sí | — |
+| El mismo, su pedido **en la fila** | ⛔ No | ✅ **Sí**, se suma a su turno |
+| El mismo, **ya tocaste "Empezar"** | ⛔ No | ⛔ **No** — solo por WhatsApp |
+| El mismo, **ya se lo entregaste** | ✅ Sí, turno nuevo | — |
+| El mismo, **pasados 20 minutos** | ✅ Sí, turno nuevo | — |
+| Cambia el nombre para colarse | ⛔ No sirve: la llave es **el teléfono** | |
+
+> ⚠ **Tocar "Empezar" cierra la puerta.** Desde ese momento nadie le mete nada
+> a ese pedido sin que tú lo sepas. Si el cliente quiere algo más, la página le
+> dice que te escriba por WhatsApp — con su turno y lo que quería ya escritos —
+> y **tú decides** si alcanza a metérselo. Si te arrepientes y lo sacas de la
+> plancha, la puerta se vuelve a abrir sola.
 
 > ⚠ **Por qué el teléfono y no la IP.** Pensamos en bloquear por IP y lo
 > descartamos: en un barrio varias casas comparten el mismo wifi, y los
@@ -200,16 +207,18 @@ sacar otro turno**.
 > **Dos vecinos que pidan el mismo día se bloquearían entre sí**, y tú nunca
 > sabrías por qué perdiste esa venta.
 
-### ⚠️ Cuando un cliente le agrega algo a un pedido que ya estás haciendo
+### Cuando un cliente le agrega algo a su pedido
 
-Este es el caso delicado: tú **ya leíste la comanda** y crees saber qué lleva.
-Por eso el sistema te avisa **por tres caminos al tiempo**:
+Solo puede hacerlo **mientras su pedido siga en la fila**. Aun así te avisa,
+porque puede que ya hubieras leído la tarjeta:
 
-1. **La tarjeta se pone roja y parpadea** con `⚠️ Agregó algo · REVISA`.
-   (Si todavía no lo habías empezado, va en naranja: `➕ Ampliado`.)
+1. **La tarjeta se marca** en naranja: `➕ Ampliado hace 1 min`.
 2. **La campana suena las 5 veces**, igual que un pedido nuevo.
 3. **Al cliente se le abre WhatsApp** con lo que agregó, para que te llegue
    también por ahí.
+
+Si alguna vez vieras una tarjeta **roja parpadeando** con `⚠️ Agregó algo ·
+REVISA`, es un pedido ampliado de antes de este cambio: revísalo igual.
 
 Si tocas "Actualizar" justo en ese momento, **el aviso de REVISA no se borra**:
 manda sobre el mensaje normal de "Lista al día".

@@ -421,6 +421,26 @@ export async function onRequest({ request, env }) {
       }, 404);
     }
 
+    /* ⛔ SI YA ESTÁ EN LA PLANCHA, NO SE AGREGA. Decisión de JX del 21 de
+       septiembre, después de probarlo: cuando la carne ya está en el fuego, el
+       vendedor YA LEYÓ la comanda y cree saber qué lleva. Aunque la tarjeta se
+       pusiera roja, en hora pico puede no verla a tiempo y entregar incompleto
+       — y el reclamo llega al mostrador, no al sistema.
+       ⚠ LA COMPROBACIÓN VA AQUÍ, EN EL SERVIDOR, y no solo en la página: entre
+       que al cliente le sale la pregunta y toca "agregar" pueden pasar veinte
+       segundos, y en ese rato el vendedor puede haber tocado "Empezar". El
+       servidor es el único que sabe el estado en el instante exacto.
+       No se le deja sin salida: se le devuelve el turno para que el mensaje le
+       diga qué pasó y lo mande por WhatsApp, que es donde el vendedor sí lo ve
+       aunque el panel esté lleno. */
+    if (p.estado === 'preparando') {
+      return json({
+        error: 'Tu pedido ya se está preparando.',
+        codigo: 'YA_EN_PLANCHA',
+        turno: p.turno
+      }, 409);
+    }
+
     /* Tope de platos por pedido: el mismo 40 de "crear". Sin él, alguien
        podría ampliar veinte veces y hacer crecer el documento del día sin
        límite, que es el cupo de KV por otra puerta. */
@@ -447,8 +467,11 @@ export async function onRequest({ request, env }) {
 
     p.total = p.items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
     p.ampliado = Date.now();
-    // Se guarda si ya estaba en la plancha CUANDO amplió, no el estado de
-    // ahora: es lo que decide si el panel avisa en naranja o grita en rojo.
+    /* Con la comprobación de arriba esto ya NO debería poder ser true nunca.
+       Se deja como red de seguridad y porque hay pedidos guardados en KV con la
+       marca puesta de antes del cambio: el panel tiene que seguir pintándolos
+       en rojo. Si algún día vuelve a salir true, hay un camino que se saltó la
+       comprobación y el rojo es justo lo que hace falta para enterarse. */
     p.ampliadoEnPlancha = p.estado === 'preparando';
 
     await kv.put('dia:' + hoy, JSON.stringify(doc));
