@@ -884,6 +884,34 @@ worker hay que manejar versiones o la gente se queda con la página vieja. Y en
 iPhone **igual solo funciona si instaló la app**, que es justo el caso que la
 capa 3 ya cubre por otro lado. Es el 80% del trabajo para el 20% que falta.
 
+**40. QUÉ HAY DENTRO DEL KV, Y QUÉ NO SE DEBE BORRAR.**
+
+JX abrió *Pares de KV* en Cloudflare para vaciar los pedidos de prueba y vio dos
+claves que no esperaba. Conviene dejar escrito qué es cada una, porque **es fácil
+borrar la equivocada creyendo que es basura**.
+
+| Clave | Qué es | ¿Se puede borrar? |
+|---|---|---|
+| `dia:AAAA-MM-DD` | Todos los pedidos de ese día y el contador de turnos | **Sí.** Borrarla vacía ese día y el contador vuelve a 1 |
+| `indice:dias` | La lista de días que tienen pedidos | **Sí.** Se recrea sola con el siguiente pedido. Vacía se ve como `[]` |
+| `meta:limpieza` | La marca de cuándo fue el último borrado sabatino | ⛔ **NO.** Sin ella el sistema cree que nunca ha limpiado y hace una pasada innecesaria en la siguiente visita. No rompe nada, pero no hay motivo |
+
+**Cómo saber si el contador está en cero sin entrar a Cloudflare**, que es más
+rápido y no arriesga borrar nada:
+
+```bash
+curl -s -X POST https://pedidos-pichi-burguer-ctg.pages.dev/api/pedidos \
+  -H "Content-Type: application/json" -d '{"accion":"turnos","datos":{}}'
+```
+
+Si responde `"turnoDelDia": 0`, **el siguiente cliente recibe el turno 1**. Esa
+acción es pública y no lleva clave, así que se puede consultar desde cualquier
+parte sin exponer nada (decisión 28).
+
+⚠ **Que no aparezca ninguna clave `dia:*` es lo NORMAL cuando no hay pedidos del
+día**, no una señal de que algo se rompió. El documento del día nace con el
+primer pedido y se borra entero si se borra el último (decisión 25).
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -1384,6 +1412,20 @@ Las 11 baterías del proyecto vuelven a pasar: 51 del panel, 27 del seguimiento,
 26 de SEO, 23 de revisión general, 24 del flujo en celular, 22 del servidor, 13
 de las mejoras del cliente, 12 de la notificación, 11 de los precios, 7 de
 solo-recoger y 6 de borrar pedidos.
+
+### 21 de septiembre de 2026 · Qué hay dentro del KV
+
+JX fue a vaciar los pedidos de prueba y se encontró con dos claves que no sabía
+qué eran. Se comprobó contra el servidor en vivo que **el contador ya estaba en
+cero** (`turnoDelDia: 0`), así que no había nada que borrar: el siguiente cliente
+recibe el turno 1.
+
+Queda documentado en la decisión 40 qué es cada clave y **cuál no se debe
+borrar** (`meta:limpieza`), más la forma de comprobar el contador con un solo
+comando, sin entrar a Cloudflare y sin arriesgarse a borrar la equivocada.
+
+De paso quedó confirmado que **la limpieza automática de los sábados funciona**:
+la marca decía que la última pasada fue ese mismo día a la 1:21 de la madrugada.
 
 ---
 

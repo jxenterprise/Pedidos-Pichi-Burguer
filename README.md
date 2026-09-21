@@ -479,9 +479,29 @@ pichi-burguer-pedidos/
 
 ### Vaciar los pedidos y reiniciar los turnos en 1
 
-En Cloudflare → *Workers & Pages* → **KV** → `pichi-burguer-pedidos` → *Pares de
-KV*, y se borran las claves `dia:AAAA-MM-DD` e `indice:dias`. El siguiente
-pedido vuelve a recibir el turno 1.
+**Primero comprueba si hace falta**, que es más rápido y no arriesga borrar nada
+que no toca. Pega esto en cualquier terminal:
+
+```bash
+curl -s -X POST https://pedidos-pichi-burguer-ctg.pages.dev/api/pedidos \
+  -H "Content-Type: application/json" -d '{"accion":"turnos","datos":{}}'
+```
+
+Si responde `"turnoDelDia": 0`, **ya está listo**: el siguiente cliente recibe el
+turno 1 y no hay que tocar nada.
+
+Si no, en Cloudflare → *Workers & Pages* → **KV** → `pichi-burguer-pedidos` →
+*Pares de KV*:
+
+| Clave | Qué es | ¿Se puede borrar? |
+|---|---|---|
+| `dia:AAAA-MM-DD` | Los pedidos de ese día y el contador de turnos | **Sí** — esta es la que vacía los pedidos |
+| `indice:dias` | La lista de días con pedidos | **Sí**, se recrea sola |
+| `meta:limpieza` | La marca del último borrado de los sábados | ⛔ **NO la borres** |
+
+> ⚠ **Que no aparezca ninguna clave `dia:...` es normal** cuando no hay pedidos
+> del día — no significa que algo se haya roto. Esa clave nace con el primer
+> pedido del día.
 
 ---
 
