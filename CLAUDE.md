@@ -157,7 +157,7 @@ Registro de todo el código. **Se suma, nunca se borra lo anterior.**
 | `css/styles.css` | **Todo** el CSS. 25 variables en `:root`, ~250 bloques comentados |
 | `js/config.js` | **El archivo que JX toca para cambiar cosas.** Negocio, horarios, entrega, pagos, modo del sistema y analytics |
 | `js/almacen.js` | Capa de datos intercambiable: habla con la nube o con el propio aparato |
-| `js/script.js` | Página del cliente: semáforo, horarios, carrito, pedido, WhatsApp, categorías, cookies |
+| `js/script.js` | Página del cliente: semáforo, horarios, carrito, pedido, WhatsApp, categorías, cookies, **seguimiento del pedido en curso (bloque 4quater)** y **aviso al celular** |
 | `js/panel.js` | Panel del vendedor. El **bloque 0** es la ventana de confirmar que reemplaza al `confirm()` del navegador — ver decisión 31 |
 | `functions/api/pedidos.js` | Cloudflare Pages Function: crear, listar, marcar entregado, cambiar estado, deshacer entregado, cola pública de turnos, borrar un pedido, borrar historial y limpieza semanal |
 | `_headers` | `no-cache` en CSS/JS, `no-store` en `/api/`, cabeceras de seguridad, `noindex` en el panel |
@@ -808,6 +808,82 @@ dos personas no pueden esperar el mismo número."*
 vuelta atrás, decir la regla no basta. Hay que decir **qué pasa si no se cumple**,
 o quien lo lee piensa que el sistema está siendo caprichoso y busca cómo saltárselo.
 
+**39. EL CLIENTE YA NO QUEDA A CIEGAS — tres capas, porque ninguna sola basta.**
+
+**Lo pidió JX:** *"que el cliente le llegue esa notificación tipo: ya tu pedido
+está en proceso... o se vea en la misma app... y no estar así sin saber nada"*.
+Y luego lo afinó, que es lo que de verdad resolvió el problema: *"no importa si
+cierra la pestaña; si el cliente quiere saber cómo va su pedido, que entre a la
+app y le notifique de una vez"*.
+
+**El problema real:** la cola en vivo (decisión 28) solo funcionaba con la
+pantalla del turno abierta. El cliente que cerraba la pestaña —que es lo que
+hace cualquiera después de pedir— se quedaba con un número en la mano y nada
+más. La única salida era llamar al local, que es tiempo que el vendedor no está
+cocinando.
+
+**Capa 1 · Seguimiento al entrar** (`#pedidoEnCurso`, bloque 4quater de
+`js/script.js`). **Es la base, no el extra.** Si este celular pidió hace menos
+de 6 horas y no se lo han entregado, lo primero que ve al abrir la página es su
+turno y cuántos faltan. Al tocarlo se abre la pantalla del turno con la cola en
+vivo.
+✅ Funciona en **todos** los celulares, iPhone incluido · sin permisos · sin
+instalar nada · sin dejar la pestaña abierta.
+
+**Capa 2 · Aviso al celular** (`#colaAvisar`). Con un botón, el cliente activa
+la notificación del navegador. Cuando el vendedor toca "Empezar", **le suena y
+le vibra** aunque tenga la página en segundo plano.
+⚠ **Tiene que ser un botón**: los navegadores solo dejan pedir ese permiso
+después de que la persona toca algo. Pedirlo al cargar lo bloquea en silencio y
+el aviso **no llegaría nunca**.
+⚠ En **iPhone no existe `Notification`** si no instaló la app, así que el botón
+**no aparece**: mejor no ofrecer lo que no se puede cumplir. Para ese caso está
+la capa 3.
+⚠ Se manda **una sola vez** (`yaAvisado`). La cola se consulta cada 30 s y sin
+esa bandera el cliente recibiría el mismo aviso hasta que lo recoja — la forma
+más rápida de que desactive las notificaciones para siempre.
+
+**Capa 3 · WhatsApp desde el panel.** Al tocar "Empezar", al vendedor le sale
+por 10 segundos un **"Avisar al cliente"** que abre WhatsApp con el mensaje
+escrito.
+✅ Llega al **100% de los celulares**, sin permisos y sin instalar nada. Es la
+red de seguridad de las otras dos.
+⚠ Se **ofrece**, no se manda solo: abrir WhatsApp sin que el vendedor lo pida le
+sacaría el panel de encima en plena hora pico. Si no lo toca, el aviso se va.
+⚠ Va en el aviso flotante y **no** como botón en la tarjeta: el pie ya tiene
+cinco botones y no cabe otro sin que el dedo empiece a equivocarse. Por eso
+`avisarConDeshacer()` se generalizó a `avisarConBoton()`.
+
+**⚠ NO SE GUARDA NINGÚN DATO PERSONAL.** En el aparato solo queda el **número de
+turno y la hora**: ni el nombre, ni el teléfono, ni lo que pidió. Y para saber
+cómo va se usa la acción pública `turnos`, que devuelve **solo números**: el
+navegador compara su turno con el que están preparando y saca la cuenta él
+mismo. **Así nadie puede consultar el pedido de otro, porque no hay nada que
+consultar.**
+
+**⚠ DOS CADUCIDADES, y las dos son necesarias:**
+1. **6 horas** desde que pidió. Un turno viejo no sirve para nada.
+2. **Si su turno es mayor que el más alto que ha dado el local hoy**
+   (`turnoDelDia`), el pedido es de ayer y se suelta. Los turnos **reinician en
+   1 cada día**, así que sin esta comprobación el cliente vería mañana la cola
+   del turno 4 de OTRA persona creyendo que es el suyo. Probado.
+3. Y cuando `ultimoEntregado` alcanza su turno, el cartel se quita solo: ya lo
+   recogió.
+
+**⚠ Se quitó el `if (document.hidden) return` de la cola.** Ahorraba lecturas
+pero rompía justo lo que el cliente venía a buscar: con la página en segundo
+plano dejaba de mirar, así que el aviso **nunca llegaba** — y el segundo plano
+es el único momento en que hace falta. Ahora se sigue consultando y lo que se
+salta es el repintado, que no se ve. El corte pasó de 45 a **90 minutos** por lo
+mismo.
+
+**Por qué NO se hizo push real (notificación con todo cerrado):** necesita un
+*service worker*, y eso rompe algo que hoy funciona: las actualizaciones llegan
+al instante a todo el que tenga la app instalada (decisión 28). Con service
+worker hay que manejar versiones o la gente se queda con la página vieja. Y en
+iPhone **igual solo funciona si instaló la app**, que es justo el caso que la
+capa 3 ya cubre por otro lado. Es el 80% del trabajo para el 20% que falta.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -1274,6 +1350,40 @@ escritos solo para la primera. La dirección que de verdad se visita salía **si
 **Probado después de todo:** 51 comprobaciones del panel y la ventana de
 confirmar, 22 del servidor, 11 de los precios, 26 de SEO y 23 de revisión
 general. Todo en verde.
+
+### 21 de septiembre de 2026 · El cliente ya sabe cómo va su pedido
+
+JX: *"no sé si haya manera de que le llegue la notificación a un cliente... que
+no solo haya enviado a hacerlo y ya, no sepa más de él"*. Y la frase que definió
+la solución: *"no importa si cierra la pestaña; que entre a la app y le
+notifique de una vez"*.
+
+Se implementaron **tres capas** (decisión 39), después de descartar el push real
+por escrito y explicando por qué. La clave fue darse cuenta de que **la capa que
+más sirve es la más simple**: que al entrar a la página ya lo vea, sin permisos
+ni notificaciones de por medio. Eso funciona hasta en un iPhone que no instaló
+nada, que es donde las otras dos fallan.
+
+**Un bug propio encontrado y corregido:** la tarjeta de seguimiento quedaba
+**2px ENCIMA** de la etiqueta amarilla de la primera categoría —medido a 390px,
+se tocaban— porque la sección se copió de `.repetir`, que no lleva espacio
+abajo. Ahora lleva 26px y quedan 24px de aire, comprobado en 6 anchos y con las
+dos tarjetas visibles a la vez.
+
+**Probado (27 comprobaciones en navegador real):** que sin pedido previo no
+aparezca nada; que al pedir se guarde solo el turno y la hora y **nada
+personal**; que al cerrar la pestaña y volver a entrar ya diga cómo va; que
+cambie a verde cuando el vendedor toca "Empezar"; que al tocarla abra la
+pantalla del turno y no el formulario; que se borre sola al entregarse; que **un
+turno de ayer no se confunda con uno de hoy**; que caduque a las 6 horas; y el
+responsive en 6 anchos. Más 12 de la notificación: que arranque apagada, que el
+botón la active, que **llegue con la página en segundo plano**, que vibre y que
+**no se repita** pasados otros 30 segundos.
+
+Las 11 baterías del proyecto vuelven a pasar: 51 del panel, 27 del seguimiento,
+26 de SEO, 23 de revisión general, 24 del flujo en celular, 22 del servidor, 13
+de las mejoras del cliente, 12 de la notificación, 11 de los precios, 7 de
+solo-recoger y 6 de borrar pedidos.
 
 ---
 

@@ -36,5 +36,7 @@
 - El sitio no procesa pagos: el pago se hace en el local o por el medio acordado por WhatsApp.
 - Al enviar el pedido se entrega un número de turno; los pedidos se preparan por orden de llegada.
 - El cliente puede ver en vivo qué turno se está preparando y cuántos faltan antes del suyo.
+- Si vuelve a entrar a la página, ve de una vez cómo va su pedido: su turno y cuántos faltan, aunque haya cerrado la pestaña.
+- Puede pedir que su celular le avise cuando empiecen a prepararlo.
 - La página se puede guardar como aplicación en el celular (es la misma web, no hay nada que descargar).
 - Sitio desarrollado por JX Company.

@@ -951,9 +951,17 @@
     boton.disabled = true;
     boton.textContent = '…';
     window.Almacen.cambiarEstado(p.id, estado, clave).then(function () {
-      avisar(estado === 'preparando'
-        ? 'Turno ' + p.turno + ' en la plancha'
-        : 'Turno ' + p.turno + ' vuelve a la cola');
+      if (estado === 'preparando') {
+        /* Al ponerlo en la plancha se ofrece avisarle al cliente, ahí mismo y
+           por 10 segundos. Se OFRECE y no se manda solo a propósito: abrir
+           WhatsApp sin que el vendedor lo pida le sacaría el panel de encima
+           en plena hora pico. Si no lo toca, el aviso se va y no pasa nada. */
+        avisarConBoton('Turno ' + p.turno + ' en la plancha', 'Avisar al cliente', function () {
+          avisarEnPreparacion(p);
+        });
+      } else {
+        avisar('Turno ' + p.turno + ' vuelve a la cola');
+      }
       cargarPedidos(false);
     }).catch(function (err) {
       avisar('No se pudo guardar: ' + err.message);
@@ -1058,21 +1066,54 @@
    * alcanzar a tocar. Tres segundos no alcanzan ni para lo primero.
    */
   function avisarConDeshacer(texto, alDeshacer) {
+    avisarConBoton(texto, 'Deshacer', alDeshacer);
+  }
+
+  /**
+   * Aviso flotante con UN botón al lado, que se va solo a los 10 segundos.
+   * Se usa para dos cosas distintas y por el mismo motivo: son acciones que el
+   * vendedor puede querer hacer justo después, pero que no merecen un botón
+   * permanente en la tarjeta. El pie ya tiene cinco y no cabe más sin que el
+   * dedo empiece a equivocarse.
+   *   · "Deshacer" después de marcar entregado.
+   *   · "Avisar al cliente" después de ponerlo en la plancha.
+   * ⚠ El botón va DENTRO del aviso y no abajo, para que quepa en una línea en
+   * un celular angosto — igual que la fila de botones del pie.
+   */
+  function avisarConBoton(texto, etiqueta, alTocar) {
     var caja = $('#avisoFlotante');
     caja.textContent = texto + ' ';
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'aviso-flot__deshacer';
-    b.textContent = 'Deshacer';
+    b.textContent = etiqueta;
     b.addEventListener('click', function () {
       caja.classList.remove('visible');
       if (tiempoAviso) { clearTimeout(tiempoAviso); }
-      alDeshacer();
+      alTocar();
     });
     caja.appendChild(b);
     caja.classList.add('visible');
     if (tiempoAviso) { clearTimeout(tiempoAviso); }
     tiempoAviso = setTimeout(function () { caja.classList.remove('visible'); }, 10000);
+  }
+
+  /**
+   * Abre WhatsApp con el mensaje de "ya lo estamos preparando" escrito.
+   * POR QUÉ EXISTE: la notificación del navegador (bloque 4bis de js/script.js)
+   * solo le llega al cliente que dejó la página abierta, y en iPhone solo si
+   * instaló la app. Esto llega SIEMPRE, en cualquier celular, sin permisos y
+   * sin que el cliente haya instalado nada. Es la red de seguridad.
+   * ⚠ Se abre en otra pestaña para que el panel NO se pierda: si se abriera en
+   * la misma, el vendedor saldría de la lista de pedidos y tendría que volver
+   * a entrar con la clave.
+   */
+  function avisarEnPreparacion(p) {
+    var tel = telefonoLocal(p.telefono);
+    var texto = '¡Hola ' + p.nombre + '! Ya estamos preparando tu pedido 🔥\n' +
+                'Turno ' + p.turno + ' · te avisamos apenas esté listo.\n' +
+                'Pichi Burguer · Cra 58A #6, Bernardo Jaramillo.';
+    window.open('https://wa.me/57' + tel + '?text=' + encodeURIComponent(texto), '_blank', 'noopener');
   }
 
 

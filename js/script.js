@@ -583,6 +583,8 @@
 
     // Y arranca el contador de la cola: "faltan 2 antes que tú".
     arrancarCola(pedido.turno);
+    // Se guarda para poder seguirlo aunque cierre la pestaña. Ver bloque 4quater.
+    guardarPedidoEnCurso(pedido);
 
     // El carrito se vacía: el pedido ya salió y dejarlo lleno haría que el
     // cliente lo mandara dos veces sin darse cuenta.
@@ -608,12 +610,87 @@
   var relojCola = null;
   var turnoDelCliente = null;
   var colaDesde = 0;
-  var COLA_MAX_MINUTOS = 45;   // después de esto deja de preguntar sola
+  /* 90 y no 45: cuando el cliente activa el aviso al celular, la espera puede
+     ser larga en hora pico y cortar a los 45 minutos sería dejarlo justo sin
+     el aviso que vino a pedir. Con la pantalla en segundo plano cada consulta
+     cuesta 1 lectura de KV cada 30 s, que cabe de sobra en el plan gratuito. */
+  var COLA_MAX_MINUTOS = 90;
+  var yaAvisado = false;       // para no repetir el aviso en cada consulta
+  var avisoActivado = false;   // el cliente tocó el botón y dio permiso
+
+  /**
+   * Enciende el aviso al celular. Lo dispara un TOQUE del cliente, nunca solo.
+   * POR QUÉ UN BOTÓN: los navegadores solo dejan pedir el permiso de
+   * notificación después de que la persona toca algo. Si se pidiera al cargar,
+   * el navegador lo bloquea en silencio y el aviso no llegaría nunca — y
+   * además es de mala educación soltarle un permiso por sorpresa a alguien que
+   * solo vino a pedir una hamburguesa.
+   */
+  function activarAvisoCola() {
+    var btn = $('#colaAvisar');
+    if (!('Notification' in window)) { btn.hidden = true; return; }
+    Notification.requestPermission().then(function (permiso) {
+      if (permiso === 'granted') {
+        avisoActivado = true;
+        btn.textContent = '🔔 Te avisaremos en este celular';
+        btn.disabled = true;
+        btn.classList.add('activo');
+        medirEvento('activo_aviso_cola');
+      } else {
+        // Si dice que no, se le dice qué hacer en vez de dejar un botón muerto.
+        btn.textContent = 'No se pudo activar · mira la pantalla o el WhatsApp';
+        btn.disabled = true;
+      }
+    }).catch(function () { btn.hidden = true; });
+  }
+
+  /**
+   * Avisa al celular que ya están preparando SU pedido.
+   * Se manda una sola vez (yaAvisado): la cola se consulta cada 30 segundos y
+   * sin esa bandera el cliente recibiría el mismo aviso una y otra vez hasta
+   * que lo recoja, que es la forma más rápida de que desactive las
+   * notificaciones para siempre.
+   */
+  function avisarQueYaVa() {
+    if (yaAvisado || !avisoActivado) { return; }
+    yaAvisado = true;
+    try {
+      var n = new Notification('🔥 Ya están preparando tu pedido', {
+        body: 'Turno ' + turnoDelCliente + ' · Pichi Burguer. Ya puedes ir pasando.',
+        icon: '/img/icon-192.png',
+        badge: '/img/icon-192.png',
+        tag: 'pichi-turno',      // uno solo, no se amontonan
+        renotify: true
+      });
+      n.addEventListener('click', function () { window.focus(); n.close(); });
+    } catch (e) { /* si el navegador la rechaza, la pantalla igual lo dice */ }
+    // Vibrar además del aviso: en el bolsillo se siente antes de lo que se ve.
+    if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200]); } catch (e) {} }
+    medirEvento('aviso_cola_recibido');
+  }
 
   function arrancarCola(turno) {
     turnoDelCliente = turno;
     colaDesde = Date.now();
+    yaAvisado = false;
     $('#colaTurnos').hidden = false;
+    // El botón de avisar solo se ofrece si el navegador sabe notificar y el
+    // cliente no ha dicho ya que no. En iPhone sin la app instalada no existe
+    // Notification, así que no aparece: mejor no ofrecer lo que no se puede
+    // cumplir. Para ese caso está el WhatsApp del vendedor.
+    var btnAvisar = $('#colaAvisar');
+    if ('Notification' in window && Notification.permission !== 'denied') {
+      btnAvisar.hidden = false;
+      if (Notification.permission === 'granted') {
+        // Ya lo había dado en un pedido anterior: no hay que volver a pedirlo.
+        avisoActivado = true;
+        btnAvisar.textContent = '🔔 Te avisaremos en este celular';
+        btnAvisar.disabled = true;
+        btnAvisar.classList.add('activo');
+      }
+    } else {
+      btnAvisar.hidden = true;
+    }
     pintarCola();
     if (relojCola) { clearInterval(relojCola); }
     relojCola = setInterval(pintarCola, 30000);
@@ -627,12 +704,23 @@
     // Si el cliente dejó la pantalla abierta y se fue, no tiene sentido seguir
     // gastando lecturas: se corta a los 45 minutos.
     if (Date.now() - colaDesde > COLA_MAX_MINUTOS * 60000) { pararCola(); return; }
-    if (document.hidden) { return; }   // en segundo plano no se pregunta
+    /* ⚠ ANTES aquí había un "if (document.hidden) return", que ahorraba
+       lecturas pero rompía justo lo que el cliente vino a buscar: con la
+       página en segundo plano dejaba de mirar, así que el aviso de "ya lo
+       están preparando" NUNCA llegaba — que es el único momento en que el
+       cliente no está mirando la pantalla. Ahora se sigue consultando; lo que
+       se salta es el repintado, que no se ve. */
+    var enSegundoPlano = document.hidden;
 
     window.Almacen.verTurnos().then(function (c) {
       var caja = $('#colaTurnos');
       var estado = $('#colaEstado');
       var detalle = $('#colaDetalle');
+
+      // El aviso se dispara ESTÉ O NO la pantalla a la vista: es justo cuando
+      // no la está mirando cuando hace falta.
+      if (c.preparando !== null && turnoDelCliente <= c.preparando) { avisarQueYaVa(); }
+      if (enSegundoPlano) { return; }   // consultar sí; repintar no hace falta
 
       if (c.preparando === null) {
         estado.textContent = 'Tu pedido ya entró a la cocina.';
@@ -659,6 +747,165 @@
       // y ya. Su turno, que es lo que importa, lo sigue viendo arriba.
       $('#colaTurnos').hidden = true;
       pararCola();
+    });
+  }
+
+
+  /* ==========================================================================
+     4quater) SEGUIMIENTO DEL PEDIDO EN CURSO
+     --------------------------------------------------------------------------
+     QUÉ HACE: si este celular hizo un pedido hace poco y todavía no se lo han
+     entregado, al ENTRAR a la página lo primero que ve es cómo va. Sin tener
+     que preguntar, sin dejar la pestaña abierta y sin permisos de nada.
+
+     POR QUÉ EXISTE (lo pidió JX): la cola en vivo del bloque 4bis solo
+     funcionaba con la pantalla del turno abierta. El cliente que cerraba la
+     pestaña —que es lo que hace cualquiera después de pedir— se quedaba a
+     ciegas con un número en la mano. La única salida era llamar al local, que
+     es tiempo que el vendedor no está cocinando.
+
+     ⚠ POR QUÉ ESTO Y NO SOLO LA NOTIFICACIÓN: la notificación del navegador no
+     llega en un iPhone que no haya instalado la app, y no llega nunca si el
+     cliente cerró la pestaña. Esto funciona en TODOS los celulares, sin
+     permisos y sin instalar nada, porque no depende de que el navegador avise:
+     el cliente entra y lo ve. Es la base; la notificación es el extra.
+
+     ⚠ NO SE GUARDA NINGÚN DATO PERSONAL. En el aparato solo queda el número de
+     turno y la hora. Ni el nombre, ni el teléfono, ni lo que pidió. Y para
+     saber cómo va se usa la acción pública 'turnos', que devuelve SOLO números
+     (ver decisión 28): el navegador compara su turno con el que están
+     preparando y saca la cuenta él mismo. Así nadie puede consultar el pedido
+     de otro, porque no hay nada que consultar.
+
+     ⚠ CADUCA A LAS 6 HORAS. Un turno viejo no sirve: los turnos reinician cada
+     día, así que mañana el turno 4 sería el de otra persona y el cliente vería
+     el pedido de un desconocido como si fuera suyo.
+     ========================================================================== */
+
+  var CLAVE_CURSO = 'pichi_pedido_curso';
+  var CURSO_MAX_HORAS = 6;        // lo mismo que dura un pedido en el panel + 1
+  var relojCurso = null;
+
+  /** Guarda el turno en curso. Solo el número y la hora: nada personal. */
+  function guardarPedidoEnCurso(pedido) {
+    try {
+      localStorage.setItem(CLAVE_CURSO, JSON.stringify({
+        turno: pedido.turno,
+        numero: pedido.numero || '',
+        cuando: Date.now()
+      }));
+    } catch (e) { /* almacenamiento bloqueado: se pierde el seguimiento, nada más */ }
+  }
+
+  function olvidarPedidoEnCurso() {
+    try { localStorage.removeItem(CLAVE_CURSO); } catch (e) {}
+    if (relojCurso) { clearInterval(relojCurso); relojCurso = null; }
+    var sec = $('#pedidoEnCurso');
+    if (sec) { sec.hidden = true; }
+  }
+
+  /** Lee el pedido en curso, si lo hay y si todavía vale. */
+  function leerPedidoEnCurso() {
+    var g = null;
+    try { g = JSON.parse(localStorage.getItem(CLAVE_CURSO) || 'null'); } catch (e) {}
+    if (!g || !g.turno) { return null; }
+    if (Date.now() - g.cuando > CURSO_MAX_HORAS * 3600000) { olvidarPedidoEnCurso(); return null; }
+    return g;
+  }
+
+  /**
+   * Enciende el seguimiento al cargar la página.
+   * Pregunta cada 45 segundos y no cada 30 como la pantalla del turno: aquí el
+   * cliente está mirando el menú, no esperando el dato, y cada consulta cuesta
+   * una lectura del plan gratuito.
+   */
+  function arrancarSeguimiento() {
+    var g = leerPedidoEnCurso();
+    if (!g) { return; }
+    $('#pedidoEnCurso').hidden = false;
+    $('#cursoNumero').textContent = g.turno;
+    pintarSeguimiento();
+    if (relojCurso) { clearInterval(relojCurso); }
+    relojCurso = setInterval(pintarSeguimiento, 45000);
+  }
+
+  /**
+   * Al tocar la tarjeta se abre la pantalla del turno con la cola en vivo.
+   * Se reusa la ventana que ya existe en vez de inventar otra pantalla: el
+   * cliente ya la conoce, es la misma que vio al pedir.
+   * ⚠ Se muestra SOLO el paso del turno, nunca el formulario: aquí no se está
+   * pidiendo nada, y ver el carrito de otro pedido confundiría.
+   */
+  function abrirSeguimiento() {
+    var g = leerPedidoEnCurso();
+    if (!g) { return; }
+    elementoQueAbrio = document.activeElement;
+    $('#pasoFormulario').hidden = true;
+    $('#pasoTurno').hidden = false;
+    $('#turnoNumero').textContent = g.turno;
+    // Los datos del pedido (nombre, total…) no se guardaron a propósito, así
+    // que la caja se deja vacía en vez de inventar nada.
+    $('#turnoDatos').innerHTML = '';
+    $('#modalPedido').classList.add('abierto');
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', encerrarFoco, true);
+    arrancarCola(g.turno);
+    $('#btnCerrarTurno').focus();
+    medirEvento('abrio_seguimiento');
+  }
+
+  function pintarSeguimiento() {
+    var g = leerPedidoEnCurso();
+    if (!g) { return; }
+    if (document.hidden) { return; }   // aquí sí se puede esperar: no hay aviso que dar
+
+    window.Almacen.verTurnos().then(function (c) {
+      var estado = $('#cursoEstado');
+      var detalle = $('#cursoDetalle');
+      var sec = $('#pedidoEnCurso');
+
+      /* Ya se lo entregaron: el último entregado alcanzó su turno. Se quita el
+         seguimiento en vez de dejarlo diciendo algo viejo — y así el cliente que
+         vuelve mañana no se encuentra el cartel de un pedido que ya recogió. */
+      if (c.ultimoEntregado !== null && c.ultimoEntregado >= g.turno) {
+        olvidarPedidoEnCurso();
+        return;
+      }
+
+      /* ⚠ El contador del día reinicia en 1 cada mañana. Si el turno guardado
+         es MAYOR que el más alto que ha dado el local hoy, el pedido es de
+         ayer: ese número ya no le pertenece y hay que soltarlo, o el cliente
+         estaría viendo la cola de un pedido que no existe. */
+      if (c.turnoDelDia !== null && g.turno > c.turnoDelDia) {
+        olvidarPedidoEnCurso();
+        return;
+      }
+
+      if (c.preparando !== null && g.turno <= c.preparando) {
+        sec.classList.add('es-tuyo');
+        estado.textContent = '🔥 Ya están preparando el tuyo';
+        detalle.textContent = 'Puedes ir pasando a recogerlo.';
+        return;
+      }
+
+      sec.classList.remove('es-tuyo');
+      var delante = c.preparando === null
+        ? Math.max(0, c.enCola - 1)
+        : Math.max(0, g.turno - c.preparando);
+
+      if (delante === 0) {
+        estado.textContent = 'Tu pedido va primero';
+        detalle.textContent = 'Están por empezarlo.';
+      } else {
+        estado.textContent = delante === 1 ? 'Falta uno antes que tú' : 'Faltan ' + delante + ' antes que tú';
+        detalle.textContent = c.preparando === null
+          ? 'Tu pedido ya está en la cocina.'
+          : 'Están preparando el turno ' + c.preparando + '.';
+      }
+    }).catch(function () {
+      // Sin conexión no se le muestra un error: se esconde y ya. Volverá a
+      // intentarlo en el siguiente ciclo sin molestar a nadie.
+      $('#pedidoEnCurso').hidden = true;
     });
   }
 
@@ -1063,6 +1310,12 @@
     $('#btnPedir').addEventListener('click', abrirModal);
     $('#btnCerrarModal').addEventListener('click', cerrarModal);
     $('#btnCerrarTurno').addEventListener('click', cerrarModal);
+    $('#colaAvisar').addEventListener('click', activarAvisoCola);
+
+    /* Seguimiento del pedido en curso: se enciende al cargar la página, no al
+       pedir. Es justo el caso del cliente que ya cerró la pestaña y vuelve. */
+    arrancarSeguimiento();
+    $('#cursoAbrir').addEventListener('click', abrirSeguimiento);
     $('#formPedido').addEventListener('submit', enviarPedido);
 
     // Cerrar tocando el fondo oscuro (pero no al tocar dentro de la caja).

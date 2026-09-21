@@ -372,6 +372,38 @@
   <div id="menu">
 
     <!-- ===========================================================
+         SEGUIMIENTO DEL PEDIDO EN CURSO
+         Qué es: si este celular tiene un pedido de hace poco que
+         todavía no le han entregado, al entrar a la página lo
+         primero que ve es cómo va, sin tener que preguntar nada.
+         Por qué: antes, el cliente que cerraba la pestaña se
+         quedaba a ciegas. Tenía el número de turno y nada más, y
+         la única salida era llamar al local — que es tiempo que
+         el vendedor no está cocinando.
+         ⚠ Va ARRIBA de "repetir el último pedido" a propósito:
+         quien tiene un pedido en curso quiere saber de ESE, no
+         que le ofrezcan pedir otra vez.
+         ⚠ Arranca con hidden y lo enciende el JS. Si el
+         JavaScript fallara no aparece, en vez de quedarse un
+         cartel vacío: falla del lado seguro.
+         =========================================================== -->
+    <section class="curso" id="pedidoEnCurso" hidden aria-live="polite">
+      <div class="contenedor">
+        <button type="button" class="curso__caja" id="cursoAbrir">
+          <span class="curso__turno">
+            <b id="cursoNumero">–</b>
+            <span>Tu turno</span>
+          </span>
+          <span class="curso__txt">
+            <strong id="cursoEstado">Consultando…</strong>
+            <span id="cursoDetalle"></span>
+          </span>
+          <span class="curso__ver" aria-hidden="true">Ver →</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===========================================================
          REPETIR EL ÚLTIMO PEDIDO
          Qué es: un atajo para el cliente que ya pidió antes.
          Función: en comida rápida mucha gente repite siempre lo
@@ -1081,6 +1113,16 @@
         <div class="cola" id="colaTurnos" hidden>
           <p class="cola__estado" id="colaEstado">Consultando la cola…</p>
           <p class="cola__detalle" id="colaDetalle"></p>
+          <!-- Botón para que el celular avise cuando empiecen a preparar SU
+               pedido. Va con hidden y lo enciende el JS solo si el navegador
+               sabe hacerlo: en un navegador sin notificaciones no tiene sentido
+               ofrecer algo que no va a pasar.
+               ⚠ TIENE QUE SER UN BOTÓN, no se puede encender solo: los
+               navegadores exigen que la persona toque algo antes de dejar pedir
+               el permiso. Sin ese toque, el aviso nunca llegaría. -->
+          <button type="button" class="cola__avisar" id="colaAvisar" hidden>
+            🔔 Avísame cuando lo estén preparando
+          </button>
         </div>
 
         <div class="turno__datos" id="turnoDatos"></div>

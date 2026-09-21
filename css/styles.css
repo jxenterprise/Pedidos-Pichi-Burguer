@@ -650,11 +650,88 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
 .cola.es-tuyo { border-left-color: var(--verde); }
 .cola.es-tuyo .cola__estado { color: #7FE39A; }
 
+/* Botón "Avísame cuando lo estén preparando".
+   Va DENTRO de la caja de la cola y no suelto: pertenece a ese bloque y así no
+   compite con "Confirmar por WhatsApp", que es la acción principal de la
+   pantalla del turno. Por eso es de contorno y no de relleno.
+   Ancho completo y 44px de alto, como todo lo que se toca en este sitio. */
+.cola__avisar {
+  display: block; width: 100%; min-height: 44px; margin-top: 12px;
+  background: transparent; border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio-sm); color: var(--texto);
+  font-family: var(--fuente-texto); font-size: .88rem; font-weight: 700;
+  line-height: 1.25; padding: 8px 12px; cursor: pointer;
+  transition: border-color .18s ease, color .18s ease;
+}
+@media (hover: hover) {
+  .cola__avisar:hover:not(:disabled) { border-color: var(--amarillo); color: var(--amarillo); }
+}
+/* Activado: verde y sin cursor de mano, porque ya no hay nada que tocar.
+   Se queda a la vista en vez de desaparecer para que el cliente sepa que el
+   aviso está puesto y no se quede con la duda. */
+.cola__avisar.activo {
+  border-color: var(--verde); color: #7FE39A; cursor: default;
+}
+.cola__avisar:disabled:not(.activo) { color: var(--texto-tenue); cursor: default; }
+
 
 /* --- "¿Lo mismo de la otra vez?" ---
    Tarjeta ancha arriba del menú. Usa el mismo patrón de .aviso-caja (fondo de
    superficie, borde de color a la izquierda) para que no parezca pegada de
    otra web. El borde va amarillo porque es una oportunidad, no una alerta. */
+/* --- Seguimiento del pedido en curso ---
+   Mismo lenguaje que la tarjeta de "repetir el último pedido" que va justo
+   debajo: fondo --negro-sup, borde --linea y una franja de color a la
+   izquierda. Aquí la franja es NARANJA y no amarilla porque significa otra
+   cosa: amarillo = una oferta que puedes tomar o no; naranja = algo tuyo que
+   está pasando ahora. Cuando ya están preparando el suyo pasa a verde, igual
+   que el semáforo y que la cola de la ventana del turno. */
+/* ⚠ Lleva espacio ABAJO, a diferencia de .repetir. Sin él, la etiqueta
+   amarilla de la primera categoría —que va rotada y se sale un poco de su
+   caja— quedaba 2px ENCIMA de esta tarjeta. Medido a 390px: se tocaban. */
+.curso { padding-block: var(--espacio-seccion) 26px; }
+/* Es un <button> de ancho completo y no un <div> con onclick: así se puede
+   tocar con el tabulador, lo anuncia el lector de pantalla y sale el foco
+   visible sin tener que añadirle nada. */
+.curso__caja {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  background: var(--negro-sup);
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--naranja);
+  border-radius: var(--radio);
+  padding: 14px 16px; min-height: 44px;
+  font-family: var(--fuente-texto); color: var(--texto);
+  text-align: left; cursor: pointer;
+  transition: border-color .18s ease;
+}
+@media (hover: hover) { .curso__caja:hover { border-color: var(--linea-fuerte); } }
+.curso__turno {
+  display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+  min-width: 56px; padding: 6px 10px;
+  background: var(--negro); border: 1px solid var(--linea);
+  border-radius: var(--radio-sm);
+}
+.curso__turno b {
+  font-family: var(--fuente-titulo); font-style: italic; font-weight: 800;
+  font-size: 1.5rem; line-height: 1; color: var(--amarillo);
+}
+.curso__turno span {
+  font-size: .56rem; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--texto-tenue); margin-top: 3px;
+}
+.curso__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.curso__txt strong { font-size: .98rem; font-weight: 700; color: var(--blanco); }
+.curso__txt span { font-size: .84rem; color: var(--texto-suave); }
+.curso__ver {
+  flex-shrink: 0; font-size: .82rem; font-weight: 700; color: var(--texto-tenue);
+  white-space: nowrap;
+}
+.curso.es-tuyo .curso__caja { border-left-color: var(--verde); }
+.curso.es-tuyo .curso__txt strong { color: #7FE39A; }
+/* En pantalla angosta el "Ver →" sobra: la tarjeta entera ya es el botón y el
+   texto necesita todo el ancho para no partirse. */
+@media (max-width: 400px) { .curso__ver { display: none; } }
+
 .repetir { padding-block: var(--espacio-seccion) 0; }
 .repetir__caja {
   display: flex; flex-wrap: wrap; align-items: center; gap: 16px;

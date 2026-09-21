@@ -133,7 +133,7 @@ Todo esto está en `/panel.html`, después de escribir la clave.
 | **🔕 / 🔔 Activar avisos** | Campana (5 toques), notificación del sistema y pantalla que no se apaga | Lo primero que hay que tocar al abrir el panel. **Arranca en naranja porque apagado es el estado peligroso**: sin esto, un pedido entra y nadie se entera |
 | **Buscar** | Filtra por nombre o por número de turno | Con 20 tarjetas parecidas, encontrar "el de Andrés" a ojo es lento y el cliente está esperando |
 | **🍳 Modo cocina** | Un pedido a la vez, en letra grande. Se cambia con las flechas ← → y se sale con Escape | Para leerlo a un metro de distancia, con las manos ocupadas |
-| **Empezar / 🔥 En plancha** | Marca que ese pedido ya se está preparando | Separa "ya lo estoy haciendo" de "ya lo entregué". Además, es lo que ve el cliente en la cola de turnos |
+| **Empezar / 🔥 En plancha** | Marca que ese pedido ya se está preparando | Separa "ya lo estoy haciendo" de "ya lo entregué". **Al tocarlo, al cliente le cambia el estado en su celular** y, si activó el aviso, le suena. Además te sale por 10 segundos un botón **"Avisar al cliente"** que abre WhatsApp con el mensaje ya escrito |
 | **Entregado** | Lo marca como entregado | Durante **10 segundos** sale un "Deshacer" por si fue sin querer |
 | **🗑 Borrar** | Quita el pedido para siempre | Para un pedido repetido o uno que el cliente canceló por teléfono. Pide confirmación diciendo el turno **y** el nombre |
 | **Llamar / Avisar listo** | Abre el teléfono o WhatsApp con el mensaje ya escrito | El mensaje lleva el nombre, el turno y la dirección del local |
@@ -159,9 +159,38 @@ es el aviso: gris normal, **naranja a los 15 minutos**, **rojo a los 25**.
   publicado iría contra el Estatuto del Consumidor.
 - **Cola de turnos en vivo**: mientras mira su turno en pantalla, le dice
   *"Faltan 2 antes que tú · están preparando el turno 8"*.
+- **Seguimiento del pedido al volver a entrar.** Si pidió hace menos de 6 horas
+  y no se lo han entregado, **lo primero que ve al abrir la página es su turno y
+  cuántos faltan** — aunque haya cerrado la pestaña, apagado el celular o
+  reiniciado. Al tocarlo se abre el detalle con la cola en vivo, y cuando el
+  vendedor toca "Empezar" la tarjeta se pone verde: *"🔥 Ya están preparando el
+  tuyo"*. Cuando se lo entregan, desaparece sola.
+- **Aviso en el celular**: con un botón, el cliente pide que le avisen. Cuando
+  el vendedor empieza su pedido, **le suena y le vibra** aunque tenga la página
+  en segundo plano. En iPhone el botón solo aparece si instaló la app (es una
+  limitación de Apple); para ese caso está el WhatsApp del panel.
 - **Instalar la app**: un aviso para dejar el sitio como icono en el celular.
 - **Respaldo por WhatsApp**: además del turno en pantalla, se le abre WhatsApp
   con el pedido ya escrito.
+
+### ¿Cómo sabe el cliente que ya están preparando su pedido?
+
+Por **tres caminos a la vez**, porque ninguno solo alcanza:
+
+| | Cómo llega | Cuándo sirve | Funciona en |
+|---|---|---|---|
+| **1** | **Entra a la página y lo ve** | Siempre. Es la base | **Todos** los celulares, sin permisos ni instalar nada |
+| **2** | **Le suena y vibra el celular** | Si activó el aviso con el botón | Android siempre; iPhone solo si instaló la app |
+| **3** | **Le llega un WhatsApp** | Si tú tocas "Avisar al cliente" | **Todos**, siempre |
+
+**Lo importante es el 1**: no depende de que el cliente deje la página abierta,
+ni de permisos, ni de que instale nada. Abre la página y ya lo sabe. El 2 es el
+extra para quien lo quiera, y el 3 es tu red de seguridad.
+
+> ⚠ En el celular del cliente **solo se guarda su número de turno y la hora**.
+> Ni el nombre, ni el teléfono, ni lo que pidió. Y para saber cómo va, la página
+> solo pregunta **números** al servidor (qué turno se está preparando y cuántos
+> hay). Por eso **nadie puede espiar el pedido de otro**: no hay nada que espiar.
 
 ### ¿La "app" es una app de verdad?
 
@@ -274,7 +303,7 @@ El sitio trae GA4 listo, pero **falta el identificador**. Para activarlo:
 - **Informes → Interacción → Eventos**: aquí está lo que de verdad importa. No
   las visitas, sino cuántas se volvieron pedidos.
 
-### Los 9 eventos que el sitio ya mide
+### Los 12 eventos que el sitio ya mide
 
 No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
 
@@ -286,6 +315,9 @@ No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
 | `clic_telefono` | Toca el número para llamar | |
 | `clic_mapa` | Abre la ubicación | Cuánta gente busca cómo llegar |
 | `repitio_pedido` | Usa "Repetir mi último pedido" | Te dice cuántos clientes son repetidos |
+| `abrio_seguimiento` | Toca la tarjeta de "cómo va mi pedido" | Cuántos vuelven a entrar a ver su turno |
+| `activo_aviso_cola` | Activa el aviso en su celular | Cuántos quieren que les avisen |
+| `aviso_cola_recibido` | Le llegó el aviso de "ya lo preparan" | Cuántos avisos llegaron de verdad |
 | `instalo_app` | El celular confirma que quedó instalada | Cuántos clientes vuelven por el icono y no por Google |
 | `instalar_si` / `instalar_no` | Acepta o rechaza el aviso de instalar | Si `instalar_no` es muy alto, el aviso está molestando |
 | `clic_ver_menu_cerrado` | Con el local cerrado, toca "Ver el menú de todas formas" | Cuánta gente busca fuera del horario. **Si este número es alto, vale la pena abrir más temprano** |
