@@ -43,6 +43,12 @@
      pestaña se borra sola. */
   var clave = '';
   var idsConocidos = {};      // para detectar cuáles pedidos son nuevos
+  var ampliacionesVistas = {}; // id → marca de tiempo de la última ampliación avisada
+  /* Se enciende cuando cargarPedidos() puso un aviso que NO se debe pisar (una
+     ampliación). Sin esto, tocar "Actualizar" justo cuando un cliente agregaba
+     algo borraba el "REVISA" y lo reemplazaba por "Lista al día" — el aviso
+     más importante del sistema tapado por el menos importante. */
+  var avisoQueNoSePisa = false;
   var temporizador = null;
 
   var formatoPeso = new Intl.NumberFormat('es-CO', {
@@ -269,12 +275,31 @@
     return window.Almacen.listarPedidos(clave).then(function (datos) {
       marcarConexion(true, datos.modo || 'nube');
 
-      // Detectar pedidos nuevos para avisar al vendedor con un aviso discreto.
-      var nuevos = 0;
+      /* Detectar pedidos nuevos Y pedidos AMPLIADOS.
+         ⚠ La ampliación tiene que avisar igual que un pedido nuevo, o mejor:
+         un pedido nuevo todavía no se ha leído, pero uno ampliado el vendedor
+         YA lo leyó y cree saber qué lleva. Si no se entera, entrega
+         incompleto y el cliente reclama en el mostrador.
+         Se recuerda la marca de tiempo de la última ampliación vista, no un
+         simple "sí/no": si el cliente agrega dos veces, la segunda también
+         tiene que sonar. */
+      var nuevos = 0, ampliados = 0, ampliadoEnPlancha = false;
       datos.activos.forEach(function (p) {
-        if (!idsConocidos[p.id]) { nuevos++; idsConocidos[p.id] = true; }
+        if (!idsConocidos[p.id]) {
+          nuevos++;
+          idsConocidos[p.id] = true;
+          ampliacionesVistas[p.id] = p.ampliado || 0;   // ya viene ampliado: no es novedad aparte
+        } else if (p.ampliado && p.ampliado > (ampliacionesVistas[p.id] || 0)) {
+          ampliados++;
+          ampliacionesVistas[p.id] = p.ampliado;
+          if (p.ampliadoEnPlancha) { ampliadoEnPlancha = true; }
+        }
       });
       if (!primeraVez && nuevos > 0) { avisarPedidoNuevo(nuevos); }
+      if (!primeraVez && ampliados > 0) {
+        avisarAmpliacion(ampliados, ampliadoEnPlancha);
+        avisoQueNoSePisa = true;
+      }
 
       pintarLista($('#listaActivos'), datos.activos, false);
       pintarLista($('#listaHistorial'), datos.historial, true);
@@ -332,8 +357,11 @@
     b.disabled = true;
     b.textContent = 'Buscando…';
 
+    avisoQueNoSePisa = false;
     cargarPedidos(false).then(function (datos) {
-      var nuevos = datos ? datos.activos.filter(function (p) { return !idsConocidos[p.id]; }).length : 0;
+      // Si al cargar salió un aviso de ampliación, ese manda: el mensaje de
+      // "Actualizar" es una cortesía, el otro es trabajo que hay que hacer.
+      if (avisoQueNoSePisa) { return; }
       // idsConocidos ya lo actualizó cargarPedidos, así que se compara el total.
       var total = Object.keys(idsConocidos).length;
       if (total > antes) {
@@ -448,8 +476,13 @@
   function tarjeta(p, esHistorial) {
     var art = document.createElement('article');
     var enPlancha = !p.entregado && p.estado === 'preparando';
+    /* Una ampliación se marca mientras esté SIN ENTREGAR. Después de entregado
+       ya no hay nada que revisar y la tarjeta roja parpadeando en el historial
+       solo sería ruido. */
+    var ampliado = !!p.ampliado && !p.entregado;
     art.className = 'pedido' + (p.entregado ? ' entregado' : '') + (esHistorial ? ' viejo' : '') +
-                    (enPlancha ? ' en-plancha' : '');
+                    (enPlancha ? ' en-plancha' : '') +
+                    (ampliado ? (p.ampliadoEnPlancha ? ' ampliado-plancha' : ' recien-ampliado') : '');
     art.setAttribute('data-id', p.id);
     // Se guarda en el elemento lo que necesita el buscador, para no recorrer el
     // pedido entero en cada tecla.
@@ -483,6 +516,19 @@
       esp.setAttribute('data-creado', p.creado);   // lo usa refrescarEsperas()
       esp.textContent = haceCuanto(min);
       quien.appendChild(esp);
+    }
+
+    /* Etiqueta de ampliación, al lado del reloj de espera. Va en el
+       encabezado y no abajo con los platos porque el vendedor lee la tarjeta
+       de arriba hacia abajo: el aviso tiene que llegarle ANTES que la lista
+       que cree conocer. */
+    if (ampliado) {
+      var amp = document.createElement('span');
+      amp.className = 'pedido__ampliado';
+      amp.textContent = p.ampliadoEnPlancha
+        ? '⚠️ Agregó algo · REVISA'
+        : '➕ Ampliado ' + haceCuanto(minutosDesde(p.ampliado));
+      quien.appendChild(amp);
     }
 
     // Aquí iba la etiqueta "Domicilio / Recoge". El local dejó de hacer
@@ -772,6 +818,27 @@
     notificar(texto);
   }
 
+  /**
+   * Avisa que un cliente le AGREGÓ algo a un pedido que ya estaba.
+   * ⚠ Suena la campana completa, las 5 veces, igual que un pedido nuevo — lo
+   * pidió JX expresamente. Y con razón: un pedido nuevo todavía no se ha
+   * leído, pero uno ampliado el vendedor ya lo leyó y cree saber qué lleva.
+   * Pasarlo por alto significa entregar incompleto.
+   * Si además se amplió cuando YA estaba en la plancha, el texto lo dice en
+   * mayúsculas: ahí la comanda vieja puede estar a punto de salir.
+   */
+  function avisarAmpliacion(cuantos, enPlancha) {
+    var texto = enPlancha
+      ? (cuantos === 1 ? '⚠️ UN CLIENTE AGREGÓ ALGO A UN PEDIDO EN LA PLANCHA — REVISA'
+                       : '⚠️ ' + cuantos + ' PEDIDOS EN LA PLANCHA CAMBIARON — REVISA')
+      : (cuantos === 1 ? 'Un cliente le agregó algo a su pedido'
+                       : cuantos + ' clientes le agregaron algo a su pedido');
+    avisar('➕ ' + texto);
+    if (!avisosEncendidos()) { return; }
+    sonarCampana();
+    notificar(texto);
+  }
+
   /** Pinta el botón según esté encendido o apagado. */
   function pintarBotonAvisos() {
     var b = $('#btnAvisos');
@@ -1019,6 +1086,7 @@
       window.Almacen.borrarHistorial(clave).then(function () {
         avisar('Historial borrado');
         idsConocidos = {};
+      ampliacionesVistas = {};
         cargarPedidos(true);
       }).catch(function (err) {
         avisar('No se pudo borrar: ' + err.message);

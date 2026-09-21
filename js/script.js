@@ -450,6 +450,7 @@
     elementoQueAbrio = document.activeElement;
     pintarResumen();
     $('#pasoFormulario').hidden = false;
+    $('#pasoEnCurso').hidden = true;
     $('#pasoTurno').hidden = true;
     $('#colaTurnos').hidden = true;
     $('#errorForm').classList.remove('visible');
@@ -543,6 +544,14 @@
       mostrarTurno(pedido);
       medirEvento('pedido_enviado', { valor: pedido.total });
     }).catch(function (err) {
+      /* Ese teléfono ya tiene un turno sin entregar. No es un error del
+         sistema: es el cliente que se acordó de algo. En vez de un mensaje
+         rojo, se le ofrece sumarlo a lo que ya pidió. */
+      if (err.codigo === 'PEDIDO_EN_CURSO' && err.pedidoActivo) {
+        mostrarEnCurso(err.pedidoActivo, telefono);
+        medirEvento('choco_pedido_en_curso');
+        return;
+      }
       mostrarError('No se pudo enviar el pedido: ' + err.message + '. Intenta de nuevo o escríbenos por WhatsApp.');
     }).then(function () {
       boton.disabled = false;
@@ -550,9 +559,97 @@
     });
   }
 
+  /* Lo que el cliente quiere sumar y a qué teléfono pertenece. Se guarda
+     mientras decide, porque el carrito sigue intacto por si dice que no. */
+  var ampliacionPendiente = null;
+
+  /**
+   * Muestra "ya tienes un pedido" y le ofrece sumarle lo que acaba de escoger.
+   * ⚠ Todo con textContent, nunca innerHTML: por aquí pasan los nombres de los
+   * platos y lo que el servidor devuelva. Misma regla 9 del proyecto.
+   */
+  function mostrarEnCurso(activo, telefono) {
+    ampliacionPendiente = { telefono: telefono, turno: activo.turno };
+
+    $('#pasoFormulario').hidden = true;
+    $('#pasoEnCurso').hidden = false;
+    $('#encursoTurno').textContent = activo.turno;
+
+    var yaTiene = (activo.items || []).map(function (i) {
+      return i.cantidad + '× ' + i.nombre;
+    }).join(', ');
+    $('#encursoTexto').textContent = activo.estado === 'preparando'
+      ? 'Ya lo están preparando: ' + yaTiene
+      : 'Está en la fila: ' + yaTiene;
+
+    // Lo que quiere sumar, para que lo vea antes de decidir.
+    var caja = $('#encursoNuevo');
+    caja.innerHTML = '';
+    Object.keys(carrito).forEach(function (id) {
+      var fila = document.createElement('div');
+      fila.className = 'encurso__fila';
+      var a = document.createElement('span');
+      a.textContent = carrito[id].cantidad + '× ' + carrito[id].nombre;
+      var b = document.createElement('span');
+      b.textContent = pesos(carrito[id].precio * carrito[id].cantidad);
+      fila.append(a, b);
+      caja.appendChild(fila);
+    });
+
+    $('#btnAgregarAlPedido').disabled = false;
+    $('#btnAgregarAlPedido').textContent = 'Sí, agrégalo a mi turno ' + activo.turno;
+    $('#encursoWhats').href = 'https://wa.me/' + CFG.negocio.whatsapp +
+      '?text=' + encodeURIComponent('Hola, quiero hacer otro pedido aparte del turno ' + activo.turno + '.');
+  }
+
+  /** Suma lo del carrito al pedido que ya tiene, sin sacar turno nuevo. */
+  function agregarAlPedido() {
+    if (!ampliacionPendiente) { return; }
+    var boton = $('#btnAgregarAlPedido');
+    boton.disabled = true;
+    boton.textContent = 'Agregando…';
+
+    var items = Object.keys(carrito).map(function (id) {
+      return { nombre: carrito[id].nombre, cantidad: carrito[id].cantidad, precio: carrito[id].precio };
+    });
+    var loQueAgrego = items.slice();   // para el mensaje de WhatsApp
+
+    window.Almacen.agregarAPedido(ampliacionPendiente.telefono, items)
+      .then(function (pedido) {
+        $('#pasoEnCurso').hidden = true;
+        mostrarTurno(pedido);
+        /* ⚠ El botón de WhatsApp del turno pasa a decir lo que AGREGÓ, no el
+           pedido entero. Es el respaldo de esta ampliación: si el vendedor ya
+           leyó la comanda en el panel, el mensaje es lo que lo hace mirar otra
+           vez. Por eso JX pidió que también avisara por ahí. */
+        $('#btnWhatsAppPedido').href = enlaceAmpliacion(pedido, loQueAgrego);
+        $('#btnWhatsAppPedido').textContent = 'Avisar por WhatsApp lo que agregué';
+        // El carrito lo vacía mostrarTurno(); aquí no hay que hacerlo otra vez.
+        medirEvento('amplio_pedido', { valor: pedido.total });
+      })
+      .catch(function (err) {
+        boton.disabled = false;
+        boton.textContent = 'Sí, agrégalo a mi turno';
+        mostrarError('No se pudo agregar: ' + err.message + '. Escríbenos por WhatsApp.');
+        $('#pasoEnCurso').hidden = true;
+        $('#pasoFormulario').hidden = false;
+      });
+  }
+
+  /** El mensaje de WhatsApp de una ampliación: corto y sin ambigüedad. */
+  function enlaceAmpliacion(pedido, agregados) {
+    var t = '➕ AGREGUÉ A MI PEDIDO\n';
+    t += 'Turno ' + pedido.turno + ' · ' + pedido.nombre + '\n\n';
+    t += 'Lo que agregué ahora:\n';
+    agregados.forEach(function (i) { t += '• ' + i.cantidad + '× ' + i.nombre + '\n'; });
+    t += '\nTotal del pedido completo: ' + pesos(pedido.total);
+    return 'https://wa.me/' + CFG.negocio.whatsapp + '?text=' + encodeURIComponent(t);
+  }
+
   /** Cambia la ventana a la pantalla del turno con todos los datos. */
   function mostrarTurno(pedido) {
     $('#pasoFormulario').hidden = true;
+    $('#pasoEnCurso').hidden = true;
     $('#pasoTurno').hidden = false;
     $('#turnoNumero').textContent = pedido.turno;
 
@@ -717,30 +814,38 @@
       var estado = $('#colaEstado');
       var detalle = $('#colaDetalle');
 
-      // El aviso se dispara ESTÉ O NO la pantalla a la vista: es justo cuando
-      // no la está mirando cuando hace falta.
+      /* El aviso se dispara ESTÉ O NO la pantalla a la vista: es justo cuando
+         no la está mirando cuando hace falta.
+         ⚠ SOLO con c.preparando, que el servidor pone a null mientras nadie
+         toque "Empezar". Antes esto se disparaba con el turno más bajo
+         pendiente, así que al primer cliente del día le sonaba el aviso
+         "ya están preparando tu pedido" APENAS pedía. */
       if (c.preparando !== null && turnoDelCliente <= c.preparando) { avisarQueYaVa(); }
       if (enSegundoPlano) { return; }   // consultar sí; repintar no hace falta
 
-      if (c.preparando === null) {
-        estado.textContent = 'Tu pedido ya entró a la cocina.';
-        detalle.textContent = 'Te avisamos por WhatsApp apenas esté listo.';
-        caja.classList.remove('es-tuyo');
-        return;
-      }
-
-      // Cuántos hay antes que él. Se cuenta por número de turno, que es el
-      // orden real en que se preparan.
-      var delante = Math.max(0, turnoDelCliente - c.preparando);
-
-      if (delante === 0) {
+      /* VERDE solo si el vendedor tocó "Empezar" en ESTE turno o en uno
+         posterior. c.preparando viene en null mientras nadie lo toque, y eso
+         es lo que impide prometerle al cliente algo que no está pasando. */
+      if (c.preparando !== null && turnoDelCliente <= c.preparando) {
         caja.classList.add('es-tuyo');
         estado.textContent = '¡Están preparando el tuyo!';
         detalle.textContent = 'Turno ' + turnoDelCliente + ' · ya puedes ir pasando.';
+        return;
+      }
+
+      caja.classList.remove('es-tuyo');
+      var delante = cuantosDelante(c, turnoDelCliente);
+
+      if (delante === 0) {
+        estado.textContent = 'Eres el siguiente';
+        detalle.textContent = c.preparando !== null
+          ? 'Están preparando el turno ' + c.preparando + ' · el tuyo sigue.'
+          : 'Tu pedido es el primero de la fila.';
       } else {
-        caja.classList.remove('es-tuyo');
         estado.textContent = delante === 1 ? 'Falta uno antes que tú' : 'Faltan ' + delante + ' antes que tú';
-        detalle.textContent = 'Están preparando el turno ' + c.preparando + ' · el tuyo es el ' + turnoDelCliente + '.';
+        detalle.textContent = c.preparando !== null
+          ? 'Están preparando el turno ' + c.preparando + ' · el tuyo es el ' + turnoDelCliente + '.'
+          : 'Tu pedido está en la fila · el tuyo es el ' + turnoDelCliente + '.';
       }
     }).catch(function () {
       // Sin conexión no se le muestra un error al cliente: se esconde la caja
@@ -781,6 +886,25 @@
      día, así que mañana el turno 4 sería el de otra persona y el cliente vería
      el pedido de un desconocido como si fuera suyo.
      ========================================================================== */
+
+  /**
+   * Cuántos pedidos van DELANTE del turno dado.
+   * Se cuentan los turnos pendientes menores que el suyo, uno por uno, en vez
+   * de restar (miTurno − elPrimero). La resta sobreestimaba: si están
+   * pendientes el 1 y el 3 y tú eres el 3, restar da 2 pero delante va uno
+   * solo — el 2 ya se entregó o se borró. Decirle a alguien que faltan dos
+   * cuando falta uno es la clase de detalle que hace que deje de creerle a la
+   * pantalla.
+   * Si el servidor no mandó la lista (versión vieja en caché), se cae a la
+   * resta, que es peor pero no rompe nada.
+   */
+  function cuantosDelante(c, miTurno) {
+    if (Array.isArray(c.pendientes)) {
+      return c.pendientes.filter(function (t) { return t < miTurno; }).length;
+    }
+    var base = c.preparando !== null ? c.preparando : c.siguiente;
+    return base === null || base === undefined ? 0 : Math.max(0, miTurno - base);
+  }
 
   var CLAVE_CURSO = 'pichi_pedido_curso';
   var CURSO_MAX_HORAS = 6;        // lo mismo que dura un pedido en el panel + 1
@@ -881,6 +1005,10 @@
         return;
       }
 
+      /* ⚠ VERDE SOLO cuando el vendedor tocó "Empezar". Mientras no lo toque,
+         c.preparando viene en null y esto no entra. Antes entraba siempre para
+         el primer cliente del día, que veía "ya están preparando el tuyo" en
+         el mismo segundo en que enviaba el pedido. */
       if (c.preparando !== null && g.turno <= c.preparando) {
         sec.classList.add('es-tuyo');
         estado.textContent = '🔥 Ya están preparando el tuyo';
@@ -889,18 +1017,18 @@
       }
 
       sec.classList.remove('es-tuyo');
-      var delante = c.preparando === null
-        ? Math.max(0, c.enCola - 1)
-        : Math.max(0, g.turno - c.preparando);
+      var delante = cuantosDelante(c, g.turno);
 
       if (delante === 0) {
-        estado.textContent = 'Tu pedido va primero';
-        detalle.textContent = 'Están por empezarlo.';
+        estado.textContent = 'Eres el siguiente';
+        detalle.textContent = c.preparando !== null
+          ? 'Están preparando el turno ' + c.preparando + '.'
+          : 'Tu pedido es el primero de la fila.';
       } else {
         estado.textContent = delante === 1 ? 'Falta uno antes que tú' : 'Faltan ' + delante + ' antes que tú';
-        detalle.textContent = c.preparando === null
-          ? 'Tu pedido ya está en la cocina.'
-          : 'Están preparando el turno ' + c.preparando + '.';
+        detalle.textContent = c.preparando !== null
+          ? 'Están preparando el turno ' + c.preparando + '.'
+          : 'Tu pedido está en la fila.';
       }
     }).catch(function () {
       // Sin conexión no se le muestra un error: se esconde y ya. Volverá a
@@ -1311,6 +1439,8 @@
     $('#btnCerrarModal').addEventListener('click', cerrarModal);
     $('#btnCerrarTurno').addEventListener('click', cerrarModal);
     $('#colaAvisar').addEventListener('click', activarAvisoCola);
+    $('#btnAgregarAlPedido').addEventListener('click', agregarAlPedido);
+    $('#btnCerrarEnCurso').addEventListener('click', cerrarModal);
 
     /* Seguimiento del pedido en curso: se enciende al cargar la página, no al
        pedir. Es justo el caso del cliente que ya cerró la pestaña y vuelve. */

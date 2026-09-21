@@ -47,6 +47,35 @@
    Debe coincidir con sistema.horasEnPanelActivo de js/config.js. */
 const HORAS_ACTIVO = 5;
 
+/* Cuánto tiempo puede un cliente sumarle algo a su pedido en vez de sacar otro
+   turno. Lo pidió JX al darse cuenta de que desde su propio celular podía pedir
+   una y otra vez con el mismo nombre y teléfono, gastando turnos.
+   20 minutos: lo que tarda alguien en acordarse de que quería un perro más.
+   Pasado ese rato, el pedido es otro de verdad y le toca turno nuevo. */
+const MINUTOS_AMPLIAR = 20;
+
+/**
+ * Busca el pedido que ese teléfono todavía tiene en curso, si lo hay.
+ * ⚠ EL FRENO VIVE AQUÍ, EN EL SERVIDOR, y no en el navegador: lo que guarde el
+ * celular se borra limpiando los datos del navegador, y entonces el freno no
+ * frenaría nada. Aquí no hay forma de saltárselo.
+ * ⚠ La llave es el TELÉFONO, no el nombre ni la IP. El nombre repite
+ * ("Andrés" hay muchos) y bloquearía a personas distintas. La IP es peor: en
+ * un barrio varias casas comparten wifi y un operador móvil le da la misma IP
+ * a cientos de personas, así que dos vecinos que pidan el mismo día se
+ * bloquearían entre sí — y el local nunca sabría por qué perdió esa venta.
+ */
+function pedidoEnCurso(doc, telefono) {
+  if (!telefono) return null;
+  const limite = Date.now() - MINUTOS_AMPLIAR * 60000;
+  // Del más nuevo al más viejo: si por lo que sea hay dos, manda el último.
+  for (let i = doc.pedidos.length - 1; i >= 0; i--) {
+    const p = doc.pedidos[i];
+    if (p.telefono === telefono && !p.entregado && p.creado > limite) return p;
+  }
+  return null;
+}
+
 /* Limpieza automática del historial: sábados a las 7:00 AM hora de Colombia.
    Debe coincidir con sistema.limpiezaHistorial de js/config.js. */
 const LIMPIEZA = { dia: 6, hora: 7 };   // 6 = sábado
@@ -266,6 +295,30 @@ export async function onRequest({ request, env }) {
       return json({ error: 'Se alcanzó el máximo de pedidos del día.' }, 429);
     }
 
+    /* ⚠ UN TELÉFONO, UN TURNO A LA VEZ.
+       Sin esto, el mismo cliente podía enviar el pedido diez veces seguidas y
+       quedarse con diez turnos: el mostrador llamaría números que no existen y
+       la fila que ve el resto de la gente sería mentira. Comprobado por JX
+       desde su propio celular.
+       No se rechaza y ya: se le devuelve SU pedido para que el navegador le
+       ofrezca sumarle lo nuevo. El caso real más común no es el vivo que
+       quiere turnos, es el que se acordó de que quería algo más. */
+    const enCurso = pedidoEnCurso(doc, telefono);
+    if (enCurso) {
+      return json({
+        error: 'Ya tienes un pedido en curso.',
+        codigo: 'PEDIDO_EN_CURSO',
+        pedidoActivo: {
+          id: enCurso.id,
+          turno: enCurso.turno,
+          numero: enCurso.numero,
+          total: enCurso.total,
+          estado: enCurso.estado || 'nuevo',
+          items: enCurso.items
+        }
+      }, 409);
+    }
+
     doc.turno += 1;                     // turnos: 1, 2, 3… y mañana vuelve a 1
 
     const pedido = {
@@ -302,7 +355,11 @@ export async function onRequest({ request, env }) {
       // existen en KV no tienen este campo, y el panel tiene que seguir
       // pintándolos bien. Sin campo = 'nuevo'.
       estado: 'nuevo',
-      empezadoEn: null
+      empezadoEn: null,
+      // Marcas de ampliación. Nacen en null: si algún día el cliente le suma
+      // algo, el panel lo sabe por aquí. Ver la acción 'agregar'.
+      ampliado: null,
+      ampliadoEnPlancha: false
     };
 
     // El total se suma AQUÍ, con los precios de CARTA, no con los que llegaron.
@@ -325,6 +382,80 @@ export async function onRequest({ request, env }) {
   }
 
   /* ------------------------------------------------------------------------
+     ACCIÓN: agregar — sumarle platos a un pedido que ya está en curso
+     ------------------------------------------------------------------------
+     PARA QUÉ: el cliente manda su pedido y a los dos minutos se acuerda de que
+     quería un perro más. Sin esto tendría que sacar otro turno, y entonces el
+     mismo cliente aparece dos veces en la fila con dos números distintos.
+
+     ⚠ NO PIDE CLAVE, y es correcto que no la pida: la manda el cliente desde
+     su celular, no el vendedor. Lo que la hace segura es que **solo puede
+     tocar un pedido del mismo teléfono**, hecho hoy y de hace menos de
+     MINUTOS_AMPLIAR. Sin el teléfono correcto no encuentra nada que ampliar,
+     y con él solo alcanza lo suyo. No devuelve ningún dato de otro cliente.
+
+     ⚠ LOS PRECIOS SALEN DE CARTA, igual que al crear (decisión 35). Si no,
+     este sería el hueco por donde entrarían los precios falsos que se acaban
+     de tapar en la acción "crear".
+
+     ⚠ SE PUEDE AMPLIAR AUNQUE YA ESTÉ EN LA PLANCHA — decisión de JX. El
+     riesgo es real (el vendedor puede haber leído ya la comanda y entregar sin
+     lo nuevo), así que el pedido queda marcado con "ampliadoEnPlancha" para
+     que el panel lo grite en rojo, le suene la campana otra vez y el cliente
+     lo mande además por WhatsApp. Tres avisos para el mismo hecho, porque uno
+     solo se pierde en hora pico.
+     ------------------------------------------------------------------------ */
+  if (accion === 'agregar') {
+    const telefono = String(datos.telefono || '').replace(/\D/g, '').slice(0, 15);
+    const items = Array.isArray(datos.items) ? datos.items.slice(0, 40) : [];
+    if (telefono.length < 7) return json({ error: 'El teléfono no es válido.' }, 400);
+    if (items.length === 0) return json({ error: 'No mandaste nada que agregar.' }, 400);
+
+    const hoy = fechaDia();
+    const doc = await leerJson(kv, 'dia:' + hoy, { turno: 0, pedidos: [] });
+    const p = pedidoEnCurso(doc, telefono);
+    if (!p) {
+      return json({
+        error: 'No encontramos un pedido tuyo al que agregarle esto.',
+        codigo: 'SIN_PEDIDO'
+      }, 404);
+    }
+
+    /* Tope de platos por pedido: el mismo 40 de "crear". Sin él, alguien
+       podría ampliar veinte veces y hacer crecer el documento del día sin
+       límite, que es el cupo de KV por otra puerta. */
+    const nuevos = items.map(i => {
+      const nombre = String(i.nombre || '').slice(0, 80);
+      return {
+        nombre,
+        cantidad: Math.max(1, Math.min(20, parseInt(i.cantidad, 10) || 1)),
+        precio: Object.prototype.hasOwnProperty.call(CARTA, nombre) ? CARTA[nombre] : 0
+      };
+    });
+    if (p.items.length + nuevos.length > 40) {
+      return json({ error: 'El pedido ya tiene demasiados platos.' }, 400);
+    }
+
+    /* Si vuelve a pedir un plato que ya tenía, se le suma a la cantidad en vez
+       de repetir la línea. En el papel de la cocina "2× Perro" se lee de un
+       golpe; "1× Perro" dos veces se cuenta mal con prisa. */
+    nuevos.forEach(n => {
+      const ya = p.items.find(x => x.nombre === n.nombre);
+      if (ya) { ya.cantidad = Math.min(20, ya.cantidad + n.cantidad); }
+      else { p.items.push(n); }
+    });
+
+    p.total = p.items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+    p.ampliado = Date.now();
+    // Se guarda si ya estaba en la plancha CUANDO amplió, no el estado de
+    // ahora: es lo que decide si el panel avisa en naranja o grita en rojo.
+    p.ampliadoEnPlancha = p.estado === 'preparando';
+
+    await kv.put('dia:' + hoy, JSON.stringify(doc));
+    return json({ ok: true, pedido: p });
+  }
+
+  /* ------------------------------------------------------------------------
      ACCIÓN PÚBLICA: turnos — para que el cliente vea cuánto falta
      ------------------------------------------------------------------------
      Qué devuelve: SOLO números. El turno que están preparando, cuántos hay en
@@ -344,26 +475,36 @@ export async function onRequest({ request, env }) {
     const hoy = fechaDia();
     const doc = await leerJson(kv, 'dia:' + hoy, { turno: 0, pedidos: [] });
 
-    // "Preparando" es, si el vendedor lo marcó, el pedido que está en la
-    // plancha. Si no marcó ninguno, se cae al turno más bajo sin entregar, que
-    // es la mejor suposición. Así el dato le sirve al cliente aunque el
-    // vendedor no use el botón "Empezar".
+    /* ⚠ AQUÍ HUBO UN BUG GRAVE, corregido el 21 de septiembre de 2026.
+       Antes, si ningún pedido estaba en la plancha, "preparando" se caía al
+       turno más bajo pendiente "como la mejor suposición". El resultado: al
+       PRIMER cliente del día, que tiene el turno 1 y es el único pendiente, el
+       servidor le respondía preparando:1 — y su página concluía **"ya están
+       preparando el tuyo"** apenas tocaba enviar, cuando el vendedor no había
+       tocado nada. Peor: le sonaba la notificación del celular diciendo lo
+       mismo. El cliente salía para el local creyendo que ya estaba.
+       ⚠ REGLA QUE SALE DE AQUÍ: este endpoint NO ADIVINA. Si el dato no se
+       sabe, va en null. Son dos cosas distintas y por eso son dos campos. */
+
+    // Lo que DE VERDAD está en la plancha: solo si el vendedor tocó "Empezar".
     const enPlancha = doc.pedidos.filter(p => !p.entregado && p.estado === 'preparando').map(p => p.turno);
+    // La fila de espera: sirve para contar cuántos van delante, y NO promete
+    // que nadie los esté preparando.
     const pendientes = doc.pedidos.filter(p => !p.entregado).map(p => p.turno);
     const entregados = doc.pedidos.filter(p => p.entregado).map(p => p.turno);
-    if (enPlancha.length) {
-      return json({
-        ok: true,
-        preparando: Math.min(...enPlancha),
-        enCola: pendientes.length,
-        ultimoEntregado: entregados.length ? Math.max(...entregados) : null,
-        turnoDelDia: doc.turno
-      });
-    }
 
     return json({
       ok: true,
-      preparando: pendientes.length ? Math.min(...pendientes) : null,
+      // null = nadie ha tocado "Empezar". El cliente NO debe ver verde.
+      preparando: enPlancha.length ? Math.min(...enPlancha) : null,
+      // El primero de la fila. Que exista no significa que lo estén haciendo.
+      siguiente: pendientes.length ? Math.min(...pendientes) : null,
+      /* La lista de turnos que faltan, para que el cliente cuente EXACTO
+         cuántos van antes que él. Con solo "siguiente" se sobreestimaba: si
+         están pendientes el 1 y el 3 y tú eres el 3, restar 3−1 da 2, pero
+         delante solo va uno. Son números sueltos, sin un solo nombre ni
+         teléfono — la misma regla de siempre para esta acción pública. */
+      pendientes: pendientes.sort((a, b) => a - b),
       enCola: pendientes.length,
       ultimoEntregado: entregados.length ? Math.max(...entregados) : null,
       turnoDelDia: doc.turno

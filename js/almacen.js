@@ -133,9 +133,39 @@
    * pedidos como entregados. Si algún día se agrega un campo en
    * functions/api/pedidos.js, hay que agregarlo también aquí.
    */
+  /* Los mismos 20 minutos del servidor. ⚠ Si se cambia allá, se cambia aquí:
+     un cliente en modo local no puede tener reglas distintas. */
+  var MINUTOS_AMPLIAR = 20;
+
+  /** El pedido que ese teléfono todavía tiene en curso, si lo hay. */
+  function enCursoLocal(doc, telefono) {
+    if (!telefono) { return null; }
+    var limite = Date.now() - MINUTOS_AMPLIAR * 60000;
+    for (var i = doc.pedidos.length - 1; i >= 0; i--) {
+      var p = doc.pedidos[i];
+      if (p.telefono === telefono && !p.entregado && p.creado > limite) { return p; }
+    }
+    return null;
+  }
+
   function crearPedidoLocal(pedido) {
     var doc = leerLocal();
     var hoy = fechaHoyColombia();
+
+    /* Mismo freno que en la nube: un teléfono, un turno a la vez. Se lanza un
+       error con el mismo "codigo" que manda el servidor para que la página no
+       tenga que distinguir de dónde vino. */
+    var enCurso = enCursoLocal(doc, pedido.telefono);
+    if (enCurso) {
+      var err = new Error('Ya tienes un pedido en curso.');
+      err.codigo = 'PEDIDO_EN_CURSO';
+      err.status = 409;
+      err.pedidoActivo = {
+        id: enCurso.id, turno: enCurso.turno, numero: enCurso.numero,
+        total: enCurso.total, estado: enCurso.estado || 'nuevo', items: enCurso.items
+      };
+      throw err;
+    }
 
     // Turno del día: arranca en 1 y sube de uno en uno; mañana vuelve a 1.
     doc.turnos[hoy] = (doc.turnos[hoy] || 0) + 1;
@@ -149,6 +179,8 @@
     pedido.entregado = false;
     pedido.estado = 'nuevo';        // mismos campos que pone el servidor
     pedido.empezadoEn = null;
+    pedido.ampliado = null;
+    pedido.ampliadoEnPlancha = false;
 
     doc.pedidos.push(pedido);
     guardarLocal(doc);
@@ -183,6 +215,12 @@
         if (!r.ok) {
           var err = new Error(j.error || ('Error ' + r.status));
           err.status = r.status;
+          /* El servidor manda información útil junto al error: el "codigo" para
+             que la página sepa QUÉ pasó sin tener que leer el texto del
+             mensaje, y "pedidoActivo" con el pedido que el cliente ya tiene.
+             Sin copiarlos aquí se perdían, y la página solo veía "Error 409". */
+          if (j.codigo) { err.codigo = j.codigo; }
+          if (j.pedidoActivo) { err.pedidoActivo = j.pedidoActivo; }
           throw err;
         }
         return j;
@@ -226,10 +264,50 @@
         })
         .catch(function (err) {
           if (modo === 'nube') { throw err; }   // modo estricto: el error sube
-          // Modo 'auto': la nube falló, se sigue por el camino local.
+          /* ⚠ En modo 'auto' se cae a local cuando la NUBE FALLA, no cuando la
+             nube responde que no. Un 4xx (409 "ya tienes un pedido", 400 datos
+             malos) es una respuesta válida y pensada: si se cayera a local, el
+             pedido se crearía igual en el aparato y el freno de "un teléfono,
+             un turno" no serviría absolutamente de nada — bastaría con que la
+             nube contestara para saltárselo. Solo se sigue por lo local si de
+             verdad no hubo respuesta o el servidor se cayó (5xx). */
+          if (err.status >= 400 && err.status < 500) { throw err; }
           Almacen.ultimoModoUsado = 'local';
           return crearPedidoLocal(pedido);
         });
+    },
+
+    /**
+     * Le suma platos a un pedido que el cliente ya tiene en curso.
+     * ⚠ NO crea un turno nuevo: esa es toda la gracia. El cliente que se
+     * acordó de algo dos minutos después no debe aparecer dos veces en la fila
+     * con dos números distintos.
+     * @param {string} telefono  el mismo con el que pidió
+     * @param {array}  items     [{nombre, cantidad}] — el precio lo pone el servidor
+     * @returns {Promise<object>} el pedido ya con lo nuevo sumado
+     */
+    agregarAPedido: function (telefono, items) {
+      if (CFG.sistema.modo === 'local') {
+        var doc = leerLocal();
+        var p = enCursoLocal(doc, telefono);
+        if (!p) {
+          var err = new Error('No encontramos un pedido tuyo al que agregarle esto.');
+          err.codigo = 'SIN_PEDIDO';
+          throw err;
+        }
+        items.forEach(function (n) {
+          var ya = p.items.filter(function (x) { return x.nombre === n.nombre; })[0];
+          if (ya) { ya.cantidad = Math.min(20, ya.cantidad + n.cantidad); }
+          else { p.items.push({ nombre: n.nombre, cantidad: n.cantidad, precio: n.precio || 0 }); }
+        });
+        p.total = p.items.reduce(function (a, i) { return a + i.precio * i.cantidad; }, 0);
+        p.ampliado = Date.now();
+        p.ampliadoEnPlancha = p.estado === 'preparando';
+        guardarLocal(doc);
+        return Promise.resolve(p);
+      }
+      return llamarApi('agregar', { telefono: telefono, items: items })
+        .then(function (res) { return res.pedido; });
     },
 
     /**
@@ -242,11 +320,24 @@
       if (CFG.sistema.modo === 'local') {
         // En modo local el cliente solo ve sus propios pedidos, así que la cola
         // se calcula con lo que hay en este aparato.
-        var vivos = leerLocal().pedidos.filter(function (p) { return !p.entregado; });
-        var turnos = vivos.map(function (p) { return p.turno; });
+        var doc = leerLocal();
+        var vivos = doc.pedidos.filter(function (p) { return !p.entregado; });
+        var turnos = vivos.map(function (p) { return p.turno; }).sort(function (a, b) { return a - b; });
+        /* ⚠ "preparando" SOLO si alguien lo marcó de verdad. Aquí había el
+           mismo fallo que en el servidor: devolver el turno más bajo como si
+           lo estuvieran preparando hacía que el cliente viera "ya están
+           preparando el tuyo" apenas pedía. */
+        var plancha = vivos.filter(function (p) { return p.estado === 'preparando'; })
+                           .map(function (p) { return p.turno; });
+        var entregados = doc.pedidos.filter(function (p) { return p.entregado; })
+                                    .map(function (p) { return p.turno; });
         return Promise.resolve({
-          preparando: turnos.length ? Math.min.apply(null, turnos) : null,
-          enCola: turnos.length, ultimoEntregado: null
+          preparando: plancha.length ? Math.min.apply(null, plancha) : null,
+          siguiente: turnos.length ? turnos[0] : null,
+          pendientes: turnos,
+          enCola: turnos.length,
+          ultimoEntregado: entregados.length ? Math.max.apply(null, entregados) : null,
+          turnoDelDia: doc.turnos[fechaHoyColombia()] || 0
         });
       }
       return llamarApi('turnos', {});

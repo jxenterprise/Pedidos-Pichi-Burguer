@@ -912,6 +912,124 @@ parte sin exponer nada (decisión 28).
 día**, no una señal de que algo se rompió. El documento del día nace con el
 primer pedido y se borra entero si se borra el último (decisión 25).
 
+**41. 🐛 EL BUG DE "YA ESTÁN PREPARANDO EL TUYO" — el servidor ADIVINABA.**
+
+**Lo encontró JX usando la página**, no una prueba: *"aparece de una vez apenas
+el cliente le da en enviar pedido... va a pensar que de una vez ya se lo están
+haciendo y no es así, porque es por turno"*.
+
+**Qué pasaba:** la acción `turnos` tenía escrito, con todas sus letras, que si
+nadie estaba en la plancha `preparando` se caía al turno más bajo pendiente
+*"como la mejor suposición"*. Resultado: al **primer cliente del día**, que
+tiene el turno 1 y es el único pendiente, el servidor le respondía
+`preparando: 1`. Su página comparaba `suTurno <= preparando` → verdadero → y
+mostraba **"🔥 Ya están preparando el tuyo · ya puedes ir pasando"** en el mismo
+segundo en que tocaba enviar.
+
+**Y era peor de lo que se veía:** la notificación al celular se disparaba con
+esa misma condición, así que además **le sonaba el aviso**. El cliente salía
+para el local creyendo que su pedido estaba hecho.
+
+**Cómo quedó:** el endpoint devuelve **dos datos separados**, y ninguno adivina:
+- `preparando` → el turno en la plancha, o **`null`** si el vendedor no ha
+  tocado "Empezar". El verde y la notificación dependen SOLO de esto.
+- `siguiente` → el primero de la fila, para contar. No promete nada.
+- `pendientes` → la lista de turnos que faltan.
+
+⚠ **REGLA QUE SALE DE AQUÍ, y vale para todo el proyecto:** un endpoint **no
+adivina**. Si el dato no se sabe, va en `null` y la página decide qué decir.
+Una suposición razonable metida en un campo que parece un hecho es peor que no
+tener el campo: nadie vuelve a dudar de ella.
+
+⚠ **`pendientes` existe porque restar no alcanza.** Con solo `siguiente`, el
+cálculo `miTurno − siguiente` sobreestimaba: si están pendientes el 1 y el 3 y
+tú eres el 3, la resta da 2 pero delante va **uno solo** — el 2 ya se entregó o
+se borró. Ahora se cuentan los turnos menores que el suyo, uno por uno
+(`cuantosDelante()`). Decirle a alguien que faltan dos cuando falta uno es la
+clase de detalle que hace que deje de creerle a la pantalla.
+
+⚠ El mismo fallo estaba en `verTurnos` del **modo local** (`js/almacen.js`).
+Corregido también: las dos caras tienen que contar igual.
+
+**42. 🔒 UN TELÉFONO, UN TURNO A LA VEZ — y la ampliación del pedido.**
+
+**Lo encontró JX probando desde su propio celular**: *"puedo desde mi celular
+pedir varias veces con el mismo número y usuario"*. Cierto, y sin ningún freno.
+Un cliente podía quedarse con diez turnos: el mostrador llamaría números que no
+existen y la fila que ve todo el mundo sería mentira.
+
+**Pero el caso real más común no es el vivo que quiere turnos**: es el que se
+acordó de que quería un perro más. Por eso el sistema no dice "no" a secas.
+
+**Cómo funciona:**
+1. El servidor busca si ese teléfono tiene un pedido **de hoy, sin entregar y de
+   hace menos de 20 minutos** (`pedidoEnCurso()`).
+2. Si lo tiene, `crear` responde **409** con el código `PEDIDO_EN_CURSO` y **le
+   devuelve su propio pedido**.
+3. La página muestra el paso `#pasoEnCurso`: *"Ya tienes el turno 1 · ¿quieres
+   sumarle lo que acabas de escoger?"*.
+4. Si dice que sí, la acción **`agregar`** le suma los platos **sin sacar turno
+   nuevo**, recalcula el total y marca `ampliado`.
+
+⚠ **LA LLAVE ES EL TELÉFONO, no el nombre ni la IP.** El nombre repite (hay
+muchos "Andrés") y bloquearía a personas distintas. **La IP es peor**: en un
+barrio varias casas comparten wifi y un operador móvil le da la misma IP a
+cientos de personas, así que **dos vecinos que pidan el mismo día se bloquearían
+entre sí** — y el local nunca sabría por qué perdió esa venta. JX la propuso y
+se descartó por eso.
+
+⚠ **EL FRENO VIVE EN EL SERVIDOR.** Lo que guarde el navegador se borra
+limpiando los datos, y entonces no frenaría nada.
+
+⚠ **En modo `auto`, un 4xx ya NO cae a local.** Antes, cualquier error de la
+nube hacía que el pedido se creara en el aparato. Con el freno nuevo eso era un
+agujero: bastaba que la nube contestara 409 para que el pedido se creara igual
+por lo local. Ahora solo se cae a local si de verdad no hubo respuesta o el
+servidor falló (5xx).
+
+⚠ **`agregar` NO lleva clave, y está bien.** La manda el cliente, no el
+vendedor. Lo que la hace segura es que **solo alcanza un pedido del mismo
+teléfono**, de hoy y reciente: sin el teléfono correcto no encuentra nada, y con
+él solo toca lo suyo. Y los precios salen de `CARTA` (decisión 35), o este
+habría sido el hueco por donde volvían los precios falsos.
+
+**Quién SÍ puede pedir de nuevo, y es importante que pueda:**
+- Otro teléfono, siempre.
+- El mismo teléfono **cuando ya se lo entregaron** — es un cliente que vuelve.
+- El mismo teléfono **pasados los 20 minutos** — ese ya es otro pedido.
+
+**43. ⚠️ CUANDO AMPLÍAN UN PEDIDO QUE YA ESTÁ EN LA PLANCHA.**
+
+JX eligió **dejar agregar aunque ya esté en la plancha**, y pidió que avisara
+fuerte: *"que tenga un sonido también, el mismo de 5 veces, con el aviso fuerte,
+y que avise por WhatsApp también para mayor aseguramiento"*.
+
+El riesgo es real: **el vendedor ya leyó la comanda** y cree saber qué lleva. Si
+no se entera, entrega incompleto y el cliente reclama en el mostrador. Por eso
+el mismo hecho se avisa por **tres caminos**, que uno solo se pierde en hora
+pico:
+
+1. **La tarjeta grita en rojo** y parpadea despacio (1,8 s): `⚠️ Agregó algo ·
+   REVISA`. Dos niveles: naranja `➕ Ampliado` si aún no se había empezado, rojo
+   si ya estaba en la plancha.
+2. **La campana suena las 5 veces**, igual que un pedido nuevo. Y con razón: un
+   pedido nuevo todavía no se ha leído; uno ampliado el vendedor cree conocerlo.
+3. **El cliente lo manda por WhatsApp**: al ampliar, el botón del turno cambia a
+   *"Avisar por WhatsApp lo que agregué"* con el texto `➕ AGREGUÉ A MI PEDIDO`.
+
+⚠ **`ampliacionesVistas` guarda la MARCA DE TIEMPO, no un sí/no.** Si el cliente
+agrega dos veces, la segunda también tiene que sonar.
+
+⚠ **"Actualizar" ya no pisa el aviso de ampliación** (`avisoQueNoSePisa`). Antes,
+tocar ese botón justo cuando alguien ampliaba borraba el "REVISA" y lo dejaba en
+"Lista al día": el aviso más importante del sistema tapado por el menos
+importante.
+
+⚠ El parpadeo es **lento y solo del borde**, y se apaga con
+`prefers-reduced-motion` dejando el rojo fijo. Un aviso no puede depender de una
+animación, y quien mira el panel cinco horas seguidas no aguanta un parpadeo
+rápido.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -1426,6 +1544,42 @@ comando, sin entrar a Cloudflare y sin arriesgarse a borrar la equivocada.
 
 De paso quedó confirmado que **la limpieza automática de los sábados funciona**:
 la marca decía que la última pasada fue ese mismo día a la 1:21 de la madrugada.
+
+### 21 de septiembre de 2026 · Dos fallos que encontró JX usando la página
+
+Ninguna prueba los había visto. Los dos salieron de usar el sistema como lo usa
+un cliente.
+
+**1. "Ya están preparando el tuyo" salía apenas pedía.** Ver decisión 41. El
+servidor adivinaba: si nadie estaba en la plancha, devolvía el turno más bajo
+pendiente *"como la mejor suposición"*. Al primer cliente del día eso le decía
+que su pedido ya estaba en la plancha en el mismo segundo en que lo enviaba —
+**y le sonaba la notificación**. Ahora el endpoint devuelve `preparando: null`
+mientras nadie toque "Empezar", y de ahí sale la regla: **un endpoint no
+adivina**.
+
+**2. El mismo cliente podía coger todos los turnos que quisiera.** Ver decisión
+42. JX lo comprobó desde su celular. Ahora un teléfono tiene un turno a la vez,
+y si vuelve a pedir se le ofrece **sumarlo a lo que ya pidió** en vez de darle
+otro número. Se descartó identificar por IP y queda escrito por qué: en un
+barrio, bloquear por IP bloquea vecinos.
+
+**3. Ampliar un pedido que ya está en la plancha** avisa por tres caminos a la
+vez. Ver decisión 43.
+
+**Dos bugs propios corregidos durante el trabajo:**
+- **"Actualizar" pisaba el aviso de "REVISA"** y lo dejaba en "Lista al día": el
+  aviso más importante tapado por el menos importante.
+- En el texto nuevo se coló **"No se cobra domicilio"**. El local no hace
+  domicilios (decisión 27) y nombrar la palabra, aunque sea para negarla, planta
+  la duda. Lo cazó la batería de revisión general.
+
+**Probado:** 25 comprobaciones del servidor (un teléfono no coge dos turnos,
+cambiar el nombre no sirve, otro cliente sí puede, ampliar no gasta turno, los
+precios salen de la carta, no se puede tocar el pedido de otro, entregado →
+turno nuevo, a los 21 minutos → turno nuevo) y 28 en navegador real de punta a
+punta, incluidas las marcas del panel en naranja y en rojo. Más 8 del bug del
+verde, con el caso de la cuenta exacta cuando falta un turno en medio.
 
 ---
 

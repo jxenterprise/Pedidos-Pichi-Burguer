@@ -1097,6 +1097,48 @@
       </form>
     </div>
 
+    <!-- ===========================================================
+         Paso 1bis: YA TIENE UN PEDIDO EN CURSO
+         Cuándo sale: el cliente manda el pedido y el servidor
+         responde que ese teléfono ya tiene un turno sin entregar,
+         de hace menos de 20 minutos.
+         Por qué existe: sin esto, el mismo cliente podía coger
+         diez turnos seguidos y la fila que ve todo el mundo sería
+         mentira. Pero el caso real más común no es el vivo que
+         quiere turnos: es el que se acordó de que quería un perro
+         más. Por eso no se le dice "no" a secas, se le ofrece
+         sumarlo a lo que ya pidió.
+         =========================================================== -->
+    <div id="pasoEnCurso" hidden>
+      <div class="modal__cab">
+        <h2>Ya tienes un pedido</h2>
+        <button type="button" class="modal__cerrar" id="btnCerrarEnCurso" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="encurso">
+        <p class="encurso__turno">Turno <b id="encursoTurno">–</b></p>
+        <p class="encurso__txt" id="encursoTexto"></p>
+      </div>
+
+      <p class="encurso__pregunta">¿Quieres sumarle lo que acabas de escoger?</p>
+      <div class="encurso__lista" id="encursoNuevo"></div>
+
+      <button type="button" class="btn btn--ama btn--ancho" id="btnAgregarAlPedido">
+        Sí, agrégalo a mi turno
+      </button>
+      <p class="campo__ayuda" style="margin-top:12px;text-align:center">
+        No sale otro turno: se suma a lo que ya pediste y lo recoges todo junto.
+      </p>
+
+      <!-- Salida para el caso raro: dos personas pidiendo desde el mismo
+           celular. No se le deja crear otro turno sin más, pero tampoco se le
+           deja sin salida. -->
+      <p class="campo__ayuda" style="margin-top:18px;text-align:center">
+        ¿Es un pedido para otra persona?
+        <a id="encursoWhats" href="https://wa.me/573004752529" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+      </p>
+    </div>
+
     <!-- Paso 2: turno confirmado (oculto hasta que se envía el pedido) -->
     <div id="pasoTurno" hidden>
       <div class="turno">

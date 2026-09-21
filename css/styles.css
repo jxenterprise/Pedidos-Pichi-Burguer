@@ -679,6 +679,29 @@ section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px + 18px); }
    Tarjeta ancha arriba del menú. Usa el mismo patrón de .aviso-caja (fondo de
    superficie, borde de color a la izquierda) para que no parezca pegada de
    otra web. El borde va amarillo porque es una oportunidad, no una alerta. */
+/* --- "Ya tienes un pedido en curso" (paso 1bis del modal) ---
+   Naranja y no rojo: no es un error del cliente ni algo que salió mal, es una
+   pregunta. El rojo de este sitio está reservado para lo que no tiene vuelta
+   atrás, y aquí la respuesta más probable es que sí quiera agregarlo. */
+.encurso {
+  background: var(--negro); border: 1px solid rgba(254,155,5,.4);
+  border-left: 3px solid var(--naranja);
+  border-radius: var(--radio-sm); padding: 14px 16px; margin-bottom: 18px;
+}
+.encurso__turno { margin: 0 0 6px; font-size: .95rem; color: var(--texto-suave); }
+.encurso__turno b {
+  font-family: var(--fuente-titulo); font-style: italic; font-weight: 800;
+  font-size: 1.5rem; color: var(--amarillo); vertical-align: -2px;
+}
+.encurso__txt { margin: 0; font-size: .88rem; color: var(--texto-suave); overflow-wrap: anywhere; }
+.encurso__pregunta { margin: 0 0 10px; font-size: .95rem; font-weight: 700; color: var(--blanco); }
+.encurso__lista { border-top: 1px solid var(--linea); margin-bottom: 18px; }
+.encurso__fila {
+  display: flex; gap: 12px; align-items: baseline;
+  padding: 9px 0; border-bottom: 1px solid var(--linea); font-size: .9rem;
+}
+.encurso__fila span:last-child { margin-left: auto; font-weight: 700; white-space: nowrap; }
+
 /* --- Seguimiento del pedido en curso ---
    Mismo lenguaje que la tarjeta de "repetir el último pedido" que va justo
    debajo: fondo --negro-sup, borde --linea y una franja de color a la
@@ -1258,6 +1281,41 @@ body.cerrado-visible { overflow: hidden; }
 /* Pedido que ya está en la plancha. El borde naranja a la izquierda sigue el
    mismo idioma que ya usa la tarjeta: verde = entregado, gris = viejo. */
 .pedido.en-plancha { border-left-color: var(--naranja); }
+
+/* --- El cliente le agregó algo a un pedido que ya estaba ---
+   Dos niveles, y la diferencia importa:
+   · AMPLIADO (naranja): todavía no se había empezado. Hay tiempo de leerlo.
+   · REVISA (rojo, parpadeando despacio): se agregó cuando YA estaba en la
+     plancha. El vendedor puede haber leído la comanda y estar a punto de
+     entregar sin lo nuevo. Aquí no alcanza con que se note: tiene que molestar.
+   ⚠ El parpadeo es lento (1,8 s) y solo cambia el borde, no el texto. Un
+   parpadeo rápido sería de los que el skill prohíbe, y además cansa la vista
+   de quien mira el panel cinco horas seguidas. */
+.pedido__ampliado {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: var(--radio-full);
+  background: rgba(254,155,5,.14); border: 1px solid rgba(254,155,5,.45);
+  color: var(--naranja); font-size: .7rem; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.pedido.recien-ampliado { border-left-color: var(--naranja); }
+.pedido.ampliado-plancha {
+  border-left-color: var(--rojo);
+  border-color: rgba(224,18,32,.55);
+  animation: ampliado-ojo 1.8s ease-in-out infinite;
+}
+.pedido.ampliado-plancha .pedido__ampliado {
+  background: rgba(224,18,32,.18); border-color: rgba(224,18,32,.6); color: #FF8B93;
+}
+@keyframes ampliado-ojo {
+  0%, 100% { border-color: rgba(224,18,32,.55); }
+  50%      { border-color: rgba(224,18,32,.95); }
+}
+/* Quien pidió menos movimiento en su sistema no ve el parpadeo, pero el rojo
+   fuerte se queda: el aviso no puede depender de una animación. */
+@media (prefers-reduced-motion: reduce) {
+  .pedido.ampliado-plancha { animation: none; border-color: rgba(224,18,32,.95); }
+}
 .pedido__estado {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 3px 10px; border-radius: var(--radio-full);

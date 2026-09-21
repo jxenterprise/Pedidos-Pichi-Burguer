@@ -159,7 +159,9 @@ es el aviso: gris normal, **naranja a los 15 minutos**, **rojo a los 25**.
   publicado iría contra el Estatuto del Consumidor.
 - **Cola de turnos en vivo**: mientras mira su turno en pantalla, le dice
   *"Faltan 2 antes que tú · están preparando el turno 8"*.
-- **Seguimiento del pedido al volver a entrar.** Si pidió hace menos de 6 horas
+- **Seguimiento del pedido al volver a entrar.** ⚠ El cartel verde de *"ya están
+  preparando el tuyo"* sale **solo cuando tú tocas "Empezar"** en el panel, nunca
+  antes. Si pidió hace menos de 6 horas
   y no se lo han entregado, **lo primero que ve al abrir la página es su turno y
   cuántos faltan** — aunque haya cerrado la pestaña, apagado el celular o
   reiniciado. Al tocarlo se abre el detalle con la cola en vivo, y cuando el
@@ -172,6 +174,45 @@ es el aviso: gris normal, **naranja a los 15 minutos**, **rojo a los 25**.
 - **Instalar la app**: un aviso para dejar el sitio como icono en el celular.
 - **Respaldo por WhatsApp**: además del turno en pantalla, se le abre WhatsApp
   con el pedido ya escrito.
+
+### Un cliente, un turno a la vez
+
+Antes, el mismo cliente podía enviar el pedido diez veces y quedarse con diez
+turnos. Ya no: **un teléfono tiene un turno a la vez.**
+
+Pero lo más común no es alguien queriendo turnos de más, es alguien que **se
+acordó de que quería un perro más**. Por eso, si vuelve a pedir con el mismo
+número, la página no le dice que no: le dice *"Ya tienes el turno 1 · ¿quieres
+sumarle lo que acabas de escoger?"*. Si dice que sí, **se suma a su pedido sin
+sacar otro turno**.
+
+| Situación | Qué pasa |
+|---|---|
+| Otro cliente (otro número) | Pide normal, turno nuevo |
+| El mismo, a los 2 minutos | Le ofrece **sumarlo a su turno** |
+| El mismo, **ya se lo entregaste** | Pide normal, turno nuevo — es un cliente que vuelve |
+| El mismo, **pasados 20 minutos** | Pide normal, turno nuevo — ese ya es otro pedido |
+| Cambia el nombre para colarse | No sirve: la llave es **el teléfono** |
+
+> ⚠ **Por qué el teléfono y no la IP.** Pensamos en bloquear por IP y lo
+> descartamos: en un barrio varias casas comparten el mismo wifi, y los
+> operadores móviles le dan la misma IP a cientos de personas a la vez.
+> **Dos vecinos que pidan el mismo día se bloquearían entre sí**, y tú nunca
+> sabrías por qué perdiste esa venta.
+
+### ⚠️ Cuando un cliente le agrega algo a un pedido que ya estás haciendo
+
+Este es el caso delicado: tú **ya leíste la comanda** y crees saber qué lleva.
+Por eso el sistema te avisa **por tres caminos al tiempo**:
+
+1. **La tarjeta se pone roja y parpadea** con `⚠️ Agregó algo · REVISA`.
+   (Si todavía no lo habías empezado, va en naranja: `➕ Ampliado`.)
+2. **La campana suena las 5 veces**, igual que un pedido nuevo.
+3. **Al cliente se le abre WhatsApp** con lo que agregó, para que te llegue
+   también por ahí.
+
+Si tocas "Actualizar" justo en ese momento, **el aviso de REVISA no se borra**:
+manda sobre el mensaje normal de "Lista al día".
 
 ### ¿Cómo sabe el cliente que ya están preparando su pedido?
 
@@ -303,7 +344,7 @@ El sitio trae GA4 listo, pero **falta el identificador**. Para activarlo:
 - **Informes → Interacción → Eventos**: aquí está lo que de verdad importa. No
   las visitas, sino cuántas se volvieron pedidos.
 
-### Los 12 eventos que el sitio ya mide
+### Los 14 eventos que el sitio ya mide
 
 No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
 
@@ -316,6 +357,8 @@ No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
 | `clic_mapa` | Abre la ubicación | Cuánta gente busca cómo llegar |
 | `repitio_pedido` | Usa "Repetir mi último pedido" | Te dice cuántos clientes son repetidos |
 | `abrio_seguimiento` | Toca la tarjeta de "cómo va mi pedido" | Cuántos vuelven a entrar a ver su turno |
+| `choco_pedido_en_curso` | Intenta pedir teniendo un turno en curso | **Si este número es alto, la gente se está quedando corta en el primer pedido** |
+| `amplio_pedido` | Le suma algo a su pedido, con el valor | Cuánto se vende por ampliaciones |
 | `activo_aviso_cola` | Activa el aviso en su celular | Cuántos quieren que les avisen |
 | `aviso_cola_recibido` | Le llegó el aviso de "ya lo preparan" | Cuántos avisos llegaron de verdad |
 | `instalo_app` | El celular confirma que quedó instalada | Cuántos clientes vuelven por el icono y no por Google |
