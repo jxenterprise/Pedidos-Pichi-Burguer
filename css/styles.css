@@ -949,6 +949,25 @@ body.modo-prueba section[id] { scroll-margin-top: calc(var(--alto-barra) + 58px 
   padding: 1px 8px; font-size: .78rem; font-variant-numeric: tabular-nums;
 }
 
+/* Botón de avisos del panel.
+   Arranca en naranja (el color de "ojo con esto" del proyecto) porque APAGADO
+   es el estado peligroso: sin avisos, un pedido puede quedarse esperando sin
+   que nadie se entere. Al encenderlo pasa a verde, el mismo del semáforo
+   "abierto", para que se lea de un golpe que el panel está vigilando. */
+.pestana--avisos {
+  border-color: rgba(254,155,5,.55);
+  color: var(--naranja);
+}
+.pestana--avisos.avisos-on {
+  border-color: rgba(41,178,74,.55);
+  color: #7FE39A;
+  background: rgba(41,178,74,.10);
+}
+@media (hover: hover) {
+  .pestana--avisos:hover { border-color: var(--naranja); }
+  .pestana--avisos.avisos-on:hover { border-color: var(--verde); }
+}
+
 /* Tarjeta de pedido */
 .pedido {
   background: var(--negro-sup); border: 1px solid var(--linea);

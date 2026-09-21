@@ -409,6 +409,40 @@ Comprobación después de cambiarlo:
 ⚠ Los comentarios de `index.html` (el del JSON-LD en el `<head>` y el de la
 ZONA EDITABLE · HORARIOS) también avisan de esto. Actualizarlos al volver.
 
+**24. El panel AVISA: campana, notificación y pantalla encendida.**
+
+**El problema real que resuelve** (encontrado en la auditoría del 21 de sept.):
+el panel avisaba de un pedido nuevo solo con un mensajito en pantalla. Si el
+vendedor estaba atendiendo a alguien, o el celular tenía la pantalla apagada,
+el pedido se quedaba esperando y el cliente creyendo que ya se lo preparaban.
+**La venta no se perdía por un fallo del sistema: se perdía porque nadie se
+enteraba.** El respaldo por WhatsApp solo funciona si el cliente presiona el
+botón, y no todos lo presionan.
+
+**Tres capas, porque ninguna sola alcanza:**
+1. **Campana** — tres notas generadas con Web Audio. No es un archivo de sonido
+   a propósito: así no hay que esperar a que cargue, funciona sin internet y no
+   se agrega un archivo más al proyecto.
+2. **Notificación del sistema** — se ve con el panel en segundo plano. Lleva
+   `tag` fijo para que no se amontonen diez, y `renotify` para que igual avise.
+3. **Pantalla encendida** (`navigator.wakeLock`) — sin esto el celular se
+   bloquea a los dos minutos y las otras dos no se ven, que era el problema.
+
+Y el número de pendientes va en el título de la pestaña: `(2) Panel de pedidos`.
+
+⚠ **POR QUÉ HAY UN BOTÓN Y NO SE ENCIENDE SOLO**: los navegadores bloquean el
+sonido y las notificaciones hasta que la persona hace clic en algo. Sin un
+gesto de por medio el navegador silencia la campana y **nunca sonaría**. El
+botón además evita soltarle un permiso por sorpresa a quien solo vino a mirar.
+
+⚠ El botón arranca **en naranja** porque APAGADO es el estado peligroso. Al
+encenderlo pasa a verde y suena una vez, para que el vendedor compruebe el
+volumen. La preferencia va en `localStorage` (es del aparato, no de la sesión).
+
+⚠ El bloqueo de pantalla **se suelta solo** cuando el navegador pasa a segundo
+plano. Por eso se vuelve a pedir en `visibilitychange`. Si se quita esa línea,
+el arreglo deja de servir justo cuando más falta hace.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -627,6 +661,26 @@ marcar un pedido como PRUEBA para que el vendedor no lo cocine, y borrarlos
 todos de un golpe. Si algún día estorba, se quita el bloque 0 de `js/script.js`,
 la franja de `index.html`, el campo `prueba` del servidor y los dos botones del
 panel.
+
+### 21 de septiembre de 2026 (tarde) · Avisos al vendedor
+
+Auditoría pedida por JX ("dime qué falta para que un cliente ya pueda usarla").
+Salieron dos cosas de verdad:
+
+**1. El vendedor no se enteraba de los pedidos.** Ver decisión 24. Arreglado con
+campana, notificación del sistema, pantalla que no se apaga y contador en el
+título de la pestaña. Probado: 13 comprobaciones en navegador real.
+
+**2. Un `{POR CONFIRMAR}` que ya no debía estar.** `compras.html` decía "El
+costo del domicilio {POR CONFIRMAR} se acuerda por WhatsApp". JX ya lo había
+resuelto hacía días: no hay tarifa fija. Esa página la lee el cliente antes de
+comprar, y el marcador naranja le decía que el negocio no sabe cuánto cobra.
+
+**Nota sobre las pruebas de la cortina de cerrado**: con `siempreAbierto: true`
+esas pruebas fallan a propósito, porque la cortina ya no aparece nunca. Se
+comprobó aparte que al poner el interruptor en `false` la cortina vuelve, la
+cuenta regresiva calcula y la tabla recupera el horario real. El código de la
+cortina sigue intacto esperando el día que JX vuelva a los horarios reales.
 
 ---
 

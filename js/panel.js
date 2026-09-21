@@ -8,6 +8,7 @@
      1. Acceso con clave
      2. Carga y refresco de los pedidos
      3. Dibujo de cada tarjeta de pedido
+     3bis. Avisos: campana, notificación y pantalla encendida
      4. Acciones: entregado, borrar historial, borrar pruebas, probar, salir
      5. Arranque
 
@@ -105,6 +106,7 @@
   function abrirPanel() {
     $('#pantallaAcceso').hidden = true;
     $('#pantallaPedidos').hidden = false;
+    mantenerPantallaEncendida();
     cargarPedidos(true);
 
     // Refresco automático. El intervalo sale de config.js; no bajarlo de 10
@@ -132,9 +134,7 @@
       datos.activos.forEach(function (p) {
         if (!idsConocidos[p.id]) { nuevos++; idsConocidos[p.id] = true; }
       });
-      if (!primeraVez && nuevos > 0) {
-        avisar(nuevos === 1 ? '🔔 Entró 1 pedido nuevo' : '🔔 Entraron ' + nuevos + ' pedidos nuevos');
-      }
+      if (!primeraVez && nuevos > 0) { avisarPedidoNuevo(nuevos); }
 
       pintarLista($('#listaActivos'), datos.activos, false);
       pintarLista($('#listaHistorial'), datos.historial, true);
@@ -145,6 +145,10 @@
       $('#tituloPanel').textContent = pendientes === 0
         ? 'Todo al día'
         : (pendientes === 1 ? '1 pedido por entregar' : pendientes + ' pedidos por entregar');
+      // El título de la pestaña lleva la cuenta: con el panel en segundo plano,
+      // el vendedor ve "(2) Panel de pedidos" sin tener que entrar a mirar.
+      pintarTitulo(pendientes);
+
       $('#subtituloPanel').textContent =
         'Actualizado a las ' + window.Almacen.horaTextoColombia() +
         ' · se revisa solo cada ' + CFG.sistema.refrescoPanelSegundos + ' segundos.';
@@ -354,6 +358,151 @@
 
 
   /* ==========================================================================
+     3bis) AVISOS AL VENDEDOR — campana, notificación y pantalla encendida
+     ----------------------------------------------------------------------------
+     EL PROBLEMA QUE RESUELVE: el panel avisaba de un pedido nuevo solo con un
+     mensajito en pantalla. Si el vendedor estaba atendiendo a alguien, o el
+     celular estaba con la pantalla apagada, el pedido se quedaba ahí esperando
+     y el cliente creyendo que ya se lo estaban preparando. La venta no se
+     perdía por un error del sistema: se perdía porque nadie se enteró.
+
+     TRES CAPAS, porque ninguna sola alcanza:
+       1. CAMPANA  — suena aunque el vendedor no esté mirando la pantalla.
+       2. NOTIFICACIÓN — aparece aunque el panel esté en otra pestaña o el
+          navegador en segundo plano.
+       3. PANTALLA ENCENDIDA — el celular no se bloquea mientras el panel está
+          abierto, que es lo que hacía que las otras dos no se vieran.
+     Y de propina, el número de pedidos pendientes va en el título de la pestaña.
+
+     POR QUÉ HAY QUE DARLE A UN BOTÓN Y NO SE ENCIENDE SOLO: los navegadores
+     bloquean el sonido y las notificaciones hasta que la persona hace clic en
+     algo. No es un capricho del diseño: sin un gesto de por medio, el navegador
+     silencia la campana y nunca sonaría. El botón, además, evita que le salte
+     un permiso por sorpresa a alguien que solo quería mirar los pedidos.
+
+     POR QUÉ localStorage Y NO sessionStorage: la preferencia es del aparato del
+     vendedor, no de la sesión. Si refresca o vuelve mañana, los avisos siguen
+     encendidos. La clave sí va en sessionStorage, que es otra cosa.
+     ========================================================================== */
+
+  var CLAVE_AVISOS = 'pichi_avisos';
+  var audio = null;          // se crea al primer clic; antes el navegador lo silencia
+  var pantallaDespierta = null;
+
+  function avisosEncendidos() {
+    try { return localStorage.getItem(CLAVE_AVISOS) === '1'; } catch (e) { return false; }
+  }
+
+  /**
+   * Toca tres notas cortas.
+   * Se genera con el propio navegador en vez de bajar un archivo de sonido:
+   * así no hay que esperar a que cargue, funciona sin internet y no se suma un
+   * archivo más al proyecto.
+   */
+  function sonarCampana() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { return; }
+      if (!audio) { audio = new AC(); }
+      // Si el navegador lo dejó dormido (pasa al volver de segundo plano), se
+      // despierta; si no, la campana no sonaría y nadie se enteraría del fallo.
+      if (audio.state === 'suspended') { audio.resume(); }
+
+      var t0 = audio.currentTime;
+      [880, 1174.7, 1568].forEach(function (hz, i) {
+        var osc = audio.createOscillator();
+        var vol = audio.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = hz;
+        var t = t0 + i * 0.15;
+        vol.gain.setValueAtTime(0.0001, t);
+        vol.gain.linearRampToValueAtTime(0.35, t + 0.02);   // ataque rápido
+        vol.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+        osc.connect(vol); vol.connect(audio.destination);
+        osc.start(t); osc.stop(t + 0.6);
+      });
+    } catch (e) { /* sin sonido: quedan la notificación y el aviso en pantalla */ }
+  }
+
+  /** Notificación del sistema, la que se ve con el panel en segundo plano. */
+  function notificar(texto) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') { return; }
+    try {
+      var n = new Notification('Pichi Burguer · pedido nuevo', {
+        body: texto,
+        icon: 'img/icon-192.png',
+        // Mismo tag para que no se amontonen diez notificaciones en la barra;
+        // renotify hace que igual vuelva a sonar/vibrar con cada pedido.
+        tag: 'pichi-pedido', renotify: true
+      });
+      n.onclick = function () { window.focus(); n.close(); };
+    } catch (e) {}
+  }
+
+  /** Evita que el celular se bloquee mientras el panel está abierto. */
+  function mantenerPantallaEncendida() {
+    if (!avisosEncendidos() || !('wakeLock' in navigator)) { return; }
+    try {
+      navigator.wakeLock.request('screen').then(function (w) {
+        pantallaDespierta = w;
+        w.addEventListener('release', function () { pantallaDespierta = null; });
+      }).catch(function () { /* el navegador no lo permitió: no es grave */ });
+    } catch (e) {}
+  }
+
+  function soltarPantalla() {
+    if (pantallaDespierta) { try { pantallaDespierta.release(); } catch (e) {} pantallaDespierta = null; }
+  }
+
+  /** Lo que se dispara cuando de verdad entra un pedido. */
+  function avisarPedidoNuevo(cuantos) {
+    var texto = cuantos === 1 ? 'Entró 1 pedido nuevo' : 'Entraron ' + cuantos + ' pedidos nuevos';
+    avisar('🔔 ' + texto);
+    if (!avisosEncendidos()) { return; }
+    sonarCampana();
+    notificar(texto);
+  }
+
+  /** Pinta el botón según esté encendido o apagado. */
+  function pintarBotonAvisos() {
+    var b = $('#btnAvisos');
+    if (!b) { return; }
+    var on = avisosEncendidos();
+    b.classList.toggle('avisos-on', on);
+    b.textContent = on ? '🔔 Avisos activos' : '🔕 Activar avisos';
+    b.setAttribute('aria-pressed', String(on));
+  }
+
+  /** Enciende o apaga los avisos. Se llama SIEMPRE desde un clic. */
+  function alternarAvisos() {
+    if (avisosEncendidos()) {
+      try { localStorage.setItem(CLAVE_AVISOS, '0'); } catch (e) {}
+      soltarPantalla();
+      pintarBotonAvisos();
+      avisar('Avisos apagados');
+      return;
+    }
+
+    try { localStorage.setItem(CLAVE_AVISOS, '1'); } catch (e) {}
+    // Suena de una para dos cosas: que el vendedor compruebe el volumen, y que
+    // el navegador registre el gesto y no vuelva a silenciar la campana.
+    sonarCampana();
+
+    if ('Notification' in window && Notification.permission === 'default') {
+      try { Notification.requestPermission().then(pintarBotonAvisos); } catch (e) {}
+    }
+    mantenerPantallaEncendida();
+    pintarBotonAvisos();
+    avisar('Avisos encendidos · así suena');
+  }
+
+  /** Cuántos pedidos faltan, en el título de la pestaña del navegador. */
+  function pintarTitulo(pendientes) {
+    document.title = (pendientes > 0 ? '(' + pendientes + ') ' : '') + 'Panel de pedidos · Pichi Burguer';
+  }
+
+
+  /* ==========================================================================
      4) ACCIONES DEL VENDEDOR
      ========================================================================== */
 
@@ -416,6 +565,8 @@
   /** Cierra la sesión y vuelve a la pantalla de la clave. */
   function cerrarSesion() {
     clave = '';
+    soltarPantalla();
+    pintarTitulo(0);
     try { sessionStorage.removeItem('pichi_panel'); } catch (e) {}
     if (temporizador) { clearInterval(temporizador); temporizador = null; }
     $('#pantallaPedidos').hidden = true;
@@ -460,6 +611,8 @@
     $('#btnBorrarPruebas').addEventListener('click', borrarPruebas);
     $('#btnProbarPagina').addEventListener('click', probarLaPagina);
     $('#btnSalir').addEventListener('click', cerrarSesion);
+    $('#btnAvisos').addEventListener('click', alternarAvisos);
+    pintarBotonAvisos();
 
     // Si el vendedor solo refrescó la página, se entra directo sin pedir clave.
     var guardada = null;
@@ -470,7 +623,13 @@
     // vez de esperar el siguiente ciclo. Es lo que espera el vendedor cuando
     // deja el celular un momento y vuelve a mirarlo.
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden && clave) { cargarPedidos(false); }
+      if (!document.hidden && clave) {
+        cargarPedidos(false);
+        // El navegador suelta el bloqueo de pantalla al irse a segundo plano.
+        // Sin volver a pedirlo, el celular se apagaría a los dos minutos y los
+        // avisos no se verían — que es justo lo que veníamos a arreglar.
+        mantenerPantallaEncendida();
+      }
     });
   }
 

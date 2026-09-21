@@ -123,7 +123,12 @@
             Historial <span class="pestana__n" id="nHistorial">0</span>
           </button>
         </div>
-        <button type="button" class="pestana" id="btnRefrescar" style="margin-left:auto">Actualizar</button>
+        <!-- El botón de avisos va aquí arriba y no abajo con los demás a
+             propósito: es lo primero que el vendedor tiene que tocar al abrir
+             el panel, y arranca en naranja justamente para que se note. -->
+        <button type="button" class="pestana pestana--avisos" id="btnAvisos"
+                aria-pressed="false" style="margin-left:auto">🔕 Activar avisos</button>
+        <button type="button" class="pestana" id="btnRefrescar">Actualizar</button>
       </div>
 
       <div id="listaActivos" role="tabpanel" aria-labelledby="tabActivos"></div>
