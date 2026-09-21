@@ -55,6 +55,53 @@ const LIMPIEZA = { dia: 6, hora: 7 };   // 6 = sábado
    5 horas al tiempo universal da siempre la hora correcta de Cartagena. */
 const DESFASE_COLOMBIA_MS = 5 * 60 * 60 * 1000;
 
+/* ============================================================================
+   LA CARTA — los precios de verdad, los que manda el servidor
+   ----------------------------------------------------------------------------
+   POR QUÉ EXISTE (encontrado probando el sitio EN VIVO el 21 de sept. de 2026):
+   el servidor ya recalculaba el TOTAL en vez de aceptar el que mandaba el
+   navegador… pero seguía aceptando el PRECIO de cada plato. O sea que la
+   protección se quedaba a medias: bastaba abrir la consola y enviar
+   { nombre: 'Hamburguesa Pichi', cantidad: 1, precio: 1 } para que el pedido
+   quedara guardado en $1 — y el servidor "recalculaba" 1 × 1 = 1 tan tranquilo.
+   Se comprobó contra el sitio publicado: entró un pedido de $1.
+
+   Aquí no se roba dinero, porque el pago se hace en el local y no hay pasarela.
+   El daño es otro y es peor de detectar: **al vendedor le llega al panel un
+   pedido que dice $1**, y si está de afán lo cobra así. O entran cien pedidos
+   con precios inventados y las cuentas del día no cuadran con nada.
+
+   Ahora el precio SIEMPRE sale de esta tabla. Lo que mande el navegador se
+   ignora por completo.
+
+   ⚠ ESTE ES EL 5.º SITIO DONDE VIVE UN PRECIO. Si cambia uno, hay que cambiarlo
+   en los cinco o el cliente ve un precio y se le cobra otro:
+     1. index.html · el precio visible de la tarjeta
+     2. index.html · el atributo data-precio del botón
+     3. index.html · el JSON-LD del <head>
+     4. llms.txt
+     5. aquí
+   ⚠ Los nombres tienen que estar escritos IGUAL que en el data-nombre del
+   botón, tildes incluidas: es la llave con la que se busca.
+   ============================================================================ */
+const CARTA = {
+  'Hamburguesa Sencilla': 16000,
+  'Hamburguesa Especial': 18000,
+  'Hamburguesa Pichi':    22000,
+  'Perro Sencillo':        8000,
+  'Perro Súper':          10000,
+  'Chiriperro':           14000,
+  'Chori Especial':       18000,
+  'Picada Sencilla':      25000,
+  'Picada Súper':         30000,
+  'Picada Pichi':         40000,
+  'Salchipapa Sencilla':  12000,
+  'Choripapa':            16000,
+  'Salchipapa Mixta':     18000,
+  'Patacón Súper':        16000,
+  'Patacón Mixto':        18000
+};
+
 /* ----------------------------------------------------------------------------
    AYUDAS DE FECHA
    -------------------------------------------------------------------------- */
@@ -236,11 +283,19 @@ export async function onRequest({ request, env }) {
       tipo: 'recoger',
       pago: String(datos.pago || '').slice(0, 30),
       notas: String(datos.notas || '').trim().slice(0, 200),
-      items: items.map(i => ({
-        nombre: String(i.nombre || '').slice(0, 80),
-        cantidad: Math.max(1, Math.min(20, parseInt(i.cantidad, 10) || 1)),
-        precio: Math.max(0, parseInt(i.precio, 10) || 0)
-      })),
+      /* ⚠ El precio NO sale de lo que manda el navegador: sale de CARTA, que es
+         la carta del servidor. Un plato que no esté en la carta entra en 0 y
+         queda visible en el panel para que el vendedor lo vea y pregunte, en
+         vez de rechazar el pedido entero por un nombre mal escrito y perder la
+         venta. Ver el comentario de CARTA arriba. */
+      items: items.map(i => {
+        const nombre = String(i.nombre || '').slice(0, 80);
+        return {
+          nombre,
+          cantidad: Math.max(1, Math.min(20, parseInt(i.cantidad, 10) || 1)),
+          precio: Object.prototype.hasOwnProperty.call(CARTA, nombre) ? CARTA[nombre] : 0
+        };
+      }),
       entregado: false,
       // Estado del pedido en la cocina: 'nuevo' → 'preparando' → entregado.
       // Se guarda además de "entregado" y no en su lugar: los pedidos que ya
@@ -250,9 +305,9 @@ export async function onRequest({ request, env }) {
       empezadoEn: null
     };
 
-    // El total se recalcula AQUÍ, no se acepta el que manda el navegador.
-    // Motivo: si se confiara en el navegador, cualquiera podría enviar un total
-    // de $0 modificando el código de la página.
+    // El total se suma AQUÍ, con los precios de CARTA, no con los que llegaron.
+    // Son las dos mitades de lo mismo: sin la carta, "recalcular el total"
+    // solo protegía de un total falso, no de un precio falso por plato.
     pedido.total = pedido.items.reduce((s, i) => s + i.precio * i.cantidad, 0);
 
     doc.pedidos.push(pedido);

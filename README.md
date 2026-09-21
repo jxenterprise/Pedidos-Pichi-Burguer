@@ -135,7 +135,6 @@ Todo esto está en `/panel.html`, después de escribir la clave.
 | **🍳 Modo cocina** | Un pedido a la vez, en letra grande. Se cambia con las flechas ← → y se sale con Escape | Para leerlo a un metro de distancia, con las manos ocupadas |
 | **Empezar / 🔥 En plancha** | Marca que ese pedido ya se está preparando | Separa "ya lo estoy haciendo" de "ya lo entregué". Además, es lo que ve el cliente en la cola de turnos |
 | **Entregado** | Lo marca como entregado | Durante **10 segundos** sale un "Deshacer" por si fue sin querer |
-| **🖨** | Imprime **solo esa comanda** | Sin ventana aparte: sale con el diseño que ya está probado |
 | **🗑 Borrar** | Quita el pedido para siempre | Para un pedido repetido o uno que el cliente canceló por teléfono. Pide confirmación diciendo el turno **y** el nombre |
 | **Llamar / Avisar listo** | Abre el teléfono o WhatsApp con el mensaje ya escrito | El mensaje lleva el nombre, el turno y la dirección del local |
 | **Actualizar** | Vuelve a consultar ahora mismo | El panel se refresca solo cada 15 segundos; esto es por si no quieres esperar |
@@ -407,8 +406,11 @@ pichi-burguer-pedidos/
   pedido, 1 lectura y 1 escritura. Con 60 pedidos diarios se usan unas 120
   escrituras de las 1.000 gratuitas.
 - **Los turnos reinician en 1 cada día.**
-- **El total se recalcula en el servidor**, nunca se acepta el que manda el
-  navegador.
+- **Los precios los pone el servidor**, no el navegador. La constante `CARTA`
+  de `functions/api/pedidos.js` tiene los 15 platos; lo que llegue del navegador
+  se ignora. Así nadie puede enviar un pedido con un precio inventado.
+  ⚠ Por eso **un precio vive ahora en 5 sitios** y hay que cambiarlo en los
+  cinco: el precio visible, el `data-precio`, el JSON-LD, `llms.txt` y `CARTA`.
 - **Modo local disponible.** Si algún día no se quiere backend, en `js/config.js`
   se cambia `sistema.modo` de `'nube'` a `'local'` y todo funciona en una sola
   tablet en el mostrador. Es **una sola línea**.

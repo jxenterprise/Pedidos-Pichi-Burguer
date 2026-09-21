@@ -33,6 +33,16 @@
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
 # --- El panel del vendedor no debe quedar guardado ni salir en buscadores ---
+# ⚠ VAN LAS DOS DIRECCIONES, y no sobra ninguna: Cloudflare Pages redirige
+# /panel.html → /panel, así que /panel es la que de verdad visita la gente y la
+# que Google encontraría. Con la regla solo en /panel.html, la dirección real
+# quedaba SIN noindex y SIN no-store: el panel del vendedor podía terminar
+# indexado y guardado en la caché del navegador. Comprobado contra el sitio en
+# vivo el 21 de septiembre de 2026.
 /panel.html
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+
+/panel
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow

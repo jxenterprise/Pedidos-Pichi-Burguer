@@ -195,6 +195,9 @@ local "abierto" cuando está cerrado, y los turnos se saltarían de día.
 vez contra los precios que recibe. Si se confiara en el navegador, cualquiera
 podría abrir la consola y enviar un pedido por $0.
 ⚠ No "optimizar" esto aceptando el total del cliente.
+⚠ **Esto solo era la mitad del problema.** Hasta el 21 de septiembre de 2026 el
+servidor recalculaba el total pero **aceptaba el precio de cada plato** que
+mandaba el navegador. Ver **decisión 35**: ahora los precios salen de `CARTA`.
 
 **5. Clave del panel en variable de entorno, nunca en el código.**
 `PANEL_CLAVE` se configura en Cloudflare y se compara en el servidor con
@@ -669,7 +672,7 @@ seguro por construcción. Por eso el turno y el nombre van en su propio campo
 | 1 | **Reloj de espera** en cada tarjeta | El vendedor no sabía si el turno 4 entró hace 2 minutos o hace media hora: la hora exacta hay que restarla mentalmente y con el local lleno nadie lo hace. Gris → naranja a los 15 min → rojo a los 25. **El color es el aviso, no decoración.** |
 | 2 | **Modo cocina** | Un pedido a la vez, en letra grande, para leerlo a un metro con las manos ocupadas. Flechas ←/→ y Escape para salir. |
 | 3 | **Estado "En plancha"** (`estado`) | Separa "ya lo estoy haciendo" de "ya lo entregué". Se guarda en el servidor, así que **alimenta la cola pública** que ve el cliente (decisión 28). |
-| 7 | **Imprimir la comanda** (🖨) | Imprime **solo esa tarjeta** escondiendo el resto con CSS. Sin ventana aparte ni documento nuevo: el papel sale con el diseño que ya está probado. |
+| ~~7~~ | ~~**Imprimir la comanda** (🖨)~~ | ⛔ **QUITADO** el mismo día por JX. Ver decisión 37. |
 | 8 | **Deshacer 10 segundos** | "Entregado" está al lado de otros botones y se toca por error. El servidor acepta deshacer **siempre**; el panel solo lo ofrece 10 s, pero si el vendedor se da cuenta 5 minutos después tiene que poder arreglarlo igual. |
 | 9 | **Buscador** por nombre o turno | Con 20 tarjetas parecidas, encontrar "el de Andrés" a ojo es lento y el cliente está esperando en el mostrador. |
 
@@ -728,6 +731,82 @@ sin consentimiento específico es una infracción, y además GA4 los rechaza.
 ⚠ `clic_ver_menu_cerrado` es el más interesante para el negocio: dice cuánta
 gente busca con el local cerrado. **Si ese número es alto, vale la pena abrir más
 temprano.** Hoy no se dispara porque el sitio está en modo 24 horas.
+
+**35. 🔒 LOS PRECIOS LOS PONE EL SERVIDOR — `CARTA` en `functions/api/pedidos.js`.**
+
+**Encontrado probando el sitio EN VIVO el 21 de septiembre de 2026.** La
+decisión 4 decía "el total se recalcula siempre en el servidor", y era verdad a
+medias: el servidor recalculaba el **total**, pero usaba los **precios que
+mandaba el navegador**. Bastaba abrir la consola y enviar
+`{ nombre: 'Hamburguesa Pichi', cantidad: 1, precio: 1 }` para que el pedido
+quedara guardado en **$1** — y el servidor "recalculaba" 1 × 1 = 1 tan tranquilo.
+Se comprobó contra el sitio publicado: **entró un pedido de $1**.
+
+**Por qué importaba aunque aquí no se pague en línea:** no se roba dinero,
+porque el pago se hace en el local. El daño es otro y es más difícil de ver:
+**al vendedor le llega al panel un pedido que dice $1**, y si está de afán lo
+cobra así. O entran cien pedidos con precios inventados y las cuentas del día no
+cuadran con nada.
+
+**Cómo quedó:** la constante `CARTA` tiene los 15 platos con su precio real. El
+precio **siempre** sale de ahí; lo que manda el navegador se ignora por completo.
+Un plato que no esté en la carta entra en **$0** y se ve así en el panel, en vez
+de rechazar el pedido entero por un nombre mal escrito y perder la venta.
+
+⚠ **AHORA UN PRECIO VIVE EN 5 SITIOS** (antes eran 4). Si cambia uno, hay que
+cambiarlo en los cinco o el cliente ve un precio y se le cobra otro:
+`index.html` (precio visible) · `index.html` (`data-precio`) · `index.html`
+(JSON-LD) · `llms.txt` · **`functions/api/pedidos.js` → `CARTA`**.
+
+⚠ Los nombres de `CARTA` tienen que estar escritos **igual** que el
+`data-nombre` del botón, tildes incluidas: es la llave con la que se busca.
+
+**36. El panel llevaba `noindex` en la dirección equivocada.**
+
+También salió probando en vivo. Cloudflare Pages **redirige `/panel.html` →
+`/panel`**, así que `/panel` es la dirección que de verdad se visita. Las reglas
+estaban escritas solo para `/panel.html`:
+
+- `_headers` → `/panel` salía **sin `X-Robots-Tag: noindex`** y **sin
+  `Cache-Control: no-store`**. O sea que **Google podía indexar el panel del
+  vendedor** y el navegador se lo guardaba en la caché.
+- `robots.txt` → `Disallow: /panel.html` tampoco cubría `/panel`.
+
+Arreglado: las dos direcciones en los dos archivos. ⚠ Si algún día se agrega otra
+página privada, va con sus **dos** formas.
+
+**37. Fuera el botón de imprimir la comanda (21 de sept. de 2026).**
+
+Duró unas horas. JX: *"quitemos eso de imprimir, ese botón de imprimir"*. Se
+quitó de `js/panel.js` (el botón y `imprimirComanda()`) y de `css/styles.css`
+(`.pedido__imprimir` y el bloque `@media print` de `body.imprimiendo-una`).
+
+**Lo que SÍ se quedó**: el `@media print` general. El vendedor siempre puede
+imprimir el panel entero desde el menú del navegador, y ahí el buscador, el modo
+cocina y el aviso flotante siguen sin ensuciar el papel.
+
+**38. La ventana de borrar explica el PORQUÉ, no solo la regla.**
+
+Decía *"el número de turno NO se vuelve a usar"*. JX lo leyó y preguntó, con
+razón: **si el turno se borró, ¿por qué no dárselo al siguiente?**
+
+Que lo pregunte quien usa el sistema significa que el texto estaba mal escrito.
+La respuesta es que **el cliente recibe su número en el mismo instante en que
+envía el pedido**, y lo tiene en la pantalla y en el WhatsApp. El sistema no
+puede saber si ya lo vio. Si el contador retrocediera, otro cliente recibiría el
+mismo número y en el mostrador **dos personas responderían al mismo grito** —
+las dos con razón. Y en el historial quedarían dos pedidos `260921-004`.
+
+El caso que más duele es el más común: se borra un pedido porque el cliente dijo
+por teléfono que cancelaba, y media hora después aparece igual.
+
+Ahora la ventana lo dice con el nombre y el turno de quien se va a borrar:
+*"El turno 4 no se le da a nadie más: Andrés Pérez ya lo tiene en su celular, y
+dos personas no pueden esperar el mismo número."*
+
+⚠ **Regla de redacción que sale de aquí**: en un aviso que frena una acción sin
+vuelta atrás, decir la regla no basta. Hay que decir **qué pasa si no se cumple**,
+o quien lo lee piensa que el sistema está siendo caprichoso y busca cómo saltárselo.
 
 ### Verificación hecha antes de entregar
 
@@ -1166,6 +1245,35 @@ que **config, tabla, JSON-LD y llms.txt coincidan en el horario**, que el NAP
 (nombre, dirección, teléfono) sea idéntico en todo, y que las descripciones de
 las 7 páginas quepan en Google. Más las 23 de la revisión general, otra vez en
 verde.
+
+### 21 de septiembre de 2026 · Dos agujeros que solo salieron probando EN VIVO
+
+Al probar contra el sitio publicado —no contra una copia local— salieron dos
+cosas que ninguna prueba anterior había visto, porque **las dos dependen de cómo
+sirve Cloudflare el sitio de verdad**.
+
+**1. Se podían mandar precios falsos.** Ver decisión 35. El servidor recalculaba
+el total pero aceptaba el precio de cada plato. Se le envió una Hamburguesa
+Pichi a $1 y **la guardó en $1**. Ahora los precios salen de `CARTA`, una tabla
+del propio servidor, y lo que mande el navegador se ignora. Probado con 11
+comprobaciones: precio falso, precio 0, precio negativo, precio inflado, un
+plato inventado y los 15 de la carta.
+
+**2. El panel del vendedor podía salir en Google.** Ver decisión 36. Cloudflare
+redirige `/panel.html` → `/panel`, y tanto `_headers` como `robots.txt` estaban
+escritos solo para la primera. La dirección que de verdad se visita salía **sin
+`noindex` y sin `no-store`**. Comprobado con `curl` contra el sitio en vivo:
+`/panel.html` traía las cabeceras, `/panel` no.
+
+**Dos cambios que pidió JX el mismo día:**
+- **Fuera el botón de imprimir** la comanda. Ver decisión 37.
+- **La ventana de borrar ahora explica el porqué.** JX leyó "el turno no se
+  vuelve a usar" y preguntó por qué no dárselo al siguiente. Ver decisión 38,
+  que deja escrita la regla de redacción que sale de ahí.
+
+**Probado después de todo:** 51 comprobaciones del panel y la ventana de
+confirmar, 22 del servidor, 11 de los precios, 26 de SEO y 23 de revisión
+general. Todo en verde.
 
 ---
 

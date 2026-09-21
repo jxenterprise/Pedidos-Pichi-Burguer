@@ -1189,19 +1189,6 @@ body.cerrado-visible { overflow: hidden; }
   letter-spacing: .04em; text-transform: uppercase;
 }
 
-/* Botón de imprimir la comanda: icono solo, 44px, discreto. A diferencia de
-   "Borrar" este sí puede ser discreto — equivocarse imprimiendo no cuesta nada
-   y se usa mucho menos que "Entregado". */
-.pedido__imprimir {
-  width: 44px; height: 44px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid var(--linea);
-  border-radius: var(--radio-sm); color: var(--texto-suave);
-  font-size: 1rem; line-height: 1; cursor: pointer;
-}
-@media (hover: hover) {
-  .pedido__imprimir:hover { border-color: var(--linea-fuerte); color: var(--texto); }
-}
 /* Confirmación verde de un segundo dentro del propio botón: el vendedor ve que
    su toque hizo algo sin tener que buscar el aviso flotante. */
 .pedido__ok { background: var(--verde) !important; border-color: var(--verde) !important; color: #fff !important; }
@@ -1311,18 +1298,12 @@ body.modo-cocina { overflow: hidden; }
   .conf__botones { flex-direction: column-reverse; }
 }
 
-/* Imprimir UNA sola comanda: se esconde todo menos la tarjeta marcada.
-   Así no hace falta abrir otra ventana ni armar un documento aparte, y el
-   papel sale con el mismo diseño que ya está probado. */
+/* Al imprimir el panel desde el navegador (Ctrl+P), lo nuevo tampoco debe
+   ensuciar el papel. El botón de imprimir una comanda suelta se quitó el 21 de
+   septiembre de 2026 por decisión de JX, pero esto se queda: el vendedor
+   siempre puede imprimir la página entera desde el menú del navegador. */
 @media print {
-  body.imprimiendo-una .pedido { display: none !important; }
-  body.imprimiendo-una .pedido.imprimiendo { display: block !important; }
-  body.imprimiendo-una .seccion-cab,
-  body.imprimiendo-una .buscador,
-  body.imprimiendo-una .buscador__nada,
-  body.imprimiendo-una .pie,
-  body.imprimiendo-una .aviso-flot,
-  body.imprimiendo-una .cocina { display: none !important; }
+  .buscador, .buscador__nada, .cocina, .aviso-flot { display: none !important; }
   .espera, .pedido__estado { border-color: #999 !important; color: #000 !important; background: none !important; }
 }
 

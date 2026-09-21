@@ -599,17 +599,6 @@
       pie.appendChild(des);
     }
 
-    // Imprimir la comanda para la cocina. El CSS de impresión ya existía desde
-    // la entrega inicial; solo faltaba de dónde dispararlo.
-    var imp = document.createElement('button');
-    imp.type = 'button';
-    imp.className = 'pedido__imprimir';
-    imp.title = 'Imprimir esta comanda';
-    imp.setAttribute('aria-label', 'Imprimir la comanda del turno ' + p.turno);
-    imp.textContent = '🖨';
-    imp.addEventListener('click', function () { imprimirComanda(art); });
-    pie.appendChild(imp);
-
     // Borrar este pedido. Va de último y con aspecto de icono, no de botón
     // grande: el dedo tiene que caer antes en "Entregado", que es la acción de
     // todos los días. Borrar no tiene vuelta atrás, así que no compite por el
@@ -974,26 +963,6 @@
   }
 
   /**
-   * Imprime UNA comanda.
-   * Cómo: se le pone una marca a la tarjeta escogida y el CSS de impresión
-   * esconde todo lo demás. Así no hace falta abrir otra ventana ni armar un
-   * documento aparte — y el papel sale con el mismo diseño que ya se probó.
-   */
-  function imprimirComanda(tarjeta) {
-    var antes = document.querySelector('.pedido.imprimiendo');
-    if (antes) { antes.classList.remove('imprimiendo'); }
-    tarjeta.classList.add('imprimiendo');
-    document.body.classList.add('imprimiendo-una');
-    window.print();
-    // Se limpia después de imprimir. El navegador no siempre avisa cuándo
-    // terminó, así que se hace en el siguiente ciclo y no se depende de eso.
-    setTimeout(function () {
-      tarjeta.classList.remove('imprimiendo');
-      document.body.classList.remove('imprimiendo-una');
-    }, 500);
-  }
-
-  /**
    * Borra un pedido suelto.
    * La confirmación dice el turno Y el nombre a propósito: en una lista de
    * tarjetas parecidas, un "¿seguro?" pelado no evita que se borre la
@@ -1005,7 +974,13 @@
       titulo:    '¿Seguro que quieres eliminar?',
       resaltado: 'Turno ' + p.turno + ' — ' + p.nombre,
       texto:     'Se borra para siempre y no se puede deshacer.',
-      detalle:   'El número de turno NO se vuelve a usar: el siguiente cliente recibirá el que sigue, no este.',
+      /* El texto explica el PORQUÉ, no solo la regla. JX leyó "el turno no se
+         vuelve a usar" y preguntó, con razón, por qué no dárselo a otro: la
+         respuesta es que el cliente ya tiene ese número en su celular desde que
+         envió el pedido, y si se repite, dos personas responden al mismo grito
+         en el mostrador. */
+      detalle:   'El turno ' + p.turno + ' no se le da a nadie más: ' + p.nombre +
+                 ' ya lo tiene en su celular, y dos personas no pueden esperar el mismo número.',
       ok:        'Sí, borrar'
     }).then(function (siOno) {
       if (!siOno) { return; }

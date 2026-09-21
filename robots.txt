@@ -10,7 +10,10 @@
 
 User-agent: *
 Allow: /
+# Las dos direcciones del panel: Cloudflare redirige /panel.html → /panel, y sin
+# esta segunda línea la dirección que de verdad se visita quedaba permitida.
 Disallow: /panel.html
+Disallow: /panel
 Disallow: /api/
 
 # Bots de IA — permitidos explícitamente
