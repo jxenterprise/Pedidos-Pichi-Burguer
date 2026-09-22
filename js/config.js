@@ -175,13 +175,15 @@ window.PICHI_CONFIG = {
 
   /* --------------------------------------------------------------------------
      5) GOOGLE ANALYTICS 4
-     JX pidió dejarlo instalado pero con el ID pendiente.
-     ⚠ {POR CONFIRMAR}: reemplazar 'G-XXXXXXXXXX' por el ID real.
+     Activado el 22 de septiembre de 2026 con el ID de la propiedad que creó
+     JX (cuenta "JX enterprise"). No es secreto: Google lo lee en la página.
      El script NO se carga hasta que el visitante acepte las cookies
      (Resolución 32.126 de 2022 de la SIC: el consentimiento debe ser previo).
+     ⚠ Es con CERO, no con la letra O: 'G-086…'. Se comprobó contra Google —
+     con la O responde lo mismo que para un ID inventado.
      ------------------------------------------------------------------------ */
   analytics: {
     activo: true,
-    measurementId: 'G-XXXXXXXXXX'       // {POR CONFIRMAR}
+    measurementId: 'G-086SLCQF7J'
   }
 };

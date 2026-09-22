@@ -542,7 +542,12 @@
       items: items, total: totalCarrito()
     }).then(function (pedido) {
       mostrarTurno(pedido);
-      medirEvento('pedido_enviado', { valor: pedido.total });
+      /* ⚠ `value` y `currency`, en inglés: son los ÚNICOS nombres con los que
+         GA4 suma plata. Aquí decía `{ valor: … }` y GA4 lo guardaba como un
+         dato suelto que no se suma en ningún informe — el README prometía
+         "te suma cuánto vendiste" y eso nunca habría salido. Se vio el día que
+         se puso el ID real (22 de sept. de 2026). */
+      medirEvento('pedido_enviado', { value: pedido.total, currency: 'COP' });
     }).catch(function (err) {
       /* Ese teléfono ya tiene un turno sin entregar. No es un error del
          sistema: es el cliente que se acordó de algo. En vez de un mensaje
@@ -569,7 +574,9 @@
    * platos y lo que el servidor devuelva. Misma regla 9 del proyecto.
    */
   function mostrarEnCurso(activo, telefono) {
-    ampliacionPendiente = { telefono: telefono, turno: activo.turno };
+    ampliacionPendiente = { telefono: telefono, turno: activo.turno,
+                            // lo que ya valía su pedido, para medir SOLO lo que suma
+                            totalAntes: typeof activo.total === 'number' ? activo.total : null };
 
     $('#pasoFormulario').hidden = true;
     $('#pasoEnCurso').hidden = false;
@@ -676,6 +683,7 @@
       return { nombre: carrito[id].nombre, cantidad: carrito[id].cantidad, precio: carrito[id].precio };
     });
     var loQueAgrego = items.slice();   // para el mensaje de WhatsApp
+    var totalAntes = ampliacionPendiente.totalAntes;   // se guarda antes de la espera
 
     window.Almacen.agregarAPedido(ampliacionPendiente.telefono, items)
       .then(function (pedido) {
@@ -688,7 +696,12 @@
         $('#btnWhatsAppPedido').href = enlaceAmpliacion(pedido, loQueAgrego);
         $('#btnWhatsAppPedido').textContent = 'Avisar por WhatsApp lo que agregué';
         // El carrito lo vacía mostrarTurno(); aquí no hay que hacerlo otra vez.
-        medirEvento('amplio_pedido', { valor: pedido.total });
+        /* ⚠ SOLO lo que sumó, no el total nuevo. Mandaba `pedido.total`, y como
+           el primer pedido ya se había medido en `pedido_enviado`, esa plata
+           se contaba DOS veces. Y si no se sabe cuánto valía antes, no se manda
+           valor: un número adivinado es peor que ninguno (decisión 41). */
+        var sumado = totalAntes === null ? null : pedido.total - totalAntes;
+        medirEvento('amplio_pedido', sumado > 0 ? { value: sumado, currency: 'COP' } : {});
       })
       .catch(function (err) {
         boton.disabled = false;

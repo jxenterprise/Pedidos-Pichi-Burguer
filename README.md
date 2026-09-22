@@ -400,12 +400,18 @@ un nombre descriptivo (nunca `foto1.webp`) y actualizar el `src` en el HTML.
 
 ## Google Analytics — dónde ves cuánta gente entra
 
-El sitio trae GA4 listo, pero **falta el identificador**. Para activarlo:
+✅ **Activo desde el 22 de septiembre de 2026**, con el ID **`G-086SLCQF7J`**
+(con **cero**, no con la letra O). Está en `js/config.js` →
+`analytics.measurementId`.
 
-1. Entra a **analytics.google.com** y crea una propiedad para el sitio.
-2. Google te dará un código con la forma `G-XXXXXXXXXX`.
-3. Ábrelo en `js/config.js` → `analytics.measurementId` y reemplaza
-   `'G-XXXXXXXXXX'` por el tuyo. Guarda y publica.
+Solo mide a quien **acepta las cookies**, porque así lo exige la ley en
+Colombia. Por eso los números van a salir más bajos que las visitas reales:
+es lo esperado, no un error.
+
+**Un paso que te falta, cuando ya haya llegado el primer pedido** (Google tarda
+hasta 24 horas en mostrarlo): en Analytics ve a **Administrar → Eventos** y
+marca **`pedido_enviado`** como **evento clave**. Así Google lo trata como una
+venta y te muestra cuánto vendiste por la web.
 
 **Dónde mirar después**, en analytics.google.com:
 - **Informes → Tiempo real**: cuánta gente está en la página ahorita mismo.
@@ -416,11 +422,11 @@ El sitio trae GA4 listo, pero **falta el identificador**. Para activarlo:
 
 ### Los 18 eventos que el sitio ya mide
 
-No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
+No hay que configurar nada: ya están llegando solos.
 
 | Evento | Cuándo se dispara | Para qué te sirve |
 |---|---|---|
-| `pedido_enviado` | El cliente envía el pedido | **El más importante.** Lleva además el valor del pedido, así que GA4 te suma cuánto vendiste por la web |
+| `pedido_enviado` | El cliente envía el pedido | **El más importante.** Lleva el valor del pedido en pesos, así que GA4 te suma cuánto vendiste por la web |
 | `clic_whatsapp` | Toca el botón verde de WhatsApp | Cuántos prefieren escribir antes que pedir por la página |
 | `clic_whatsapp_cerrado` | Escribe por WhatsApp desde la pantalla de CERRADO | Cuántos insisten fuera del horario (hoy no se dispara: el sitio está en modo 24 horas) |
 | `clic_telefono` | Toca el número para llamar | |
@@ -428,7 +434,7 @@ No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
 | `repitio_pedido` | Usa "Repetir mi último pedido" | Te dice cuántos clientes son repetidos |
 | `abrio_seguimiento` | Toca la tarjeta de "cómo va mi pedido" | Cuántos vuelven a entrar a ver su turno |
 | `choco_pedido_en_curso` | Intenta pedir teniendo un turno en curso | **Si este número es alto, la gente se está quedando corta en el primer pedido** |
-| `amplio_pedido` | Le suma algo a su pedido, con el valor | Cuánto se vende por ampliaciones |
+| `amplio_pedido` | Le suma algo a su pedido, con el valor **de lo que sumó** (no el total nuevo, para no contar dos veces lo que ya había pedido) | Cuánto se vende por ampliaciones |
 | `activo_aviso_cola` | Activa el aviso en su celular | Cuántos quieren que les avisen |
 | `aviso_cola_recibido` | Le llegó el aviso de "ya lo preparan" | Cuántos avisos llegaron de verdad |
 | `amplio_tarde` | Quiso sumarle algo a su pedido cuando ya estaba en la plancha, y la página le dijo que no | **Si este número es alto, estás tocando "Empezar" muy rápido** — o la gente se acuerda tarde de lo que quería. Cada uno es alguien que terminó escribiéndote por WhatsApp |
@@ -652,7 +658,7 @@ Lo que falta **no es código**: son datos que solo el negocio puede dar.
 | **Comprobar que los turnos empiezan en 1** | JX | Si probaste el sitio hoy, esos pedidos gastaron turnos y el primer cliente real no empezaría en el 1. **No hace falta entrar a Cloudflare**: mira el comando de "Vaciar los pedidos y reiniciar los turnos en 1", más arriba. Si dice `"turnoDelDia": 0`, ya está |
 | **Precios de bebidas y adiciones** | El negocio | Hoy la página dice que sí las venden y que se piden por el campo de notas. Publicar un precio inventado iría contra el Estatuto del Consumidor |
 | **Coordenadas exactas del local** | JX, desde el enlace de Google Maps | Ahora están a nivel de barrio. Afecta qué tan preciso sale en el mapa |
-| **Identificador de GA4** (`G-XXXXXXXXXX`) | JX | No se sabría cuánta gente entra. El código ya está listo, solo falta pegar el ID |
+| ~~**Identificador de GA4**~~ | ✅ Hecho | Activo desde el 22 de septiembre. Falta solo marcar `pedido_enviado` como evento clave cuando llegue el primero |
 | **Enviar el `sitemap.xml`** en Search Console | JX | Google tarda más en encontrar la página |
 
 Y una decisión pendiente del negocio: **volver a los horarios reales** cuando la

@@ -1528,6 +1528,61 @@ es una **propiedad nueva**, con **su propia etiqueta**. Se **agrega** debajo de
 esta, no la reemplaza — así las dos siguen verificadas mientras Google hace el
 cambio. Y se vuelve a enviar el sitemap desde la propiedad nueva.
 
+**55. 📊 GOOGLE ANALYTICS ACTIVADO — y la plata que nunca se iba a sumar.**
+
+**22 de septiembre de 2026.** JX creó la propiedad (cuenta *JX enterprise*) y
+el ID quedó en `js/config.js`:
+```js
+measurementId: 'G-086SLCQF7J'
+```
+⚠ **Es con CERO, no con la letra O.** En la captura que mandó JX se ven
+iguales. Se comprobó contra Google: para `G-086…` devuelve una configuración
+propia (524 KB); para `G-O86…` devuelve lo mismo que para un ID inventado.
+
+**⚠ LO QUE SALIÓ AL ACTIVARLO — dos fallos que el marcador tapaba.** Con el
+ID de mentira, la página no cargaba Google, así que ningún evento llegaba a
+ninguna parte y nadie podía ver que estaban mal armados:
+
+1. **La plata iba en un campo que Google no suma.** Los eventos mandaban
+   `{ valor: pedido.total }`, en español. GA4 **solo** suma dinero si el campo
+   se llama **`value`** y va con **`currency`**. Con `valor`, el total quedaba
+   guardado como un dato suelto que no aparece en ningún informe: el README
+   prometía *"GA4 te suma cuánto vendiste"*, y eso **nunca habría salido**.
+   Ahora: `{ value: pedido.total, currency: 'COP' }`.
+2. **Al ampliar, la plata se contaba DOS veces.** `amplio_pedido` mandaba el
+   total **nuevo** del pedido. Pero el primero ya se había medido en
+   `pedido_enviado`: un pedido de $22.000 que se ampliaba a $30.000 sumaba
+   **$52.000**. Ahora manda **solo lo que se sumó** ($8.000), calculado como
+   total nuevo − total de antes. El total de antes ya venía del servidor en
+   `pedidoActivo.total`; se guarda en `ampliacionPendiente.totalAntes`.
+   ⚠ Si no se sabe el total de antes, **no se manda valor** — un número
+   adivinado es peor que ninguno (decisión 41).
+
+**Y la página de cookies se puso al día:** decía que Analytics estaba
+*"pendiente de activar"* con un `{POR CONFIRMAR}` a la vista. Una política de
+cookies que dice que algo no está activo cuando sí lo está es un problema
+legal, no de redacción (mismo criterio que la decisión 27).
+
+**⚠ REGLA NUEVA PARA LAS PRUEBAS — no ensuciar el Analytics de JX.** Con el ID
+real, casi todas las baterías tocan "Aceptar cookies" y le mandarían visitas y
+pedidos falsos. `bloquear-google.js` se carga antes de cualquier prueba
+(`NODE_OPTIONS=--require …`) y corta **dentro del navegador** todo lo que va
+hacia Google. Se probó que de verdad corta: la petición sale con
+`ERR_BLOCKED_BY_CLIENT`, que solo puede venir del bloqueo.
+⚠ **Responde con un script vacío, no corta:** cortar dejaba
+`ERR_BLOCKED_BY_CLIENT` en la consola y hacía fallar las baterías que exigen
+consola limpia.
+⚠ **Por qué dentro del navegador y no por DNS:** la primera versión bloqueaba
+por DNS y **no servía** — detrás de un proxy el nombre lo resuelve el proxy.
+En esta máquina ni se notaba, porque el navegador de pruebas tampoco llega a
+Google por un tema de certificados; por eso la primera comprobación
+"funcionaba" con bloqueo y sin él. **Una prueba que da lo mismo con el arreglo
+y sin él no prueba el arreglo.**
+
+**Lo que falta, del lado de JX, en Analytics** (una vez, cuando ya haya datos):
+marcar `pedido_enviado` como **evento clave** (*Administrar → Eventos*). Así
+Google lo trata como venta y muestra cuánto se vendió por la web.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -1556,7 +1611,7 @@ Nada de esto se inventó. Está marcado visible en el código y hay que pedírse
 |---|---|---|
 | **Precios de bebidas y adiciones** (gaseosas, jugos, agua, queso, papa, carne extra) | `index.html` línea ~622 (aviso visible), `llms.txt` | Publicar un precio inventado va contra el Estatuto del Consumidor. Hoy el sitio dice que sí las venden y que se piden por el campo de notas |
 | **Razón social o nombre del responsable, NIT o cédula, correo de contacto** | `privacidad.html` (4), `terminos.html` (1), `compras.html` (1), `cookies.html` (1) — **7 en total**, verificado con grep el 21 de sept. | Lo exige la Ley 1581 de 2012, porque el sistema guarda nombre y teléfono de la gente. **Es el pendiente más importante de los tres**: sin un correo real, el cliente no puede ejercer sus derechos sobre sus datos |
-| **Measurement ID de GA4** (`G-XXXXXXXXXX`) | `js/config.js` → `analytics.measurementId` | JX decidió instalarlo después. El snippet ya está listo y condicionado al consentimiento; solo falta pegar el ID |
+| ~~**Measurement ID de GA4**~~ | ✅ **Hecho el 22 de sept.: `G-086SLCQF7J`** | Ver decisión 55 |
 | **Coordenadas exactas del local** | `index.html` línea ~59 (geo tags) y JSON-LD `geo` | Ahora están a nivel de barrio (10.398, −75.489). JX va a pasar el enlace de Google Maps del local; de ahí se sacan las coordenadas exactas |
 
 ### ✔ Datos CONFIRMADOS por JX — no volver a preguntar
@@ -2450,6 +2505,47 @@ verificación. Publicada en el `<head>` de `index.html`. Ver decisión 54.
 **Pendiente:** el ID de Google Analytics (`G-…`). JX dijo que lo mandaba junto
 con la etiqueta, pero en el mensaje solo venía la etiqueta. Se publicó la
 etiqueta sola para no frenar la verificación.
+
+### martes 22 de septiembre de 2026, 1:53 p. m. · Google Analytics activado
+
+JX mandó la captura de Analytics con el ID. Publicado: **`G-086SLCQF7J`**. Ver
+decisión 55.
+
+**Se comprobó si era cero o letra O** antes de pegarlo, porque en la captura se
+ven iguales: Google solo tiene configuración para la versión con cero.
+
+**Al activarlo salieron dos fallos que el ID de mentira escondía**, porque con
+él no se cargaba Google y ningún evento llegaba a ninguna parte:
+- El dinero iba en `valor` y GA4 solo suma `value` + `currency`. **Nunca iba a
+  salir cuánto se vendió.**
+- Al ampliar un pedido se mandaba el total nuevo: la plata del primer pedido
+  **se contaba dos veces** ($22.000 + $30.000 = $52.000 por un pedido de
+  $30.000). Ahora se manda solo lo sumado.
+
+**`cookies.html`** decía que Analytics estaba *"pendiente de activar"*. Ya no.
+
+**Las pruebas ya no pueden ensuciar el Analytics de JX:** `bloquear-google.js`
+corta dentro del navegador todo lo que va hacia Google, para las 49 baterías. La
+primera versión bloqueaba por DNS y no servía (detrás de un proxy no aplica);
+se notó porque la prueba daba lo mismo con el bloqueo y sin él.
+
+**Probado:** 18 comprobaciones nuevas (`ga.js`) — que no cargue antes de decidir
+ni si rechaza, que cargue una vez y con el ID correcto si acepta, que el pedido
+lleve `value` y `COP`, que al ampliar se mida solo lo sumado y que el total
+medido cuadre con el pedido real, que no viaje ni un nombre ni un teléfono, y
+que quien aceptó y vuelve se mida desde que entra.
+
+**Y un segundo ajuste del bloqueo:** la primera versión que sí funcionaba
+**cortaba** la petición, y el navegador escribía `ERR_BLOCKED_BY_CLIENT` en la
+consola — 14 fallos en 6 baterías, todos ese mismo mensaje. **No se aflojó la
+comprobación de consola limpia**, que existe para cazar errores de verdad: se
+cambió el bloqueo para que **responda con un script vacío**. No sale nada hacia
+Google y la consola queda limpia.
+
+**Estado final: 655 comprobaciones en 49 baterías, cero fallos.**
+
+**Le falta a JX, en Analytics:** marcar `pedido_enviado` como evento clave
+cuando llegue el primero.
 
 ---
 
