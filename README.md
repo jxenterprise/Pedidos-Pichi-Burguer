@@ -457,6 +457,8 @@ solo puedes hacer tú**, y sin ellas Google tarda mucho más en encontrarlo.
    **etiqueta HTML**: te da una línea `<meta name="google-site-verification" ...>`
    que se pega en el `<head>` de `index.html`, justo debajo del `<title>`.
    ⚠ **Esa etiqueta nunca se borra**, o Google pierde la verificación.
+   ✅ **Hecho el 22 de septiembre de 2026:** la etiqueta ya está publicada. Lo que
+   sigue lo haces tú en Search Console: **Verificar**, y luego los pasos 4 y 5.
 4. Ya verificado: *Sitemaps* → escribe `sitemap.xml` → *Enviar*.
 5. *Inspección de URL* → pega la dirección del sitio → **Solicitar indexación**.
    Eso lo mete en la fila de Google en vez de esperar a que pase solo.

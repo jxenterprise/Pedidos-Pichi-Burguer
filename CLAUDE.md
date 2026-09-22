@@ -1500,6 +1500,34 @@ incluido un iPhone 14 Pro Max. Ahora cuenta las cajas de línea de verdad,
 agrupando los rectángulos del rango por su coordenada superior. **Un umbral que
 falla por décimas es un informe que miente.**
 
+**54. 🔎 LA ETIQUETA DE GOOGLE SEARCH CONSOLE — no se borra nunca.**
+
+**22 de septiembre de 2026.** JX creó la propiedad en Search Console y mandó su
+etiqueta de verificación. Va en el `<head>` de `index.html`, justo debajo del
+`<title>`:
+```html
+<meta name="google-site-verification" content="AC_Mz1WmR6baSEP51vTijCa_jPr2o1Nr83beHSs2d2Y" />
+```
+
+⚠ **NO SE BORRA.** Google la vuelve a buscar de vez en cuando; si un día no la
+encuentra, **JX pierde el acceso** y deja de ver cómo lo encuentra la gente. En
+una limpieza de `<head>` parece una línea que sobra: no sobra.
+
+⚠ **No es secreta**, y por eso puede estar en el repositorio: está hecha para
+leerse en la página pública. Es lo contrario de `PANEL_CLAVE` (decisión 21).
+
+⚠ **Por qué "Prefijo de la URL" con etiqueta HTML y no las otras formas:**
+- **"Dominio"** pide tocar la configuración DNS, y `pages.dev` es de Cloudflare,
+  no de JX. No se puede.
+- **"Verificar con Google Analytics"** tampoco sirve aquí: Analytics solo se
+  carga **después de que el visitante acepta las cookies** (decisión 12), y el
+  robot de Google no acepta cookies — nunca encontraría la etiqueta.
+
+⚠ **El día que se conecte el dominio propio** (decisión 22): en Search Console
+es una **propiedad nueva**, con **su propia etiqueta**. Se **agrega** debajo de
+esta, no la reemplaza — así las dos siguen verificadas mientras Google hace el
+cambio. Y se vuelve a enviar el sitemap desde la propiedad nueva.
+
 ### Verificación hecha antes de entregar
 
 - **28 comprobaciones estáticas** (títulos únicos, un solo `h1`, JSON-LD válido,
@@ -2409,6 +2437,19 @@ en las ventanas**, y esas solo se ven abriéndolas.
 
 **Estado final: 637 comprobaciones funcionales en 48 baterías + 110 estados de
 ventanas + 364 pantallas — cero fallos.**
+
+### martes 22 de septiembre de 2026, 1:45 p. m. · Google Search Console
+
+JX creó la propiedad en Search Console (**Prefijo de la URL**,
+`https://pedidos-pichi-burguer-ctg.pages.dev`) y mandó la etiqueta de
+verificación. Publicada en el `<head>` de `index.html`. Ver decisión 54.
+
+**Lo que falta de este paso lo hace JX:** tocar **Verificar**, enviar el
+`sitemap.xml` y pedir la indexación de la página principal.
+
+**Pendiente:** el ID de Google Analytics (`G-…`). JX dijo que lo mandaba junto
+con la etiqueta, pero en el mensaje solo venía la etiqueta. Se publicó la
+etiqueta sola para no frenar la verificación.
 
 ---
 
