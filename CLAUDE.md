@@ -1528,6 +1528,21 @@ es una **propiedad nueva**, con **su propia etiqueta**. Se **agrega** debajo de
 esta, no la reemplaza — así las dos siguen verificadas mientras Google hace el
 cambio. Y se vuelve a enviar el sitemap desde la propiedad nueva.
 
+**Lo que pasó al enviar el sitemap y pedir la indexación (22 de sept.), para
+que nadie lo tome por un fallo del sitio:**
+
+| Lo que muestra Search Console | Qué es de verdad | Qué hacer |
+|---|---|---|
+| `/sitemap.xml` → *"No se ha podido obtener"* | **Normal en una propiedad nueva.** Google lo reintenta solo; pasa a *Correcto* en 1–3 días | Nada. Se comprobó como lo pide Googlebot: responde **200**, `application/xml`, XML válido con la URL principal, y `robots.txt` lo anuncia sin bloquearlo |
+| Una segunda fila `/pedidos-pichi-burguer-ctg.pages.dev/sitemap.xml` | **Error de tecleo**: la casilla ya trae el dominio delante y se pegó otra vez. Esa dirección no existe y **fallará siempre** | Quitarla: abrir la fila → **⋮** → *Quitar sitemap*. En la casilla va **solo** `sitemap.xml` |
+| Inspección → *"Cuota superada"* al pedir la indexación | Límite diario **de la cuenta de Google**, no de la página. A las propiedades recién creadas a veces se lo niega el primer día | Volver a pedirlo **al día siguiente**, una vez. Repetir el clic no ayuda |
+| Inspección → *"Google no reconoce esta URL"* / *"ningún sitemap de referencia"* | Google todavía no ha pasado por la página | Nada: cambia solo cuando lea el sitemap |
+
+⚠ **Ninguna de estas cuatro se arregla tocando el código**, y cambiar el
+`sitemap.xml` o el `robots.txt` para "arreglarlas" solo haría que Google
+empiece de cero. Si pasada **una semana** el sitemap sigue sin leerse, ahí sí
+se revisa: primero con `curl -sI …/sitemap.xml` contra el sitio en vivo.
+
 **55. 📊 GOOGLE ANALYTICS ACTIVADO — y la plata que nunca se iba a sumar.**
 
 **22 de septiembre de 2026.** JX creó la propiedad (cuenta *JX enterprise*) y
@@ -2546,6 +2561,27 @@ Google y la consola queda limpia.
 
 **Le falta a JX, en Analytics:** marcar `pedido_enviado` como evento clave
 cuando llegue el primero.
+
+### martes 22 de septiembre de 2026, 2:19 p. m. · Sitemap enviado y "Cuota superada"
+
+JX envió el sitemap y pidió la indexación. Search Console mostró tres cosas que
+parecen fallos y **ninguna es del sitio**. Quedan explicadas en la decisión 54,
+con qué hacer en cada una:
+
+- **"No se ha podido obtener"** en el sitemap: normal en una propiedad nueva.
+  Se comprobó contra el sitio en vivo, pidiéndolo como Googlebot: **200**,
+  `application/xml`, XML válido, y `robots.txt` lo anuncia.
+- **Una segunda fila con el dominio dos veces**: se pegó la dirección entera en
+  una casilla que ya la trae delante. Hay que quitarla.
+- **"Cuota superada"** al pedir la indexación: límite diario de la cuenta de
+  Google. Se vuelve a pedir el 23.
+
+**No se tocó código.** Cambiar el sitemap o el robots para "arreglar" esto solo
+haría que Google empiece de cero.
+
+**Le falta a JX, en Search Console:** quitar la fila repetida, pedir la
+indexación el 23 de septiembre, y en 1–3 días comprobar que el sitemap diga
+*Correcto*.
 
 ---
 

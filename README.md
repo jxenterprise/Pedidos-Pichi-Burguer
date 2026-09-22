@@ -466,8 +466,26 @@ solo puedes hacer tú**, y sin ellas Google tarda mucho más en encontrarlo.
    ✅ **Hecho el 22 de septiembre de 2026:** la etiqueta ya está publicada. Lo que
    sigue lo haces tú en Search Console: **Verificar**, y luego los pasos 4 y 5.
 4. Ya verificado: *Sitemaps* → escribe `sitemap.xml` → *Enviar*.
+   ✅ **Enviado el 22 de septiembre de 2026.**
+   ⚠ **En la casilla se escribe SOLO `sitemap.xml`.** Google ya pone delante la
+   dirección del sitio; si se pega entera, queda el dominio dos veces
+   (`…pages.dev//pedidos-pichi-burguer-ctg.pages.dev/sitemap.xml`), esa
+   dirección no existe y falla para siempre. Pasó el mismo día: esa fila se
+   quita con los **⋮** de arriba a la derecha → *Quitar sitemap*.
+   ⚠ **"No se ha podido obtener" los primeros días es NORMAL** en una propiedad
+   nueva: Google lo vuelve a intentar solo y en 1 a 3 días pasa a *Correcto*.
+   Se comprobó que el archivo está bien: responde 200, es XML válido y
+   `robots.txt` lo anuncia. Solo si sigue fallando pasada una semana hay que
+   revisarlo.
 5. *Inspección de URL* → pega la dirección del sitio → **Solicitar indexación**.
    Eso lo mete en la fila de Google en vez de esperar a que pase solo.
+   ⚠ Si sale **"Cuota superada"**, no es un fallo de la página: Google deja
+   pedir **pocas indexaciones al día por cuenta**, y a las propiedades recién
+   creadas a veces se lo niega el primer día. Se vuelve a intentar **al día
+   siguiente**, una sola vez. Pasó el 22 de septiembre.
+   ⚠ Mientras tanto la inspección dice *"Google no reconoce esta URL"* y *"No se
+   ha detectado ningún sitemap de referencia"*. **También es normal**: Google
+   todavía no ha pasado por la página. Cambia solo cuando lea el sitemap.
 
 **Qué mirar después**, cada par de semanas:
 - **Rendimiento**: qué buscó la gente para llegar. Si ves "hamburguesas bernardo
@@ -659,7 +677,7 @@ Lo que falta **no es código**: son datos que solo el negocio puede dar.
 | **Precios de bebidas y adiciones** | El negocio | Hoy la página dice que sí las venden y que se piden por el campo de notas. Publicar un precio inventado iría contra el Estatuto del Consumidor |
 | **Coordenadas exactas del local** | JX, desde el enlace de Google Maps | Ahora están a nivel de barrio. Afecta qué tan preciso sale en el mapa |
 | ~~**Identificador de GA4**~~ | ✅ Hecho | Activo desde el 22 de septiembre. Falta solo marcar `pedido_enviado` como evento clave cuando llegue el primero |
-| **Enviar el `sitemap.xml`** en Search Console | JX | Google tarda más en encontrar la página |
+| ~~**Enviar el `sitemap.xml`**~~ en Search Console | ✅ Hecho | Enviado el 22 de septiembre. Falta **quitar la fila repetida** (la que lleva el dominio dos veces) y **pedir la indexación el 23**, porque el 22 Google respondió *"Cuota superada"* |
 
 Y una decisión pendiente del negocio: **volver a los horarios reales** cuando la
 operación esté montada (hoy está en modo 24 horas). Son los 5 sitios de la tabla
