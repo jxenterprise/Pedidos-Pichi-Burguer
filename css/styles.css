@@ -1573,14 +1573,6 @@ body.cerrado-visible { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .pedido.ampliado-plancha { animation: none; border-color: rgba(224,18,32,.95); }
 }
-.pedido__estado {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 3px 10px; border-radius: var(--radio-full);
-  background: rgba(254,155,5,.14); border: 1px solid rgba(254,155,5,.45);
-  color: var(--naranja); font-size: .7rem; font-weight: 700;
-  letter-spacing: .04em; text-transform: uppercase;
-}
-
 /* Confirmación verde de un segundo dentro del propio botón: el vendedor ve que
    su toque hizo algo sin tener que buscar el aviso flotante. */
 .pedido__ok { background: var(--verde) !important; border-color: var(--verde) !important; color: #fff !important; }
@@ -1696,7 +1688,11 @@ body.modo-cocina { overflow: hidden; }
    siempre puede imprimir la página entera desde el menú del navegador. */
 @media print {
   .buscador, .buscador__nada, .cocina, .aviso-flot { display: none !important; }
-  .espera, .pedido__estado { border-color: #999 !important; color: #000 !important; background: none !important; }
+  /* Las dos píldoras de la tarjeta (el reloj de espera y "AGREGÓ ALGO") salen
+     en negro sobre blanco: en papel el naranja y el rojo se ven grises y no
+     se distingue nada. Aquí decía `.pedido__estado`, una clase que ya no pinta
+     ningún código — y por eso la etiqueta "AGREGÓ ALGO" salía en color. */
+  .espera, .pedido__ampliado { border-color: #999 !important; color: #000 !important; background: none !important; }
 }
 
 

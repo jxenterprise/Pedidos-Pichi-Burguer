@@ -414,7 +414,7 @@ El sitio trae GA4 listo, pero **falta el identificador**. Para activarlo:
 - **Informes → Interacción → Eventos**: aquí está lo que de verdad importa. No
   las visitas, sino cuántas se volvieron pedidos.
 
-### Los 14 eventos que el sitio ya mide
+### Los 18 eventos que el sitio ya mide
 
 No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
 
@@ -431,6 +431,9 @@ No hay que configurar nada: apenas pegues el ID, empiezan a llegar solos.
 | `amplio_pedido` | Le suma algo a su pedido, con el valor | Cuánto se vende por ampliaciones |
 | `activo_aviso_cola` | Activa el aviso en su celular | Cuántos quieren que les avisen |
 | `aviso_cola_recibido` | Le llegó el aviso de "ya lo preparan" | Cuántos avisos llegaron de verdad |
+| `amplio_tarde` | Quiso sumarle algo a su pedido cuando ya estaba en la plancha, y la página le dijo que no | **Si este número es alto, estás tocando "Empezar" muy rápido** — o la gente se acuerda tarde de lo que quería. Cada uno es alguien que terminó escribiéndote por WhatsApp |
+| `aviso_entregado_recibido` | Le llegó al celular el aviso de "pedido entregado" | Cuántos clientes tenían los avisos activados hasta el final |
+| `vio_gracias_entrega` | Vio el cartel de "¡Gracias por tu compra!" con la página delante | Cuántos siguen la página hasta que les entregas |
 | `instalo_app` | El celular confirma que quedó instalada | Cuántos clientes vuelven por el icono y no por Google |
 | `instalar_si` / `instalar_no` | Acepta o rechaza el aviso de instalar | Si `instalar_no` es muy alto, el aviso está molestando |
 | `clic_ver_menu_cerrado` | Con el local cerrado, toca "Ver el menú de todas formas" | Cuánta gente busca fuera del horario. **Si este número es alto, vale la pena abrir más temprano** |
@@ -687,6 +690,21 @@ Y anota en `CLAUDE.md` qué trae esa versión.
   corta a los 200 pedidos del día, y la cola pública no filtra ni un nombre.
 - **La lógica del servidor** con un almacén KV falso: turnos, recálculo del
   total, corte de 5 horas, borrado de los sábados y conteo de operaciones.
+
+**Revisión final del 22 de septiembre:**
+
+- **Todas las ventanas que se abren encima, en 11 celulares y tabletas de pie
+  y acostados — 110 estados, cero fallos.** El formulario, "ya tienes un
+  pedido" en sus dos versiones, el turno, el gracias con confeti, el
+  seguimiento, el panel con tarjetas, la ventana de borrar y el modo cocina.
+  En cada uno: que cada botón se pueda alcanzar, que nada lo tape, que mida lo
+  que tiene que medir para el dedo, y que la letra se pueda leer.
+- **Las 7 páginas otra vez en los 26 aparatos, de pie y acostados — 364
+  pantallas, cero fallos.**
+- **Limpieza de lo viejo:** un estilo que ya nadie usaba, una regla de
+  impresión que apuntaba a él (por eso "AGREGÓ ALGO" salía en color al imprimir
+  el panel), dos comentarios del código que decían algo que dejó de ser cierto,
+  y los documentos al día — este README decía 14 eventos de Analytics y son 18.
 
 **Del 21 de septiembre por la tarde**, con los cuatro arreglos que pidió JX:
 

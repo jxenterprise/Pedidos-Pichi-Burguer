@@ -42,6 +42,14 @@ copias de respaldo en otros formatos.
 **Única excepción técnica**: `favicon` (`.ico`/`.png`/`.svg`) y
 `apple-touch-icon.png`, porque ningún navegador soporta favicons en WebP.
 
+⚠ **Y los íconos de la app** (`img/icon-192.png` e `img/icon-512.png`), que
+faltaban en esta lista — se notó en la revisión del 22 de septiembre de 2026.
+Los pide `site.webmanifest` para **instalar la página como app**, y el 192
+además es el ícono de las notificaciones al celular. Hay Android que no
+aceptan WebP ahí, y si el ícono falla la instalación falla **sin avisar**.
+Quedan en PNG a propósito. `icon-180.png` es el `apple-touch-icon`. **No
+"arreglarlos" pasándolos a WebP.**
+
 ---
 
 ## 🎨 REGLA DE DISEÑO — TODO LO NUEVO USA ESTE MISMO DISEÑO
@@ -147,7 +155,7 @@ Registro de todo el código. **Se suma, nunca se borra lo anterior.**
 
 | Archivo | Qué contiene |
 |---|---|
-| `index.html` | Página del cliente. **Cortina de cerrado (`#pantallaCerrado`)**, barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, bebidas, cómo pedir, preguntas frecuentes (`#preguntas`), horarios, contacto, mapa condicionado, footer, barra del carrito, ventana modal (formulario + pantalla de turno) y banner de cookies |
+| `index.html` | Página del cliente. **Cortina de cerrado (`#pantallaCerrado`)**, barra fija con semáforo, portada con logo, menú de categorías deslizable, los 15 platos, bebidas, cómo pedir, preguntas frecuentes (`#preguntas`), horarios, contacto, mapa condicionado, footer, barra del carrito, ventana modal (formulario + **"ya tienes un pedido"** en sus dos versiones, `#encursoPuede` / `#encursoNoPuede` + pantalla de turno), **cartel de gracias al entregar (`#graciasEntrega`)**, aviso de instalar y banner de cookies |
 | `panel.html` | Panel del vendedor. Pantalla de clave → pestañas Activos / Historial, buscador, **modo cocina (`#cocina`)** y **ventana de confirmar (`#modalConfirmar`)** |
 | `404.html` | Error con el diseño del sitio |
 | `privacidad.html` | Ley 1581 de 2012 (datos personales) |
@@ -157,7 +165,7 @@ Registro de todo el código. **Se suma, nunca se borra lo anterior.**
 | `css/styles.css` | **Todo** el CSS. 25 variables en `:root`, ~250 bloques comentados |
 | `js/config.js` | **El archivo que JX toca para cambiar cosas.** Negocio, horarios, entrega, pagos, modo del sistema y analytics |
 | `js/almacen.js` | Capa de datos intercambiable: habla con la nube o con el propio aparato |
-| `js/script.js` | Página del cliente: semáforo, horarios, carrito, pedido, WhatsApp, categorías, cookies, **seguimiento del pedido en curso (bloque 4quater)** y **aviso al celular** |
+| `js/script.js` | Página del cliente: semáforo, horarios, carrito, pedido, WhatsApp, categorías, cookies, **seguimiento del pedido en curso (bloque 4quater)**, **aviso al celular**, **ampliar el pedido / "ya está en la cocina"** y **el gracias con confeti al entregar** (`celebrarEntrega()`, decisión 52) |
 | `js/panel.js` | Panel del vendedor. El **bloque 0** es la ventana de confirmar que reemplaza al `confirm()` del navegador — ver decisión 31 |
 | `functions/api/pedidos.js` | Cloudflare Pages Function: crear, listar, marcar entregado, cambiar estado, deshacer entregado, cola pública de turnos, borrar un pedido, borrar historial y limpieza semanal |
 | `_headers` | `no-cache` en CSS/JS, `no-store` en `/api/`, cabeceras de seguridad, `noindex` en el panel |
@@ -478,6 +486,8 @@ prueba cuando existían.
 - El botón va **de último y con aspecto de icono** (🗑, 44×44 px, gris). Borrar
   no tiene vuelta atrás y no puede competir por el dedo con "Entregado", que es
   la acción de todos los días. Solo se pone rojo al pasar el cursor.
+  > ⚠ **Actualizado — ya no es gris.** JX lo probó en el mostrador y no se veía.
+  > Hoy es rojo y dice "Borrar". Ver decisión 29.
 - La confirmación dice **el turno Y el nombre**: en una lista de tarjetas
   parecidas, un "¿seguro?" pelado no evita que se borre la equivocada.
 - Si el pedido era el último de su día, el documento `dia:AAAA-MM-DD` se borra
@@ -547,11 +557,17 @@ Vive en `localStorage`: es de ese aparato y no viaja a ningún servidor.
 la pantalla de su turno, le dice *"Faltan 2 antes que tú · están preparando el
 turno 8"*. Le quita la ansiedad y le quita llamadas al local.
 ⚠ **Esa acción NO lleva clave**, así que devuelve **solo números**: turno en
-preparación, cuántos en cola y último entregado. Si devolviera la lista de
+preparación, cuántos en cola y último entregado.
+(Hoy son más campos —`siguiente`, `pendientes`, `entregados`, `turnoDelDia`—
+pero la regla no cambió: **todos son números o listas de números**. Ver
+decisiones 41 y 52.) Si devolviera la lista de
 pedidos, cualquiera sacaría los nombres y celulares de todos los clientes del
 día con una sola petición. **Nunca agregarle campos sin pensar en eso.**
 Pregunta cada 30 s, solo con la pantalla abierta y visible, y se corta sola a
 los 45 minutos.
+> ⚠ **Actualizado — ya no es así.** Sigue preguntando con la página en segundo
+> plano (es justo cuando hacen falta los avisos) y se corta a los **90** minutos,
+> al cerrar la ventana o al entregarle el pedido. Ver decisiones 39 y 52.
 
 **Instalar la app** (`#avisoInstalar`). Son dos mundos: Android avisa con
 `beforeinstallprompt` y ahí el botón instala de verdad; iPhone no tiene ese
@@ -717,6 +733,11 @@ IA permitidos a propósito), las cabeceras de seguridad de `_headers`, el
 
 **34. Los 9 eventos de Analytics ya están puestos; solo falta el ID.**
 
+> ⚠ **Actualizado el 22 de sept.: hoy son 18.** Se sumaron los del seguimiento,
+> el aviso al celular, la ampliación del pedido y el gracias al entregar. La
+> tabla completa, con para qué sirve leer cada uno, está en el README. La regla
+> de abajo sigue igual: **ninguno manda nombre ni teléfono**.
+
 `pedido_enviado` (con el valor del pedido), `clic_whatsapp`,
 `clic_whatsapp_cerrado`, `clic_telefono`, `clic_mapa`, `repitio_pedido`,
 `instalo_app`, `instalar_si` / `instalar_no` y `clic_ver_menu_cerrado`.
@@ -869,6 +890,9 @@ consultar.**
    del turno 4 de OTRA persona creyendo que es el suyo. Probado.
 3. Y cuando `ultimoEntregado` alcanza su turno, el cartel se quita solo: ya lo
    recogió.
+   > ⚠ **Actualizado — esto estaba MAL.** El vendedor no entrega en orden, y
+   > comparar con el máximo le borraba el seguimiento a quien seguía esperando.
+   > Hoy se mira si su turno está en la lista `entregados`. Ver decisión 52.
 
 **⚠ Se quitó el `if (document.hidden) return` de la cola.** Ahorraba lecturas
 pero rompía justo lo que el cliente venía a buscar: con la página en segundo
@@ -2303,6 +2327,88 @@ que falla por décimas es un informe que miente.*
 **Sin subir la versión**, por decisión de JX y con razón: la versión sirve para
 detectar una actualización que no llegó, y este cambio **se ve solo** en el pie
 de las 7 páginas. Sigue en **`v1.2`**.
+
+### martes 22 de septiembre de 2026 · Revisión final: responsive completo y limpieza de lo viejo
+
+JX: *"busca de nuevo en todas las páginas algún error de responsive o algún
+código viejo o algo viejo y que quede bien impecable"*.
+
+**1. Responsive — lo que la revisión de ayer NO miraba.** La de 26 aparatos
+revisa **la página quieta**. Pero los fallos de un sistema de pedidos se
+esconden en **lo que se abre encima**. Se armó `estados.js`, que abre cada
+ventana de verdad (con el servidor simulado) y en cada control visible
+comprueba que **se pueda alcanzar**, que **no lo tape nada** (`elementFromPoint`
+en su centro) y que mida **44px**; y en la pantalla, **sin scroll lateral,
+letra ≥ 11px y campos ≥ 16px** (si no, el iPhone hace zoom al escribir).
+
+Los 10 estados: barra del carrito con cookies · formulario · "ya tienes un
+pedido" (se puede) · "ya está en la cocina" · pantalla del turno · gracias con
+confeti · seguimiento en la portada · **panel** con tarjetas en todos los
+estados (en plancha, ampliado, ampliado en plancha, nombre de 36 letras sin
+espacios) · ventana de borrar · modo cocina.
+
+**11 perfiles** (iPhone SE de pie y acostado, Galaxy S III, S9+, S8 acostado,
+Pixel 7, iPhone 12 Mini, 14 Pro Max de pie y acostado, iPad Mini, Tab S4
+acostado): **110 estados ✅ / 0 ❌.** Más la de ayer otra vez en los dos
+sentidos: **26 aparatos × 7 páginas × 2 = 364 pantallas ✅ / 0 ❌.**
+
+⚠ **Antes de creerle a la batería se comprobó que sabe fallar**: se le
+sembraron a propósito un botón de 36px, un campo de 14px y una capa tapando la
+pantalla, y cantó los tres. (La primera versión del control tenía la capa mal
+puesta y no cantó el tercero — el fallo era del control, no de la batería.)
+
+⚠ **Un falso positivo, descartado:** la primera pasada dio **todos** los botones
+del panel como "inalcanzables". Era el arnés: el sitio tiene `scroll-behavior:
+smooth` y se medía a los 25 ms, con la página todavía desplazándose. Se mide
+ahora con `behavior: 'instant'`.
+
+**2. Código viejo — lo que salió:**
+
+| Qué | Dónde | Qué se hizo |
+|---|---|---|
+| `.pedido__estado`, una píldora que **ningún código pinta** | `css/styles.css` | Borrada. Se encontró cruzando las 300+ clases del CSS contra todo el HTML y el JS |
+| La regla de **impresión** nombraba esa clase muerta en vez de `.pedido__ampliado` | `css/styles.css` | Corregida: al imprimir el panel, la etiqueta "AGREGÓ ALGO" **salía en color** sobre el papel |
+| Comentario: *"la cola solo consulta con la pantalla visible; al irse a otra aplicación, para"* | `js/script.js` | **Era falso desde la decisión 39.** Reescrito con cuándo para de verdad |
+| Comentario: *"se corta a los 45 minutos"* | `js/script.js` | Son **90** desde la decisión 39 |
+
+**Lo que se buscó y salió limpio:** ningún ID que el JS busque sin existir,
+ninguna función declarada que nadie llame, ningún `confirm`/`alert`/`prompt`
+nativo (el único `.prompt()` es el de instalar la app, que es otra cosa),
+ningún `console.log` ni `debugger`, ningún ID repetido en una misma página,
+ningún resto visible de "Llamar", "prueba", "imprimir" ni "Company".
+
+**3. Documentos viejos — lo que decía cosas que ya no eran ciertas:**
+- **README:** decía **14 eventos** de Analytics; el código manda **18**. Faltaban
+  `amplio_tarde`, `aviso_entregado_recibido` y `vio_gracias_entrega`, con su
+  explicación de para qué sirve leerlos.
+- **`llms.txt`:** no decía que cada celular tiene un turno a la vez, ni que se
+  le puede sumar algo mientras no esté en la cocina, ni lo de pedir para otra
+  persona desde su propio celular — justo lo que una IA necesita para contestar
+  *"¿puedo agregarle algo a mi pedido?"*. Agregado, con la fecha al día.
+- **`sitemap.xml`:** `lastmod` al 22.
+- **Este archivo:** cinco decisiones decían algo que otra posterior cambió (25,
+  28 dos veces, 34 y 39). **No se reescribieron** —la regla es sumar, no
+  borrar—: a cada una se le puso una nota *"⚠ Actualizado"* que apunta a la
+  decisión que la cambió. La del punto 3 de la 39 decía una cosa que **estaba
+  mal**, no solo vieja.
+- **Este archivo, regla de imágenes:** le faltaban los íconos de la app. Ver
+  arriba.
+- **Mapa del código:** no nombraba el gracias ni las dos versiones de "ya tienes
+  un pedido". Agregado.
+
+**Un arnés más con la fecha escrita a mano:** `seo.js` comprobaba que el
+sitemap dijera `2026-09-21` literal, y al ponerlo al día (22) lo dio por malo.
+Es la misma trampa que `version.js` ayer. Ahora comprueba la regla de verdad:
+el `lastmod` no puede ser más viejo que el último cambio de contenido, ni estar
+en el futuro. **Tercera vez en dos días: un valor esperado escrito a mano es una
+prueba con fecha de vencimiento.**
+
+⚠ **REGLA QUE SALE DE AQUÍ:** una revisión responsive que solo mira la página
+quieta revisa la mitad. En un sistema de pedidos **lo que el cliente toca vive
+en las ventanas**, y esas solo se ven abriéndolas.
+
+**Estado final: 637 comprobaciones funcionales en 48 baterías + 110 estados de
+ventanas + 364 pantallas — cero fallos.**
 
 ---
 

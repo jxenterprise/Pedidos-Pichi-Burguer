@@ -774,8 +774,10 @@
      que el vendedor no está cocinando.
      Qué pide al servidor: SOLO números (ver la acción 'turnos'). Ni un nombre
      ni un teléfono de nadie, porque esa consulta no lleva clave.
-     Cuánto gasta: 1 lectura de KV cada 30 segundos, y solo mientras la pantalla
-     está abierta y visible. Al cerrarla o al irse a otra aplicación, para.
+     Cuánto gasta: 1 lectura de KV cada 30 segundos mientras la ventana del
+     turno está abierta — TAMBIÉN con la página en segundo plano, porque ahí es
+     cuando hacen falta los avisos (decisión 39). Para al cerrar la ventana, al
+     entregarle el pedido (decisión 52) o a los COLA_MAX_MINUTOS.
      ========================================================================== */
 
   var relojCola = null;
@@ -1005,7 +1007,7 @@
 
   function pintarCola() {
     // Si el cliente dejó la pantalla abierta y se fue, no tiene sentido seguir
-    // gastando lecturas: se corta a los 45 minutos.
+    // gastando lecturas: se corta a los COLA_MAX_MINUTOS (90; antes eran 45).
     if (Date.now() - colaDesde > COLA_MAX_MINUTOS * 60000) { pararCola(); return; }
     /* ⚠ ANTES aquí había un "if (document.hidden) return", que ahorraba
        lecturas pero rompía justo lo que el cliente vino a buscar: con la

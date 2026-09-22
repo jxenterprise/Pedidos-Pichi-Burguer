@@ -31,12 +31,14 @@
   el sistema termina de montarse la página acepta pedidos a cualquier hora.
 
 ## Notas
-- Última actualización de este archivo: 21 de septiembre de 2026.
+- Última actualización de este archivo: 22 de septiembre de 2026.
 - Los precios están en pesos colombianos y son los del menú del local.
 - El sitio no procesa pagos: el pago se hace en el local o por el medio acordado por WhatsApp.
 - Al enviar el pedido se entrega un número de turno; los pedidos se preparan por orden de llegada.
 - El cliente puede ver en vivo qué turno se está preparando y cuántos faltan antes del suyo.
 - Si vuelve a entrar a la página, ve de una vez cómo va su pedido: su turno y cuántos faltan, aunque haya cerrado la pestaña.
-- Puede pedir que su celular le avise cuando empiecen a prepararlo.
+- Puede pedir que su celular le avise cuando empiecen a prepararlo y cuando se lo entreguen.
+- Cada celular tiene un turno a la vez. Si al cliente se le olvidó algo, puede sumarlo a su mismo turno mientras todavía no hayan empezado a prepararlo; una vez en la cocina, se agrega escribiendo por WhatsApp.
+- Si el pedido es para otra persona, lo correcto es que esa persona pida desde su propio celular: así recibe su propio turno.
 - La página se puede guardar como aplicación en el celular (es la misma web, no hay nada que descargar).
 - Sitio desarrollado por JX Enterprise.
