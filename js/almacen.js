@@ -357,8 +357,17 @@
 
     /**
      * Lista los pedidos para el panel del vendedor.
-     * Devuelve { activos: [], historial: [] } ya separados por el servidor
-     * según las 5 horas configuradas.
+     * Devuelve { activos: [], historial: [], proximaLimpieza } ya separados por
+     * el servidor según las 5 horas configuradas.
+     *
+     * ⚠ proximaLimpieza SE TIENE QUE REENVIAR. Esta función no devuelve lo que
+     * contestó el servidor: arma un objeto nuevo campo por campo. Por eso, si
+     * aquí no se nombra un campo, se pierde aunque el servidor sí lo mande.
+     * Eso le pasaba a proximaLimpieza: functions/api/pedidos.js la calcula y
+     * js/panel.js la escribe en la nota de abajo ("Próximo borrado: …"), pero
+     * llegaba vacía y el vendedor nunca veía la fecha. Si algún día el servidor
+     * devuelve un campo nuevo que el panel necesite, hay que agregarlo aquí.
+     *
      * @param {string} clave  clave del panel
      */
     listarPedidos: function (clave) {
@@ -366,7 +375,12 @@
         return Promise.resolve(separarLocal(leerLocal().pedidos));
       }
       return llamarApi('listar', {}, clave).then(function (r) {
-        return { activos: r.activos, historial: r.historial, modo: 'nube' };
+        return {
+          activos: r.activos,
+          historial: r.historial,
+          proximaLimpieza: r.proximaLimpieza,
+          modo: 'nube'
+        };
       });
     },
 

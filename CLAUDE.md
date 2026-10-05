@@ -183,8 +183,33 @@ dia:AAAA-MM-DD  →  { turno: N, pedidos: [ … ] }
 indice:dias     →  ["2026-09-06", …]
 meta:limpieza   →  timestamp del último borrado sabatino
 ```
-Refrescar el panel = **1 lectura**. Crear un pedido = 1 lectura + 1 escritura.
-**Cero operaciones de listado.** Con 60 pedidos diarios se usan ~120 escrituras.
+**Cero operaciones de listado**, que es el cupo que primero se agota (solo 1.000
+al día). Ese es el logro de este diseño, y sigue en pie.
+
+Coste real **medido** (oct. 2026, contra este mismo código, con una semana
+guardada, que es el peor caso):
+
+| Operación | Lecturas | Escrituras |
+|---|---|---|
+| Refrescar el panel | **8** (`meta:limpieza` + `indice:dias` + un documento por día) | 0 |
+| Crear un pedido | 3 | 1 |
+
+⚠ **Antes aquí decía "1 lectura" y era falso**: subestimaba el consumo 8 veces.
+El número importa porque de él depende cuántas pantallas puede tener el local.
+Una jornada de 12 h refrescando cada 15 s gasta **~23.000 lecturas por CADA
+aparato** con el panel abierto, de las 100.000 gratuitas:
+
+| Aparatos con el panel abierto | Lecturas al día | Cupo usado |
+|---|---|---|
+| 1 | ~23.000 | 23% |
+| 2 | ~46.000 | 46% |
+| 3 | ~69.000 | 69% |
+| 4 | ~92.000 | 92% ⚠ al límite |
+
+👉 Si el local necesita más pantallas, **no se toca el almacenamiento**: se sube
+`sistema.refrescoPanelSegundos` en `js/config.js` (a 30 s alcanza para el doble
+de aparatos). Es una sola línea.
+
 ⚠ **No cambiar esto a una clave por pedido.** Parece más ordenado y rompe el cupo.
 
 **2. Limpieza semanal "al pasar", no con cron.**
@@ -2582,6 +2607,58 @@ haría que Google empiece de cero.
 **Le falta a JX, en Search Console:** quitar la fila repetida, pedir la
 indexación el 23 de septiembre, y en 1–3 días comprobar que el sitemap diga
 *Correcto*.
+
+### domingo 4 de octubre de 2026, 9:46 p. m. · El panel ya dice cuándo se borra el historial
+
+**Un bug real, corregido.** El panel nunca mostraba la frase *"Próximo borrado:
+…"*. El dato existía y viajaba bien: `functions/api/pedidos.js` lo calcula y lo
+manda como `proximaLimpieza`, y `js/panel.js` lo escribe en la nota de abajo.
+Se perdía en medio: `js/almacen.js` → `listarPedidos()` **no devuelve lo que
+contestó el servidor**, arma un objeto nuevo campo por campo, y ese campo no
+estaba nombrado. Resultado: el vendedor leía la nota a medias y nunca sabía qué
+sábado se le vacía el historial.
+
+Arreglado reenviando el campo, con un aviso en el comentario de la función:
+⚠ si algún día el servidor devuelve un dato nuevo que el panel necesite, hay que
+nombrarlo ahí o se pierde igual.
+
+**Cómo se comprobó** (no a ojo): se levantaron dos copias del sitio, una con el
+código de antes y otra con el arreglo, contra una API de prueba que responde
+`proximaLimpieza: "2026-10-10"`. En navegador real:
+- **Antes** → nota: *"…se borra solo los sábados a las 7:00 a. m."* (y ahí cortaba)
+- **Después** → nota: *"…a las 7:00 a. m. **Próximo borrado: 2026-10-10.**"*
+
+Y regresión completa sobre el código ya corregido: **23 pruebas en navegador**
+(semáforo, menú, carrito, pedido completo hasta el turno, mensaje de WhatsApp,
+madrugada con el interruptor de 24 h, consentimiento de cookies y mapa, panel) y
+**24 pruebas de la lógica del servidor** con un KV falso. Cero fallos, cero
+errores de JavaScript.
+
+**Dos datos de la documentación que eran falsos y se corrigieron:**
+
+1. **Decía que refrescar el panel costaba "1 lectura" de KV. Medido contra este
+   mismo código: son 8.** Subestimaba el consumo 8 veces, y de ese número
+   depende cuántas pantallas puede tener el local. Se reemplazó por la tabla
+   real (decisión 1), con el aviso de que **4 aparatos a la vez llegan al 92%
+   del cupo gratuito** y que la salida es subir `refrescoPanelSegundos`, no
+   tocar el almacenamiento.
+2. **`index.html` decía que "Google las muestra desplegables"** sobre el marcado
+   `FAQPage`. Google retiró los resultados enriquecidos de FAQ el **7 de mayo de
+   2026**. El marcado se conserva (sigue siendo válido y lo leen los bots de IA),
+   pero el comentario ya no engaña a quien retome el proyecto.
+
+**Nota de historia:** esto venía de una auditoría del 16 de septiembre que quedó
+en un PR aparte. En las dos semanas siguientes `main` avanzó 28 commits y
+resolvió por su cuenta 4 de los 5 hallazgos (la sección de preguntas frecuentes,
+el atrapado del foco en la ventana del pedido, el botón "Actualizar" fuera del
+`role="tablist"` y el área táctil de los enlaces legales). Aquel PR quedó
+obsoleto y se cerró; esto es lo único que seguía faltando.
+
+**Verificado en vivo el mismo día:** `pedidos-pichi-burguer-ctg.pages.dev`
+responde 200, el panel redirige bien, las cabeceras de seguridad están puestas,
+los 15 platos llegan escritos en el HTML servido, y la API contesta 401 sin
+clave — lo que confirma que el espacio KV está enlazado y `PANEL_CLAVE`
+configurada en Cloudflare (si faltara alguna daría 503).
 
 ---
 
